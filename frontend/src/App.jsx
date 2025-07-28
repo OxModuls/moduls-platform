@@ -8,8 +8,24 @@ import CreateAgent from "./pages/create-agent";
 import { WagmiProvider } from "wagmi";
 import { config } from "./wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import WalletConnectModal from "./components/wallet-connect-modal";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      onError: (error) => {
+        console.log("Global Error Logged", error);
+      },
+    },
+  },
+
+});
+
+
+
 
 function App() {
   return (
@@ -23,6 +39,7 @@ function App() {
               <Route path="/create" element={<CreateAgent />} />
             </Route>
           </Routes>
+          <WalletConnectModal />
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

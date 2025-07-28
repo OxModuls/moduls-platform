@@ -1,8 +1,82 @@
 import { ArrowUpRight, Brain, Info } from "lucide-react";
 import { GiNinjaHead } from "react-icons/gi";
 import { Link } from "react-router";
+import {  keepPreviousData, useQueries } from "@tanstack/react-query";
+import { createFetcher } from "../lib/fetcher";
+import config from "../shared/config";
+import ordinal from "ordinal";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useWalletModalStore } from "../shared/store";
+
+// AgentCard component for consistent agent card UI
+function AgentCard({ agent }) {
+  return (
+    <div className="py-3 px-4 bg-primary-foreground border rounded-lg flex gap-3 items-center">
+      <div className="size-10 bg-accent rounded-lg flex items-center justify-center">
+        <span className="h-7 text-xl text-center font-extrabold">
+          {agent.icon || agent.name?.[0] || 'A'}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-accent truncate">{agent.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-muted-foreground truncate">{agent.description}</span>
+        </div>
+      </div>
+      <div className="flex items-center">
+        <Link
+          to={agent.link || `/agent/${agent.id}`}
+          className="text-xs hover:text-accent flex items-center gap-0.5 transition-colors duration-500"
+        >
+          View
+          <ArrowUpRight className="size-3" />
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 const Home = () => {
+  const { address, isConnected, connector: activeConnector } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+
+
+
+    const [platformStatResult, myAgentsResult] = useQueries({
+    queries : [{
+    queryKey : [config.endpoints.stats],
+    queryFn :  createFetcher({
+      url : config.endpoints.stats,
+      method : "GET",
+    }),
+    placeholderData : keepPreviousData,
+    refetchInterval : 1000 * 60,
+  },
+{
+
+  queryKey : [config.endpoints.agentsMine],
+  queryFn :  createFetcher({
+      url : config.endpoints.agentsMine,
+      method : "GET",
+  }),
+  placeholderData : keepPreviousData,
+  enabled: isConnected,
+  refetchInterval : 1000 * 60,
+
+
+
+}
+
+]})
+
+
+const {data : platformStats, isPending : isPlatformStatsPending} = platformStatResult;
+const {data : myAgents, isLoading : isMyAgentsLoading} = myAgentsResult;
+
+console.log(myAgents);
+
+
   return (
     <div className="px-6 pt-4 pb-12 flex flex-col items-center">
       <div className="max-w-lg mx-auto">
@@ -22,8 +96,12 @@ const Home = () => {
             Launch your Modul
           </h2>
           <p className="mt-2 text-center">
-            Deploy agents instantly with modular on-chain logic. No coding
-            required.
+
+            {
+              platformStats?.activeUsersCount > 0 ? `Deploy agents instantly with modular on-chain logic. Become the ${ordinal(platformStats?.activeUsersCount)} user to launch your own Modul` : 'Deploy agents instantly with modular on-chain logic.'
+            }{" "}
+            No coding required.
+
           </p>
           <div className="mt-4 px-4 py-4 w-full border rounded-2xl flex flex-col items-center">
             <Link
@@ -36,31 +114,41 @@ const Home = () => {
                 <ArrowUpRight className="size-5" />
               </div>
             </Link>
-            <div className="mt-4 py-3 px-4 w-full bg-primary-foreground border rounded-lg flex gap-3">
-              <div className="size-10 bg-accent rounded-lg flex items-center justify-center">
-                <span className="h-7 text-xl text-center font-extrabold">
-                  M
-                </span>
-              </div>
-              <div className="">
-                <p>Modul Agent</p>
-                <div className="flex items-center gap-2">
-                  <div className="size-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-gray-400">Official Agent</span>
+            {/* My Agents List */}
+            <div className="w-full mt-4">
+              <h3 className="text-lg font-semibold mb-2 ml-1">My Agents</h3>
+              {isMyAgentsLoading && !myAgents  ? (
+                <div className="h-16 w-full bg-accent/20 rounded-lg animate-pulse transition-opacity duration-500" />
+              ) : myAgents && myAgents.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {myAgents.map((agent) => (
+                    <AgentCard key={agent.id} agent={agent} />
+                  ))}
                 </div>
-              </div>
-              <div className="relative flex-1">
-                <div className="flex items-center gap-1 absolute bottom-0 right-0">
-                  <Link
-                    to={"/agent"}
-                    className="text-xs hover:text-accent flex items-center gap-0.5 transition-colors duration-500"
-                  >
-                    View
-                    <ArrowUpRight className="size-3" />
-                  </Link>
+              ) : (
+                <div className="py-4 px-4 bg-primary-foreground border-2 border-dashed border-accent/20 rounded-lg text-center text-muted-foreground">
+                  <span className="block font-semibold mb-1">
+                    {isConnected ? "No agents yet" : "Connect wallet first"}
+                  </span>
+                  <span className="text-xs">
+                    {isConnected 
+                      ? "You haven't launched any agents. Click \"Launch Agent\" to get started!"
+                      : "Connect your wallet to see your own agents"
+                    }
+                  </span>&nbsp;&nbsp;
+                  {!isConnected && (
+                    <button
+                      onClick={() => useWalletModalStore.getState().openWalletModal()}
+                      className="mt-2 text-xs text-accent hover:underline transition-colors duration-200 hover:cursor-pointer"
+                    >
+                      Connect Wallet
+                    </button>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
+            {/* End My Agents List */}
+            
           </div>
         </div>
         <div className="mt-8 w-full py-8 px-8 rounded-2xl shadow-l border flex items-start gap-4">
@@ -69,9 +157,17 @@ const Home = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold">Total Agents Created</h2>
-            <div className="ml-1 mt-2 text">
-              <p className="mt-2 text-accent text-4xl font-bold">1234</p>
-              <span className="mt-1 text-sm">Active Moduls</span>
+            <div className="ml-1 mt-2 text min-h-[56px]">
+              {isPlatformStatsPending ? (
+                <div className="h-10 w-full bg-accent/20 rounded-xl animate-pulse transition-opacity duration-500" />
+              ) : (
+                <>
+                  <p className="mt-2 text-accent text-4xl font-bold">
+                    {platformStats?.activeAgentsCount ?? '0'}
+                  </p>
+                  <span className="mt-1 text-sm">Active Moduls</span>
+                </>
+              )}
             </div>
           </div>
         </div>

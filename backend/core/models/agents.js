@@ -14,7 +14,6 @@ const agentModulEnum = [
 const agentStatusEnum = [
     "PENDING",
     "ACTIVE",
-    "READY",
     "INACTIVE",
 ]
 
@@ -86,14 +85,13 @@ const agentSchema = new mongoose.Schema({
     uniqueId: {
         type: String,
         required: true,
-        unique: true,
+
     },
 
 
     intentId: {
         type: Number,
         required: true,
-        unique: true,
         min: 1,
         max: 1000000000000
     },
@@ -115,7 +113,6 @@ const agentSchema = new mongoose.Schema({
     walletAddress: {
         type: String,
         required: true,
-        unique: true,
     },
 
 

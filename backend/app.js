@@ -1,8 +1,10 @@
 const express = require('express');
 const morgan = require('morgan');
+const cors = require('cors');
 const config = require('./config');
 const connectDB = require('./core/db');
 const usersRouter = require('./routes/users');
+const agentsRouter = require('./routes/agents');
 const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
@@ -18,7 +20,7 @@ app.set("port", config.port);
 
 // MIDDLEWARES
 
-if (config.isDev) {
+if (!config.isProd) {
     app.use(morgan('dev'));
 } else {
 
@@ -29,11 +31,18 @@ if (config.isDev) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(cors({
+    origin: config.allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+
+}));
+
 // ROUTES
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
 app.use('/api', usersRouter);
-
+app.use('/api', agentsRouter);
 
 // ERROR HANDLER
 app.use((err, req, res, next) => {
