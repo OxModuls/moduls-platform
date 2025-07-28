@@ -122,7 +122,7 @@ const agentSchema = new mongoose.Schema({
         required: true,
     },
 
-    module: {
+    modulType: {
         type: String,
         required: true,
         enum: agentModulEnum

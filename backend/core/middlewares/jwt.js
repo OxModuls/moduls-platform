@@ -4,6 +4,8 @@ const User = require('../models/users');
 
 const verifyToken = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
+
+
     if (!token) {
         return res.status(401).json({ message: 'You must be logged in to access this resource', error: 'No token provided' });
     }
@@ -23,12 +25,7 @@ const verifyToken = async (req, res, next) => {
             return res.status(401).json({ message: 'You must be logged in to access this resource', error: 'User is not active' });
         }
 
-        req.user = {
-            id: decoded.userId,
-            walletAddress: user.walletAddress,
-            walletAddressHash: user.walletAddressHash,
-        }
-
+        req.user = user;
         next();
 
     } catch (error) {

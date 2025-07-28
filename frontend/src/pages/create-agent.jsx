@@ -16,37 +16,49 @@ import { toast } from "sonner";
 import SeiIcon from "@/components/sei-icon";
 import { writeToClipboard } from "@/lib/utils";
 import { useAccount } from "wagmi";
+import { useAuth } from "../shared/hooks/useAuth";
+import { useNavigate } from "react-router";
+import config from "../shared/config";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
+import { useMutation } from "@tanstack/react-query";
+import { createFetcher } from "@/lib/fetcher";
 
 const modulTypes = [
   {
     name: "GameFi NPC",
     emoji: "🎮",
     description: "Onchain AI that responds in-chat and via gameplay.",
-    identifier: "gamefi-npc",
+    identifier: "GAME_FI_NPC",
+    value: "GAME_FI_NPC"
   },
   {
     name: "DeFAI",
     emoji: "🧠",
     description: "Scan, snipe execute — fully autonomous, fully aligned",
-    identifier: "defai",
+    identifier: "DEFI_AI",
+    value: "DEFI_AI"
   },
   {
     name: "Meme Token",
     emoji: "💸",
     description: "Mint, hype, moon — launch fully memetic, fully chaotic.",
-    identifier: "meme-token-launcher",
+    identifier: "MEME",
+    value: "MEME"
   },
   {
     name: "Oracle Feed",
     emoji: "🔮",
     description: "Pulls and verifies external data onchain.",
-    identifier: "oracle-feed",
+    identifier: "ORACLE_FEED",
+    value: "ORACLE_FEED"
   },
   {
     name: "Custom Logic",
     emoji: "🛠️",
     description: "Paste or upload a .goat.json to define custom behavior.",
-    identifier: "custom",
+    identifier: "CUSTOM",
+    value: "CUSTOM"
   },
 ];
 
@@ -58,60 +70,131 @@ const acceptedImageFormats = [
 ];
 const maxImageSize = 5 * 1024 * 1024;
 
+// Yup validation schema
+const validationSchema = Yup.object({
+  name: Yup.string()
+    .min(1, 'Agent name is required')
+    .max(100, 'Agent name must be less than 100 characters')
+    .required('Agent name is required'),
+  description: Yup.string()
+    .min(1, 'Agent description is required')
+    .max(1024, 'Agent description must be less than 1024 characters')
+    .required('Agent description is required'),
+  modulType: Yup.string()
+    .oneOf(['GAME_FI_NPC', 'DEFI_AI', 'MEME', 'ORACLE_FEED', 'CUSTOM'], 'Invalid module type')
+    .required('Module type is required'),
+  tokenSymbol: Yup.string()
+    .min(1, 'Token symbol is required')
+    .max(16, 'Token symbol must be less than 16 characters')
+    .required('Token symbol is required'),
+  totalSupply: Yup.number()
+    .min(1, 'Total supply must be greater than 0')
+    .required('Total supply is required'),
+  taxSettings: Yup.object({
+    totalTaxPercentage: Yup.number()
+      .min(1, 'Total tax percentage must be at least 1%')
+      .max(10, 'Total tax percentage must be at most 10%')
+      .required('Total tax percentage is required'),
+    agentWalletShare: Yup.number()
+      .min(1, 'Agent wallet share must be at least 1%')
+      .max(100, 'Agent wallet share must be at most 100%')
+      .required('Agent wallet share is required'),
+    devWalletShare: Yup.number()
+      .min(1, 'Dev wallet share must be at least 1%')
+      .max(100, 'Dev wallet share must be at most 100%')
+      .required('Dev wallet share is required'),
+  }),
+  agentImage: Yup.mixed().required('Please upload an image'),
+  prebuySettings: Yup.object({
+    slippage: Yup.number()
+      .min(1, 'Slippage must be at least 1%')
+      .max(100, 'Slippage must be at most 100%')
+      .required('Slippage is required'),
+    amountInWei: Yup.string().optional(),
+  }),
+  websiteUrl: Yup.string().url('Invalid website URL').optional(),
+  twitterUrl: Yup.string().url('Invalid Twitter URL').optional(),
+  telegramUrl: Yup.string().url('Invalid Telegram URL').optional(),
+});
+
+// Initial form values
+const initialValues = {
+  name: "",
+  description: "",
+  modulType: modulTypes[0].value,
+  tokenSymbol: "",
+  totalSupply: 1000000000,
+  agentImage: null,
+  taxSettings: {
+    totalTaxPercentage: 2,
+    agentWalletShare: 50,
+    devWalletShare: 50,
+  },
+  prebuySettings: {
+    slippage: 1,
+    amountInWei: "0",
+  },
+  websiteUrl: "",
+  twitterUrl: "",
+  telegramUrl: "",
+  tags: [],
+};
+
 const CreateAgent = () => {
   const { address } = useAccount();
+  const navigate = useNavigate();
+  const { getAccessToken } = useAuth();
   const pickModulDivRef = useRef(null);
   const taxSettingsDivRef = useRef(null);
   const prebuyDivRef = useRef(null);
 
   const [showSocialLinks, setShowSocialLinks] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState("");
-
-  const [formData, setFormData] = useState({
-    agentName: "",
-    agentPrompt: "",
-    modulType: modulTypes[0].identifier,
-    tokenSymbol: "",
-    totalSupply: 1_000_000_000,
-    tax: {
-      swap: 2,
-      agentWallet: 50,
-      devWallet: 50,
-    },
-    socialLinks: {
-      website: "",
-      x: "",
-      telegram: "",
-    },
-    prebuyAmount: 0,
-  });
   const [agentImageUrl, setAgentImageURL] = useState();
 
-  const agentWallet = "0x5A0bCC35AD8cE6CCB6980B8d0A6B23DDCA6";
+  
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "agentImage") {
-      const file = e.target.files[0];
-      if (
-        file &&
-        acceptedImageFormats.includes(file.type) &&
-        file.size < maxImageSize
-      ) {
-        setFormData((prev) => ({
-          ...prev,
-          agentImage: { ...file },
-        }));
-        setSelectedFileName(file.name);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setAgentImageURL(reader.result);
-        };
-        reader.readAsDataURL(file);
-        toast.success("Added image successfully");
+  // Create agent mutation
+  const createAgentMutation = useMutation({
+    mutationFn: async (formData) => {
+
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Please authenticate first');
       }
+   
+      // Use our normal createFetcher (which supports FormData)
+      const response = await createFetcher({
+        url: config.endpoints.agentsCreate,
+        method: 'POST',
+        body: formData,
+        auth: { accessToken: token },
+        formEncoded: true,
+      })();
+      return response;
+    },
+    onSuccess: (data) => {
+      toast.success('Agent created successfully!');
+      navigate('/');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create agent');
+    },
+  });
+
+  const handleImageUpload = (file, setFieldValue) => {
+    if (file && acceptedImageFormats.includes(file.type) && file.size < maxImageSize) {
+      setSelectedFileName(file.name);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAgentImageURL(reader.result);
+      };
+      reader.readAsDataURL(file);
+      toast.success("Added image successfully");
+      setFieldValue('agentImage', file);
+    } else {
+      toast.error("Invalid file type or size");
     }
-    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleDragOver = (e) => {
@@ -119,31 +202,53 @@ const CreateAgent = () => {
     e.stopPropagation();
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e, setFieldValue) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (
-        file &&
-        acceptedImageFormats.includes(file.type) &&
-        file.size < maxImageSize
-      ) {
-        setFormData((prev) => ({ ...prev, agentImage: file }));
-        setSelectedFileName(file.name);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setAgentImageURL(reader.result);
-        };
-        reader.readAsDataURL(file);
-        toast.success("Added image successfully");
-      }
+      handleImageUpload(e.dataTransfer.files[0], setFieldValue);
     }
   };
 
-  const submitForm = (e) => {
-    e.preventDefault();
-  };
+
+
+  async function handleSubmit(values){
+
+
+    
+    // Prepare the data object
+    const agentData = {
+      name: values.name,
+      description: values.description,
+      modulType: values.modulType,
+      tokenSymbol: values.tokenSymbol,
+      totalSupply: values.totalSupply,
+      totalTaxPercentage: values.taxSettings.totalTaxPercentage,
+      agentWalletShare: values.taxSettings.agentWalletShare,
+      devWalletShare: values.taxSettings.devWalletShare,
+      slippage: values.prebuySettings.slippage,
+      amountInWei: values.prebuySettings.amountInWei,
+      websiteUrl: values.websiteUrl,
+      twitterUrl: values.twitterUrl,
+      telegramUrl: values.telegramUrl,
+      tags: [modulTypes.find(modul => modul.value === values.modulType).name , values.name, values.tokenSymbol].join(','),
+      image: values.agentImage,
+    };
+    
+    // Create FormData and append all fields
+    const formData = new FormData();
+    Object.entries(agentData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        formData.append(key, value);
+      }
+    });
+    
+    console.log(agentData)
+   
+    createAgentMutation.mutate(formData);
+
+
+  }
 
   return (
     <div className="px-6 pt-4 pb-12 flex flex-col">
@@ -154,463 +259,444 @@ const CreateAgent = () => {
             Plug logic into the chain. Give it a name. Let it cook.
           </p>
         </div>
-        <form onSubmit={submitForm} className="">
-          <div className="flex flex-col gap-5 mt-4 px-4 py-6 border rounded-xl">
-            <div className="ml-1">
-              <h2 className="text-xl font-semibold">Agent Identity</h2>
-              <p className="text-muted-foreground">
-                Give your agent a face and identity.
-              </p>
-            </div>
-            <div className="flex flex-col md:flex-row gap-5">
-              <div className="flex-1">
-                <label htmlFor="agent-name" className="ml-1">
-                  Agent Name
-                </label>
-                <Input
-                  id="agent-name"
-                  name="agentName"
-                  placeholder="Name your Agent. Go wild"
-                  className="mt-1"
-                  value={formData.agentName}
-                  onChange={handleFormChange}
-                />
-              </div>
-              <div className="flex-1">
-                <label htmlFor="token-symbol" className="ml-1">
-                  Token Symbol
-                </label>
-                <Input
-                  id="token-symbol"
-                  name="tokenSymbol"
-                  placeholder="Ticker for your token, like $MOD"
-                  className="mt-1"
-                  maxLength={5}
-                  value={formData.tokenSymbol}
-                  onChange={handleFormChange}
-                />
-              </div>
-            </div>
-            <div className="">
-              <label htmlFor="agent-prompt" className="ml-1">
-                Agent Description/Prompt
-              </label>
-              <Textarea
-                id="agent-prompt"
-                name="agentPrompt"
-                placeholder="A degen AI that hypes launches, roasts rugs, and protects LPs."
-                className="mt-2"
-                value={formData.agentPrompt}
-                onChange={handleFormChange}
-              />
-              <p className="ml-1 mt-1 text-xs text-muted-foreground">
-                Set the tone. Define the agent’s behavior or chat style.
-              </p>
-            </div>
-            <div>
-              <div className="ml-1 mt-5 flex items-center gap-2">
-                <Link className="size-4" />
-                <p>
-                  add social links{" "}
-                  <span className="text-muted-foreground">(optional)</span>
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowSocialLinks(!showSocialLinks)}
-                  className="cursor-pointer"
-                >
-                  <ChevronUp
-                    className={`size-4 ${showSocialLinks ? "rotate-180" : ""}`}
-                  />
-                </button>
-              </div>
-              <div
-                className={`mt-3 flex flex-col gap-5 ${showSocialLinks ? "hidden" : "flex"}`}
-              >
-                <div>
-                  <label htmlFor="website" className="ml-1">
-                    Website
-                  </label>
-                  <Input
-                    id="website"
-                    name="website"
-                    placeholder="Enter URL"
-                    className="mt-1"
-                    value={formData.socialLinks.website}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        socialLinks: {
-                          ...prev.socialLinks,
-                          website: e.target.value,
-                        },
-                      }));
-                    }}
-                  />
-                </div>
-                <div className="">
-                  <label htmlFor="x-url" className="ml-1">
-                    X
-                  </label>
-                  <Input
-                    id="x-url"
-                    name="x"
-                    placeholder="Enter URL"
-                    className="mt-1"
-                    value={formData.socialLinks.x}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        socialLinks: {
-                          ...prev.socialLinks,
-                          x: e.target.value,
-                        },
-                      }));
-                    }}
-                  />
-                </div>
-                <div className="">
-                  <label htmlFor="telegram" className="ml-1">
-                    Telegram
-                  </label>
-                  <Input
-                    id="telegram"
-                    name="telegram"
-                    placeholder="Enter URL"
-                    className="mt-1"
-                    value={formData.socialLinks.telegram}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        socialLinks: {
-                          ...prev.socialLinks,
-                          telegram: e.target.value,
-                        },
-                      }));
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="mt-10">
-              <label
-                htmlFor="agent-image"
-                className="h-64 border-2 border-dotted rounded-lg flex justify-center items-center"
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-              >
-                <div className="flex flex-col items-center">
-                  {formData.agentImage ? (
-                    <>
-                      <img
-                        src={agentImageUrl}
-                        alt="agent image"
-                        className="size-24 object-cover"
-                      />
-                      <p className="mt-2">selected file: {selectedFileName}</p>
-                      <span className="font-light">tap/click to change</span>
-                    </>
-                  ) : (
-                    <>
-                      <Image className="size-10" />
-                      <p className="mt-2">select an image to upload</p>
-                      <span className="font-light">or drag and drop here</span>
-                    </>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  id="agent-image"
-                  name="agentImage"
-                  className="sr-only"
-                  onChange={handleFormChange}
-                />
-              </label>
-              <div className="mt-5 ml-2">
-                <div className="flex items-center gap-2">
-                  <File className="size-5" />
-                  <h3 className="font-semibold">File size and type</h3>
-                </div>
-                <ul className="mt-1 ml-1 list-disc list-inside text-sm font-light">
-                  <li>Max. size 5MB.</li>
-                  <li>JPG, GIF, and PNG formats.</li>
-                </ul>
-              </div>
-            </div>
-            <div className="">
-              <label htmlFor="total-supply" className="ml-1">
-                Total Supply
-              </label>
-              <Input
-                id="total-supply"
-                placeholder="Fixed supply baked in at launch"
-                className="mt-1"
-                value={"1B"}
-                disabled
-              />
-            </div>
-          </div>
-          <div
-            ref={taxSettingsDivRef}
-            className="flex flex-col gap-5 mt-4 px-4 py-6 border rounded-xl"
-          >
-            <div className="ml-1">
-              <h2 className="text-xl font-semibold">Tax Settings</h2>
-              <p className="text-muted-foreground">
-                Fund your agent. Feed your dev. Or don't.
-              </p>
-            </div>
-            <div className="flex flex-col gap-y-5">
-              <div className="">
-                <label
-                  htmlFor="swap-tax"
-                  className="flex items-center justify-between"
-                >
-                  <p className="">Total Swap Tax (%)</p>
-                  <span className="text-sm">{formData.tax.swap}%</span>
-                </label>
-                <div className="mt-2 flex flex-col gap-1.5 items-center">
-                  <Slider
-                    className=""
-                    rangeClassName="dark:bg-accent"
-                    thumbClassName="dark:border-accent"
-                    min={2}
-                    max={10}
-                    step={0.5}
-                    value={[formData.tax.swap]}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        tax: { ...formData.tax, swap: value[0] },
-                      })
-                    }
-                    disabled
-                  />
-                  <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
-                    <span>2%</span>
-                    <span>10%</span>
-                  </div>
-                </div>
-                <p className="ml-1 mt-2 text-xs text-muted-foreground">
-                  Percentage fee taken on every swap.
-                </p>
-              </div>
-              <div className="">
-                <label
-                  htmlFor="agent-wallet"
-                  className="flex items-center justify-between"
-                >
-                  <p className="">Agent Wallet (%)</p>
-                  <span className="text-sm">{formData.tax.agentWallet}%</span>
-                </label>
-                <div className="mt-3 flex flex-col gap-1.5 items-center">
-                  <Slider
-                    className="mt-2"
-                    rangeClassName="dark:bg-accent"
-                    thumbClassName="dark:border-accent"
-                    min={1}
-                    max={100}
-                    step={1}
-                    value={[formData.tax.agentWallet]}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        tax: {
-                          ...formData.tax,
-                          agentWallet: value[0],
-                          devWallet: 100 - value[0],
-                        },
-                      })
-                    }
-                    disabled
-                  />
-                  <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
-                    <span>1%</span>
-                    <span>100%</span>
-                  </div>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Funds your agent's operations and memory.
-                </p>
-              </div>
-              <div className="">
-                <label
-                  htmlFor="agent-wallet"
-                  className="flex items-center justify-between"
-                >
-                  <p className="">
-                    Dev Wallet (%){" "}
-                    <span className="text-muted-foreground">(optional)</span>
+        
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={handleSubmit}
+        >
+          {({ values, setFieldValue,  isValid }) => (
+
+         
+
+            <Form className="">
+            
+              <div className="flex flex-col gap-5 mt-4 px-4 py-6 border rounded-xl">
+                <div className="ml-1">
+                  <h2 className="text-xl font-semibold">Agent Identity</h2>
+                  <p className="text-muted-foreground">
+                    Give your agent a face and identity.
                   </p>
-                  <span className="text-sm">{formData.tax.devWallet}%</span>
-                </label>
-                <div className="mt-3 flex flex-col gap-1.5 items-center">
-                  <Slider
-                    className=""
-                    rangeClassName="dark:bg-accent"
-                    thumbClassName="dark:border-accent"
-                    min={0}
-                    max={99}
-                    step={1}
-                    value={[formData.tax.devWallet]}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        tax: {
-                          ...formData.tax,
-                          devWallet: value[0],
-                          agentWallet: 100 - value[0],
-                        },
-                      })
-                    }
-                    disabled
-                  />
-                  <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
-                    <span>0%</span>
-                    <span>99%</span>
+                </div>
+                <div className="flex flex-col md:flex-row gap-5">
+                  <div className="flex-1">
+                    <label htmlFor="agent-name" className="ml-1">
+                      Agent Name
+                    </label>
+                    <Field
+                      as={Input}
+                      id="agent-name"
+                      name="name"
+                      placeholder="Name your Agent. Go wild"
+                      className="mt-1"
+                    />
+                    <ErrorMessage name="name" component="div" className="text-red-500 text-sm mt-1" />
+                  </div>
+                  <div className="flex-1">
+                    <label htmlFor="token-symbol" className="ml-1">
+                      Token Symbol
+                    </label>
+                    <Field
+                      as={Input}
+                      id="token-symbol"
+                      name="tokenSymbol"
+                      placeholder="Ticker for your token, like $MOD"
+                      className="mt-1"
+                      maxLength={5}
+                    />
+                    <ErrorMessage name="tokenSymbol" component="div" className="text-red-500 text-sm mt-1" />
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Kickback for builders, community, or vibes.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-5">
-              <div className="">
-                <div className="flex items-center justify-between">
-                  <p className="">Dev Wallet</p>
-                  <button
-                    className="cursor-pointer"
-                    onClick={() => {
-                      address
-                        ? writeToClipboard(address)
-                        : toast.error("Connect your wallet first");
-                    }}
-                  >
-                    <Copy className="size-5" />
-                  </button>
-                </div>
-                <Input
-                  className="w-full mt-2"
-                  value={address || "Connect wallet to add dev wallet"}
-                  disabled
-                />
-                <div className="w-full mt-1 px-1 text-xs text-muted-foreground">
-                  Your wallet.
-                </div>
-              </div>
-              <div className="">
-                <div className="flex items-center justify-between">
-                  <p className="">Agent Wallet</p>
-                  <button
-                    className="cursor-pointer"
-                    onClick={() => writeToClipboard(agentWallet)}
-                  >
-                    <Copy className="size-5" />
-                  </button>
-                </div>
-                <Input className="w-full mt-2" value={agentWallet} disabled />
-                <div className="w-full mt-1 px-1 text-xs text-muted-foreground">
-                  Auto-generated wallet for your agent.
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 flex justify-end">
-              <button
-                className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 flex items-center gap-2"
-                onClick={() =>
-                  prebuyDivRef.current &&
-                  prebuyDivRef.current.scrollIntoView({
-                    behavior: "smooth",
-                  })
-                }
-              >
-                <ArrowRight className="size-5" />
-                <span>Next</span>
-              </button>
-            </div>
-          </div>
-          <div
-            ref={prebuyDivRef}
-            className="flex flex-col mt-4 px-4 py-6 border rounded-xl"
-          >
-            <div className="ml-1">
-              <h2 className="text-xl font-semibold">Pre-buy Token</h2>
-              <p className="text-muted-foreground">
-                Purchasing a small amount of your token is optional but can help
-                protect your coin from snipers.
-              </p>
-            </div>
-            <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
-              <div className="w-full flex flex-col gap-1">
-                <label
-                  htmlFor="slippage"
-                  className="ml-1 text-sm font-semibold"
-                >
-                  Slippage (%)
-                </label>
-                <Input
-                  type="number"
-                  id="slippage"
-                  className="py-2"
-                  value={formData.prebuyAmount}
-                  onChange={handleFormChange}
-                />
-              </div>
-              <div className="w-full flex flex-col gap-1">
-                <label htmlFor="amount" className="ml-1 text-sm font-semibold">
-                  Amount
-                </label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    id="amount"
-                    name="prebuyAmount"
-                    className="py-2 pr-28"
-                    defaultValue={0}
+                <div className="">
+                  <label htmlFor="agent-prompt" className="ml-1">
+                    Agent Description/Prompt
+                  </label>
+                  <Field
+                    as={Textarea}
+                    id="agent-prompt"
+                    name="description"
+                    placeholder="A degen AI that hypes launches, roasts rugs, and protects LPs."
+                    className="mt-2"
                   />
-                  <div className="absolute top-[50%] translate-y-[-50%] right-4 flex items-center gap-2 text-neutral-400">
-                    <div className="flex items-center gap-2">
-                      <span className="uppercase">sei</span>
-                      <SeiIcon className="size-4" />
+                  <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
+                  <p className="ml-1 mt-1 text-xs text-muted-foreground">
+                    Set the tone. Define the agent's behavior or chat style.
+                  </p>
+                </div>
+                
+                {/* Modul Type Selection */}
+                <div className="">
+                  <label className="ml-1">
+                    Modul Type
+                  </label>
+                  <div className="mt-2 grid grid-cols-1 gap-3">
+                    {modulTypes.map((modul) => (
+                      <div
+                        key={modul.identifier}
+                        className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                          values.modulType === modul.value
+                            ? "border-accent bg-accent/10"
+                            : "border-border hover:border-accent/50"
+                        }`}
+                        onClick={() => setFieldValue('modulType', modul.value)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="text-2xl">{modul.emoji}</div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground">
+                              {modul.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {modul.description}
+                            </p>
+                          </div>
+                          {values.modulType === modul.value && (
+                            <div className="w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <ErrorMessage name="modulType" component="div" className="text-red-500 text-sm mt-1" />
+                </div>
+                
+                <div>
+                  <div className="ml-1 mt-5 flex items-center gap-2">
+                    <Link className="size-4" />
+                    <p>
+                      add social links{" "}
+                      <span className="text-muted-foreground">(optional)</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowSocialLinks(!showSocialLinks)}
+                      className="cursor-pointer"
+                    >
+                      <ChevronUp
+                        className={`size-4 ${showSocialLinks ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  </div>
+                  <div
+                    className={`mt-3 flex flex-col gap-5 ${showSocialLinks ? "hidden" : "flex"}`}
+                  >
+                    <div>
+                      <label htmlFor="website" className="ml-1">
+                        Website
+                      </label>
+                      <Field
+                        as={Input}
+                        id="website"
+                        name="websiteUrl"
+                        placeholder="Enter URL"
+                        className="mt-1"
+                      />
+                      <ErrorMessage name="websiteUrl" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+                    <div className="">
+                      <label htmlFor="x-url" className="ml-1">
+                        X
+                      </label>
+                      <Field
+                        as={Input}
+                        id="x-url"
+                        name="twitterUrl"
+                        placeholder="Enter URL"
+                        className="mt-1"
+                      />
+                      <ErrorMessage name="twitterUrl" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+                    <div className="">
+                      <label htmlFor="telegram" className="ml-1">
+                        Telegram
+                      </label>
+                      <Field
+                        as={Input}
+                        id="telegram"
+                        name="telegramUrl"
+                        placeholder="Enter URL"
+                        className="mt-1"
+                      />
+                      <ErrorMessage name="telegramUrl" component="div" className="text-red-500 text-sm mt-1" />
                     </div>
                   </div>
                 </div>
-                <div className="px-1 w-full flex justify-between text-xs">
-                  <span className="text-red-500">Insufficient balance</span>
-                  <div className="flex items-center gap-1">
-                    <Wallet className="size-3" />
-                    <span className="">0 SEI</span>
-                    <button className="text-green-500">MAX</button>
+
+                {/* Agent Image Upload */}
+                <div className="">
+                  <label htmlFor="agent-image" className="ml-1">
+                    Agent Image
+                  </label>
+                  <div
+                    className="mt-2 p-8 border-2 border-dashed border-accent/20 rounded-lg text-center cursor-pointer hover:border-accent/40 transition-colors"
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, setFieldValue)}
+                    onClick={() => document.getElementById('agent-image').click()}
+                  >
+                    {agentImageUrl ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <img
+                          src={agentImageUrl}
+                          alt="Agent"
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                        <p className="text-sm text-muted-foreground">{selectedFileName}</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Image className="size-8 text-muted-foreground" />
+                        <p className="text-sm font-medium">Drop image here or click to upload</p>
+                        <p className="text-xs text-muted-foreground">
+                          JPG, PNG, GIF up to 5MB
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      id="agent-image"
+                      name="agentImage"
+                      className="sr-only"
+                      onChange={(e) => handleImageUpload(e.target.files[0], setFieldValue)}
+                    />
                   </div>
-                </div>
-                <div className="w-full px-1 mt-2 text-xs text-muted-foreground flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span>Creation Fee</span>
-                    <Info className="size-3.5" />
+                  <div className="mt-5 ml-2">
+                    <div className="flex items-center gap-2">
+                      <File className="size-5" />
+                      <h3 className="font-semibold">File size and type</h3>
+                    </div>
+                    <ul className="mt-1 ml-1 list-disc list-inside text-sm font-light">
+                      <li>Max. size 5MB.</li>
+                      <li>JPG, GIF, and PNG formats.</li>
+                    </ul>
                   </div>
-                  <span>30 SEI</span>
+
+                  <ErrorMessage name="agentImage" component="div" className="text-red-500 text-sm mt-1" />
+
                 </div>
-                {formData.tokenSymbol && (
-                  <div className="ml-1 w-full">
-                    <p className="mt-1.25 text-neutral-400 text-xs">
-                      You will receive <span>1,000,000</span>{" "}
-                      <span>${formData.tokenSymbol.toUpperCase()}</span>
+                <div className="">
+                  <label htmlFor="total-supply" className="ml-1">
+                    Total Supply
+                  </label>
+                  <Input
+                    id="total-supply"
+                    placeholder="Fixed supply baked in at launch"
+                    className="mt-1"
+                    value={"1B"}
+                    disabled
+                  />
+                </div>
+              </div>
+              <div
+                ref={taxSettingsDivRef}
+                className="flex flex-col gap-5 mt-4 px-4 py-6 border rounded-xl"
+              >
+                <div className="ml-1">
+                  <h2 className="text-xl font-semibold">Tax Settings</h2>
+                  <p className="text-muted-foreground">
+                    Fund your agent. Feed your dev. Or don't.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-y-5">
+                  <div className="">
+                    <label
+                      htmlFor="swap-tax"
+                      className="flex items-center justify-between"
+                    >
+                      <p className="">Total Swap Tax (%)</p>
+                      <span className="text-sm">{values.taxSettings.totalTaxPercentage}%</span>
+                    </label>
+                    <div className="mt-2 flex flex-col gap-1.5 items-center">
+                      <Slider
+                        className=""
+                        rangeClassName="dark:bg-accent"
+                        thumbClassName="dark:border-accent"
+                        min={2}
+                        max={10}
+                        step={0.5}
+                        value={[values.taxSettings.totalTaxPercentage]}
+                        onValueChange={(value) =>
+                          setFieldValue('taxSettings.totalTaxPercentage', value[0])
+                        }
+                      />
+                      <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
+                        <span>2%</span>
+                        <span>10%</span>
+                      </div>
+                    </div>
+                    <p className="ml-1 mt-2 text-xs text-muted-foreground">
+                      Percentage fee taken on every swap.
                     </p>
                   </div>
-                )}
+                  <div className="">
+                    <label
+                      htmlFor="agent-wallet"
+                      className="flex items-center justify-between"
+                    >
+                      <p className="">Agent Wallet (%)</p>
+                      <span className="text-sm">{values.taxSettings.agentWalletShare}%</span>
+                    </label>
+                    <div className="mt-3 flex flex-col gap-1.5 items-center">
+                      <Slider
+                        className="mt-2"
+                        rangeClassName="dark:bg-accent"
+                        thumbClassName="dark:border-accent"
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={[values.taxSettings.agentWalletShare]}
+                        onValueChange={(value) => {
+                          setFieldValue('taxSettings.agentWalletShare', value[0]);
+                          setFieldValue('taxSettings.devWalletShare', 100 - value[0]);
+                        }}
+                      />
+                      <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
+                        <span>1%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Funds your agent's operations and memory.
+                    </p>
+                  </div>
+                  <div className="">
+                    <label
+                      htmlFor="agent-wallet"
+                      className="flex items-center justify-between"
+                    >
+                      <p className="">
+                        Dev Wallet (%){" "}
+                        <span className="text-muted-foreground">(optional)</span>
+                      </p>
+                      <span className="text-sm">{values.taxSettings.devWalletShare}%</span>
+                    </label>
+                    <div className="mt-3 flex flex-col gap-1.5 items-center">
+                      <Slider
+                        className=""
+                        rangeClassName="dark:bg-accent"
+                        thumbClassName="dark:border-accent"
+                        min={0}
+                        max={99}
+                        step={1}
+                        value={[values.taxSettings.devWalletShare]}
+                        onValueChange={(value) => {
+                          setFieldValue('taxSettings.devWalletShare', value[0]);
+                          setFieldValue('taxSettings.agentWalletShare', 100 - value[0]);
+                        }}
+                      />
+                      <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
+                        <span>0%</span>
+                        <span>99%</span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Kickback for builders, community, or vibes.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 flex items-center gap-2"
+                    onClick={() =>
+                      prebuyDivRef.current &&
+                      prebuyDivRef.current.scrollIntoView({
+                        behavior: "smooth",
+                      })
+                    }
+                  >
+                    <ArrowRight className="size-5" />
+                    <span>Next</span>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 text-center"
-                onClick={() => {}}
+              <div
+                ref={prebuyDivRef}
+                className="flex flex-col mt-4 px-4 py-6 border rounded-xl"
               >
-                Launch Agent
-              </button>
-            </div>
-          </div>
-        </form>
+                <div className="ml-1">
+                  <h2 className="text-xl font-semibold">Pre-buy Token</h2>
+                  <p className="text-muted-foreground">
+                    Purchasing a small amount of your token is optional but can help
+                    protect your coin from snipers.
+                  </p>
+                </div>
+                <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
+                  <div className="w-full flex flex-col gap-1">
+                    <label
+                      htmlFor="slippage"
+                      className="ml-1 text-sm font-semibold"
+                    >
+                      Slippage (%)
+                    </label>
+                    <Field
+                      as={Input}
+                      type="number"
+                      id="slippage"
+                      name="prebuySettings.slippage"
+                      className="py-2"
+                    />
+                    <ErrorMessage name="prebuySettings.slippage" component="div" className="text-red-500 text-sm mt-1" />
+                  </div>
+                  <div className="w-full flex flex-col gap-1">
+                    <label htmlFor="amount" className="ml-1 text-sm font-semibold">
+                      Amount
+                    </label>
+                    <div className="relative">
+                      <Field
+                        as={Input}
+                        type="number"
+                        id="amount"
+                        name="prebuySettings.amountInWei"
+                        className="py-2 pr-28"
+                      />
+                      <div className="absolute top-[50%] translate-y-[-50%] right-4 flex items-center gap-2 text-neutral-400">
+                        <div className="flex items-center gap-2">
+                          <span className="uppercase">sei</span>
+                          <SeiIcon className="size-4" />
+                        </div>
+                      </div>
+                    </div>
+                    <ErrorMessage name="prebuySettings.amountInWei" component="div" className="text-red-500 text-sm mt-1" />
+                    <div className="px-1 w-full flex justify-between text-xs">
+                      {/* <span className="text-red-500">Insufficient balance</span> */}
+                      <div className="flex items-center gap-1">
+                        <Wallet className="size-3" />
+                        <span className="">0 SEI</span>
+                        <button type = "button" className="text-green-500">MAX</button>
+                      </div>
+                    </div>
+                    <div className="w-full px-1 mt-2 text-xs text-muted-foreground flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span>Creation Fee</span>
+                        <Info className="size-3.5" />
+                      </div>
+                      <span>0.000000000000000000 SEI</span>
+                    </div>
+                    {values.tokenSymbol && (
+                      <div className="ml-1 w-full">
+                        <p className="mt-1.25 text-neutral-400 text-xs">
+                          You will receive <span>1,000,000</span>{" "}
+                          <span>${values.tokenSymbol.toUpperCase()}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    type="submit"
+                    disabled={createAgentMutation.isPending || !isValid}
+                    className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {createAgentMutation.isPending ? 'Creating Agent...' : 'Launch Agent'}
+                  </button>
+                </div>
+              </div>
+            </Form>
+          )}
+        </Formik>
       </div>
     </div>
   );

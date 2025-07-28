@@ -89,12 +89,7 @@ router.post("/auth/wallet-login", async (req, res) => {
 
 router.get("/auth/user", verifyToken, async (req, res) => {
     try {
-        const { userId } = req.user;
-        const user = await User.findById(userId).select('-walletAddressHash').exec();
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        const user = req.user;
 
         return res.status(200).json(user);
     } catch (error) {

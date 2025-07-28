@@ -27,4 +27,34 @@ const agentSchema = z.object({
     creator: z.string().min(1).max(100),
 });
 
-module.exports = { walletLoginSchema, agentSchema };
+
+const agentCreateSchema = z.object({
+    // Basic agent info
+    name: z.string().min(1, 'Agent name is required').max(100, 'Agent name must be less than 100 characters'),
+    description: z.string().min(1, 'Agent description is required').max(1024, 'Agent description must be less than 1024 characters'),
+    image: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    telegramUrl: z.string().optional(),
+
+    // Module and token info
+    modulType: z.enum(['GAME_FI_NPC', 'DEFI_AI', 'MEME', 'ORACLE_FEED', 'CUSTOM'], {
+        errorMap: () => ({ message: 'Invalid module type' })
+    }),
+    tokenSymbol: z.string().min(1, 'Token symbol is required').max(16, 'Token symbol must be less than 16 characters'),
+    totalSupply: z.number().min(1, 'Total supply must be greater than 0'),
+
+    // Tax settings (flattened)
+    totalTaxPercentage: z.number().min(1, 'Total tax percentage must be at least 1%').max(10, 'Total tax percentage must be at most 10%'),
+    agentWalletShare: z.number().min(1, 'Agent wallet share must be at least 1%').max(100, 'Agent wallet share must be at most 100%'),
+    devWalletShare: z.number().min(1, 'Dev wallet share must be at least 1%').max(100, 'Dev wallet share must be at most 100%'),
+
+    // Prebuy settings (flattened)
+    slippage: z.number().min(1, 'Slippage must be at least 1%').max(100, 'Slippage must be at most 100%'),
+    amountInWei: z.string().optional(),
+
+    // Social links
+    websiteUrl: z.string().optional(),
+    twitterUrl: z.string().optional(),
+});
+
+module.exports = { walletLoginSchema, agentSchema, agentCreateSchema };

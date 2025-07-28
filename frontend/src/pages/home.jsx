@@ -5,8 +5,9 @@ import {  keepPreviousData, useQueries } from "@tanstack/react-query";
 import { createFetcher } from "../lib/fetcher";
 import config from "../shared/config";
 import ordinal from "ordinal";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useWalletModalStore } from "../shared/store";
+import { useAuth } from "../shared/hooks/useAuth";
+import { useNavigate } from "react-router";
 
 // AgentCard component for consistent agent card UI
 function AgentCard({ agent }) {
@@ -37,10 +38,9 @@ function AgentCard({ agent }) {
 }
 
 const Home = () => {
-  const { address, isConnected, connector: activeConnector } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
 
+  const { user, isAuthenticated, accessToken, isAuthChecked } = useAuth();
+  const navigate = useNavigate();
 
 
     const [platformStatResult, myAgentsResult] = useQueries({
@@ -59,9 +59,10 @@ const Home = () => {
   queryFn :  createFetcher({
       url : config.endpoints.agentsMine,
       method : "GET",
+      auth : { accessToken }
   }),
   placeholderData : keepPreviousData,
-  enabled: isConnected,
+  enabled: isAuthenticated && isAuthChecked,
   refetchInterval : 1000 * 60,
 
 
@@ -74,7 +75,7 @@ const Home = () => {
 const {data : platformStats, isPending : isPlatformStatsPending} = platformStatResult;
 const {data : myAgents, isLoading : isMyAgentsLoading} = myAgentsResult;
 
-console.log(myAgents);
+
 
 
   return (
@@ -104,8 +105,16 @@ console.log(myAgents);
 
           </p>
           <div className="mt-4 px-4 py-4 w-full border rounded-2xl flex flex-col items-center">
-            <Link
-              to="/create"
+            <button
+              onClick={
+                () => {
+                  if(isAuthenticated && user) {
+                    navigate("/create");
+                  } else {
+                    useWalletModalStore.getState().openWalletModal();
+                  }
+                }
+              }
               className="w-full px-3 py-2 bg-accent rounded-xl font-bold flex justify-center cursor-pointer hover:-translate-y-1 transition-all duration-500"
             >
               <div className="w-40 flex justify-between items-center">
@@ -113,7 +122,7 @@ console.log(myAgents);
                 <span className="">Launch Agent</span>
                 <ArrowUpRight className="size-5" />
               </div>
-            </Link>
+            </button>
             {/* My Agents List */}
             <div className="w-full mt-4">
               <h3 className="text-lg font-semibold mb-2 ml-1">My Agents</h3>
@@ -128,15 +137,15 @@ console.log(myAgents);
               ) : (
                 <div className="py-4 px-4 bg-primary-foreground border-2 border-dashed border-accent/20 rounded-lg text-center text-muted-foreground">
                   <span className="block font-semibold mb-1">
-                    {isConnected ? "No agents yet" : "Connect wallet first"}
+                    {isAuthenticated ? "No agents yet" : "Connect wallet first"}
                   </span>
                   <span className="text-xs">
-                    {isConnected 
+                    {isAuthenticated 
                       ? "You haven't launched any agents. Click \"Launch Agent\" to get started!"
                       : "Connect your wallet to see your own agents"
                     }
                   </span>&nbsp;&nbsp;
-                  {!isConnected && (
+                  {!isAuthenticated && (
                     <button
                       onClick={() => useWalletModalStore.getState().openWalletModal()}
                       className="mt-2 text-xs text-accent hover:underline transition-colors duration-200 hover:cursor-pointer"
