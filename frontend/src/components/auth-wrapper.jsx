@@ -2,6 +2,7 @@ import { useAuth } from "../shared/hooks/useAuth";
 import { Brain } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import { useWalletModalStore } from "../shared/store";
 
 const AuthWrapper = ({ 
   children, 
@@ -18,6 +19,7 @@ const AuthWrapper = ({
     error 
   } = useAuth();
 
+  const { openWalletModal } = useWalletModalStore();
   const navigate = useNavigate();
 
   // Handle redirect on auth failure
@@ -46,7 +48,7 @@ const AuthWrapper = ({
 
     if (pageLevel) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="min-h-[calc(100vh-100px)] flex items-center justify-center bg-background">
           <LoaderContent />
         </div>
       );
@@ -64,27 +66,31 @@ const AuthWrapper = ({
     return fallback;
   }
 
-  // Show error state if auth failed (only if no redirect URL provided)
-  if (error && !isAuthenticated && !redirectUrl) {
+  // Show error state if not authenticated (wallet disconnected or auth failed)
+  if (!isAuthenticated) {
     const ErrorContent = () => (
       <div className="text-center">
         <div className="size-16 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Brain className="size-8 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">Authentication Failed</h2>
-        <p className="text-muted-foreground mb-4">Unable to verify your wallet. Please try connecting again.</p>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Authentication Required</h2>
+        <p className="text-muted-foreground mb-2">Please connect your wallet to access this page.</p>
+        <p className="text-xs text-muted-foreground mb-4 max-w-lg mx-auto">
+          If your wallet is connected and you're still seeing this message, please check your internet connection and  {" "}
+          <span onClick={() => window.location.reload()} className="text-accent cursor-pointer">refresh</span> the page.
+        </p>
         <button 
-          onClick={() => window.location.reload()} 
+          onClick={openWalletModal} 
           className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
         >
-          Retry
+          Connect Wallet
         </button>
       </div>
     );
 
     if (pageLevel) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center bg-background">
           <ErrorContent />
         </div>
       );

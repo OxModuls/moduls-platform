@@ -10,7 +10,7 @@ import { toast } from "sonner";
 export const useAuth = () => {
     const { address, isConnected } = useAccount();
     const { disconnect } = useDisconnect();
-    const { getSignature, hasSignature } = useWalletSignature();
+    const { getSignature, hasSignature, getVerificationMessage } = useWalletSignature();
     const queryClient = useQueryClient();
 
     // Initialize accessToken from localStorage first, then fallback to null
@@ -61,9 +61,9 @@ export const useAuth = () => {
             }
 
             // Get signature if not already cached
-            if (!hasSignature()) {
+            if (!hasSignature(getVerificationMessage(address))) {
                 try {
-                    await getSignature();
+                    await getSignature(getVerificationMessage(address));
                 } catch (error) {
                     // Handle signature rejection/cancellation
                     if (error.message?.includes('User rejected') ||
@@ -92,7 +92,7 @@ export const useAuth = () => {
             }
 
             // Get signature from cache (it should be there now)
-            const signature = await getSignature();
+            const signature = await getSignature(getVerificationMessage(address));
 
             // Request JWT token from backend
             const response = await createFetcher({
@@ -101,7 +101,7 @@ export const useAuth = () => {
                 body: {
                     walletAddress: address,
                     signature,
-                    message: "Hello there! We would like to verify your wallet ownership to provide you with a seamless experience on Moduls. This signature helps us ensure you're the rightful owner of this wallet address."
+                    message: getVerificationMessage(address)
                 }
             })();
 
@@ -176,8 +176,8 @@ export const useAuth = () => {
 
     // Auth state
     const isAuthenticated = !!accessToken && !!user;
-    const isLoading = isAuthPending || isUserPending;
-    const isAuthChecked = isAuthFetched && isUserFetched && !isLoading;
+    const isLoading = (isConnected && !!address) && (isAuthPending || isUserPending);
+    const isAuthChecked = (!isConnected || !address) || (isAuthFetched && isUserFetched && !isLoading);
 
     // Get access token function - returns stored token or triggers auth
     const getAccessToken = useCallback(async () => {

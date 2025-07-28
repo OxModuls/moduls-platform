@@ -18,7 +18,7 @@ router.get("/stats", async (req, res) => {
         isActive: true
     }).exec();
     const agentsCount = await Agent.countDocuments({
-        status: "ACTIVE"
+        // status: "ACTIVE"
     }).exec();
     return res.status(200).json({
 

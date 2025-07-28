@@ -8,8 +8,9 @@ const secretSchema = new mongoose.Schema({
     },
     owner: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        refPath: 'ownerType'
+        refPath: 'ownerType',
+        default: null,
+        required: false
     },
     secretType: {
         type: String,

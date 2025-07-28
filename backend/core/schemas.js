@@ -57,4 +57,38 @@ const agentCreateSchema = z.object({
     twitterUrl: z.string().optional(),
 });
 
-module.exports = { walletLoginSchema, agentSchema, agentCreateSchema };
+// Response schema for agent data - filters and composes the response
+const agentResponseSchema = z.object({
+    uniqueId: z.string(),
+    name: z.string(),
+    description: z.string(),
+    image: z.string().optional(),
+    logoUrl: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    status: z.enum(['PENDING', 'ACTIVE', 'INACTIVE']),
+    launchDate: z.date(),
+    isVerified: z.boolean(),
+    modulType: z.enum(['GAME_FI_NPC', 'DEFI_AI', 'MEME', 'ORACLE_FEED', 'CUSTOM']),
+    tokenSymbol: z.string(),
+    tokenDecimals: z.number(),
+    totalSupply: z.number(),
+    taxSettings: z.object({
+        totalTaxPercentage: z.number(),
+        agentWalletShare: z.number(),
+        devWalletShare: z.number(),
+    }),
+    prebuySettings: z.object({
+        slippage: z.number(),
+        amountInWei: z.string().optional(), // BigInt as string for JSON serialization
+    }),
+    telegramUrl: z.string().optional(),
+    websiteUrl: z.string().optional(),
+    twitterUrl: z.string().optional(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+    creator: z.object({
+        walletAddress: z.string(),
+    }).optional(),
+});
+
+module.exports = { walletLoginSchema, agentSchema, agentCreateSchema, agentResponseSchema };

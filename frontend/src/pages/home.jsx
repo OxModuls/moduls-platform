@@ -8,15 +8,22 @@ import ordinal from "ordinal";
 import { useWalletModalStore } from "../shared/store";
 import { useAuth } from "../shared/hooks/useAuth";
 import { useNavigate } from "react-router";
+import { useAccount } from "wagmi";
 
 // AgentCard component for consistent agent card UI
 function AgentCard({ agent }) {
   return (
     <div className="py-3 px-4 bg-primary-foreground border rounded-lg flex gap-3 items-center">
       <div className="size-10 bg-accent rounded-lg flex items-center justify-center">
-        <span className="h-7 text-xl text-center font-extrabold">
-          {agent.icon || agent.name?.[0] || 'A'}
-        </span>
+        {
+          agent.logoUrl ? (
+            <img src={agent.logoUrl} alt={agent.name} className="w-10 h-10 rounded-lg" />
+          ) : (
+            <span className="h-7 text-xl text-center font-extrabold">
+              {agent.name?.[0] || 'A'}
+            </span>
+          )
+        }
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-accent truncate">{agent.name}</p>
@@ -26,7 +33,7 @@ function AgentCard({ agent }) {
       </div>
       <div className="flex items-center">
         <Link
-          to={agent.link || `/agent/${agent.id}`}
+          to={`/agents/${agent.uniqueId}`}
           className="text-xs hover:text-accent flex items-center gap-0.5 transition-colors duration-500"
         >
           View
@@ -41,6 +48,7 @@ const Home = () => {
 
   const { user, isAuthenticated, accessToken, isAuthChecked } = useAuth();
   const navigate = useNavigate();
+  const { address, isConnected } = useAccount();
 
 
     const [platformStatResult, myAgentsResult] = useQueries({
@@ -55,7 +63,7 @@ const Home = () => {
   },
 {
 
-  queryKey : [config.endpoints.agentsMine],
+  queryKey : [config.endpoints.agentsMine, address],
   queryFn :  createFetcher({
       url : config.endpoints.agentsMine,
       method : "GET",
@@ -73,8 +81,11 @@ const Home = () => {
 
 
 const {data : platformStats, isPending : isPlatformStatsPending} = platformStatResult;
-const {data : myAgents, isLoading : isMyAgentsLoading} = myAgentsResult;
+const {data : agentsData, isLoading : isMyAgentsLoading} = myAgentsResult;
 
+
+
+const myAgents = agentsData?.agents || [];
 
 
 
@@ -108,7 +119,7 @@ const {data : myAgents, isLoading : isMyAgentsLoading} = myAgentsResult;
             <button
               onClick={
                 () => {
-                  if(isAuthenticated && user) {
+                  if(isConnected && address) {
                     navigate("/create");
                   } else {
                     useWalletModalStore.getState().openWalletModal();
@@ -131,7 +142,7 @@ const {data : myAgents, isLoading : isMyAgentsLoading} = myAgentsResult;
               ) : myAgents && myAgents.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {myAgents.map((agent) => (
-                    <AgentCard key={agent.id} agent={agent} />
+                    <AgentCard key={agent.uniqueId} agent={agent} />
                   ))}
                 </div>
               ) : (
@@ -205,12 +216,20 @@ const {data : myAgents, isLoading : isMyAgentsLoading} = myAgentsResult;
                   </p>
                 </div>
               </div>
-              <Link
-                to="/create"
+              <button
+                onClick={
+                  () => {
+                    if(isConnected && address) {
+                      navigate("/create");
+                    } else {
+                      useWalletModalStore.getState().openWalletModal();
+                    }
+                  }
+                }
                 className="inline-block mt-3 px-3 py-2 bg-accent rounded-xl font-bold hover:scale-105 transition-all duration-500"
               >
                 Get Started Now
-              </Link>
+              </button>
             </div>
           </div>
         </div>

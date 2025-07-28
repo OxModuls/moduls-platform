@@ -46,8 +46,14 @@ app.use('/api', agentsRouter);
 
 // ERROR HANDLER
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
+    console.table({
+        error: err,
+        message: err.message,
+        stack: err.stack,
+        status: err.status,
+        timestamp: new Date().toISOString(),
+    });
+    res.status(500).send('An unexpected error occurred');
 });
 
 

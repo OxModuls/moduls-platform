@@ -4,13 +4,15 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Agent = require("../core/models/agents");
 const { verifyToken } = require('../core/middlewares/jwt');
-const { agentCreateSchema } = require('../core/schemas');
-
+const { agentCreateSchema, agentResponseSchema } = require('../core/schemas');
+const config = require('../config');
+const { createEncryptedWalletAccount } = require('../core/utils');
+const Secret = require('../core/models/secrets');
 // Configure Cloudinary
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: config.cloudinaryCloudName,
+    api_key: config.cloudinaryApiKey,
+    api_secret: config.cloudinaryApiSecret,
 });
 
 // Configure multer storage for Cloudinary
@@ -40,12 +42,97 @@ const upload = multer({
 
 router.get("/agents/mine", verifyToken, async (req, res) => {
     try {
-        const { userId } = req.user;
-        const agents = await Agent.find({ userId }).exec();
-        return res.status(200).json({ agents });
+        const { _id: userId } = req.user;
+        const agents = await Agent.find({ creator: userId }).lean();
+
+
+        // Filter and compose the response using the schema
+        const filteredAgents = agents.map(agent => {
+            // Remove null fields from each agent object
+            Object.keys(agent).forEach(key => {
+                if (agent[key] === null) {
+                    delete agent[key];
+                }
+            });
+
+            const agentData = Object.assign({}, agent, {
+                prebuySettings: {
+                    slippage: agent.prebuySettings.slippage,
+                    amountInWei: agent.prebuySettings.amountInWei ? agent.prebuySettings.amountInWei.toString() : undefined,
+                },
+            });
+
+            // Validate and transform the data
+            const { success, data, error } = agentResponseSchema.safeParse(agentData);
+            if (!success) {
+                console.error('Agent data validation failed:', error);
+                return null;
+            }
+            return data;
+        }).filter(Boolean); // Remove any null entries from failed validation
+
+
+        return res.status(200).json({
+            agents: filteredAgents,
+            count: filteredAgents.length
+        });
     } catch (error) {
         console.error('Error fetching user agents:', error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+});
+
+router.get("/agents/:uniqueId", async (req, res) => {
+    try {
+        const { uniqueId } = req.params;
+
+        const agent = await Agent.findOne({ uniqueId })
+            .populate('creator')
+            .lean();
+
+
+        if (!agent) {
+            return res.status(404).json({
+                message: 'Agent not found'
+            });
+        }
+
+        // Remove null fields from agent object
+        Object.keys(agent).forEach(key => {
+            if (agent[key] === null) {
+                delete agent[key];
+            }
+        });
+
+        const agentData = Object.assign({}, agent, {
+            prebuySettings: {
+                slippage: agent.prebuySettings.slippage,
+                amountInWei: agent.prebuySettings.amountInWei ? agent.prebuySettings.amountInWei.toString() : undefined,
+            },
+        });
+
+        // Validate and transform the data
+        const { success, data, error } = agentResponseSchema.safeParse(agentData);
+        if (!success) {
+            console.error('Agent data validation failed:', error);
+            return res.status(500).json({
+                message: 'Agent data validation failed',
+                error: error.message
+            });
+        }
+
+        return res.status(200).json({
+            agent: data
+        });
+    } catch (error) {
+        console.error('Error fetching agent:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        });
     }
 });
 
@@ -83,8 +170,22 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
         }
 
         // Generate unique identifiers
-        const uniqueId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const uniqueId = `agent_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
         const intentId = Math.floor(Math.random() * 1000000000000) + 1;
+
+        // --- Create an encrypted wallet for the agent ---
+        const password = config.agentWalletSecret + uniqueId;
+        const wallet = createEncryptedWalletAccount(password);
+        // Save the encrypted private key as a Secret
+        const secret = await Secret.create({
+            ownerType: 'Agent',
+            owner: null, // will be set after agent is created
+            secretType: 'PRIVATE_KEY',
+            secretValue: wallet.encryptedPrivateKey,
+            description: 'Agent wallet private key (encrypted)',
+            metadata: {},
+            isActive: true
+        });
 
         // Create the agent object matching the backend schema
         const agentData = {
@@ -94,15 +195,10 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
             description: data.description,
             image: data.image,
             tags: data.tags,
-            telegramUrl: data.telegramUrl || '',
             status: 'PENDING',
             launchDate: new Date(),
             isVerified: false,
             creator: userId,
-
-            // Additional required fields from the form
-            walletAddress: '', // Will be set after wallet generation
-            walletSecret: null, // Will be set after secret creation
             modulType: data.modulType,
             tokenSymbol: data.tokenSymbol,
             tokenDecimals: 18,
@@ -116,20 +212,22 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
                 slippage: data.slippage,
                 amountInWei: data.amountInWei,
             },
-            websiteUrl: data.websiteUrl || '',
-            twitterUrl: data.twitterUrl || '',
+            websiteUrl: data.websiteUrl,
+            telegramUrl: data.telegramUrl,
+            twitterUrl: data.twitterUrl,
             logoUrl: data.image,
+            walletAddress: wallet.address,
+            walletSecret: secret._id,
         };
 
         // Create the agent in the database
         const agent = await Agent.create(agentData);
+        // Update the secret with the agent's id as owner
+        secret.owner = agent._id;
+        await secret.save();
 
-        // Return success response
         return res.status(201).json({
-            success: true,
-            message: 'Agent created successfully',
             agent: {
-                id: agent._id,
                 uniqueId: agent.uniqueId,
                 name: agent.name,
                 description: agent.description,
@@ -138,6 +236,7 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
                 image: agent.logoUrl,
                 status: agent.status,
                 createdAt: agent.createdAt,
+                walletAddress: agent.walletAddress
             }
         });
 
@@ -154,7 +253,6 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
         }
 
         return res.status(500).json({
-            success: false,
             message: 'Failed to create agent',
             error: error.message
         });

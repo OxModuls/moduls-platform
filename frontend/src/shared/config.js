@@ -13,6 +13,7 @@ const config = {
         // Agent endpoints
         agentsMine: "/api/agents/mine",
         agentsCreate: "/api/agents/create",
+        agent: "/api/agents", // Base path for single agent operations
 
     }
 };

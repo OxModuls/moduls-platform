@@ -112,14 +112,16 @@ const agentSchema = new mongoose.Schema({
 
     walletAddress: {
         type: String,
-        required: true,
+        required: false,
+        default: null
     },
 
 
     walletSecret: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Secret',
-        required: true,
+        required: false,
+        default: null
     },
 
     modulType: {

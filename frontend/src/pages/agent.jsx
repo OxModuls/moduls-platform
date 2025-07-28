@@ -29,8 +29,26 @@ import {
 } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import SeiIcon from "@/components/sei-icon";
+import { useParams, useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { createFetcher } from "@/lib/fetcher";
+import config from "@/shared/config";
+import { toast } from "sonner";
 
-const Token = () => {
+const Agent = () => {
+  const { uniqueId } = useParams();
+  const navigate = useNavigate();
+  
+  // Fetch agent data
+  const { data: agentData, isLoading, error } = useQuery({
+    queryKey: ['agent', uniqueId],
+    queryFn: () => createFetcher({
+      url: `${config.endpoints.agent}/${uniqueId}`,
+      method: 'GET',
+    })(),
+    enabled: !!uniqueId,
+  });
+
   const [chartData, _setChartData] = useState([
     {
       time: "2018-12-22",
@@ -324,21 +342,74 @@ const Token = () => {
       account: "0xC1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0",
     },
   ]);
-  const [token, _setToken] = useState({
-    name: "Moduls",
-    image: "https://example.com/aqualink-logo.png",
-    contractAddress: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
-    devAddress: "0xdeadbeef1234567890abcdef1234567890abcdef",
-    createdBy: "0xabcde1234567890abcdef1234567890abcdef12",
-    creationDate: "2024-03-15T10:30:00Z",
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
+        <div className="w-full max-w-lg mx-auto">
+          <div className="animate-pulse">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="size-24 bg-muted rounded-full"></div>
+              <div className="space-y-2">
+                <div className="h-6 bg-muted rounded w-32"></div>
+                <div className="h-4 bg-muted rounded w-48"></div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="h-12 bg-muted rounded"></div>
+              <div className="h-12 bg-muted rounded"></div>
+              <div className="h-12 bg-muted rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
+        <div className="w-full max-w-lg mx-auto text-center">
+          <div className="mb-4">
+            <Bot className="size-16 text-muted-foreground mx-auto" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Agent Not Found</h2>
+          <p className="text-muted-foreground mb-4">
+            The agent you're looking for doesn't exist or has been removed.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const agent = agentData?.agent;
+
+  // Fallback data structure if agent is not available
+  const token = {
+    name: agent?.name || "Unknown Agent",
+    image: agent?.logoUrl || "https://example.com/default-logo.png",
+    contractAddress:  "0x0000000000000000000000000000000000000000",
+    walletAddress: agent?.walletAddress,
+    devAddress: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
+    createdBy: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
+    creationDate: agent?.createdAt,
+    tokenSymbol: agent?.tokenSymbol ,
     curveProgress: {
       current: 25000,
       target: 100000,
     },
-    website: "https://modulsdotfun.netlify.app",
-    supply: 1_000_000_000,
-    tradeFees: 1.25,
-  });
+    website: agent?.websiteUrl || "#",
+    supply: agent?.totalSupply,
+    tradeFees: agent?.taxSettings?.totalTaxPercentage || 0,
+  };
 
   return (
     <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
@@ -346,7 +417,7 @@ const Token = () => {
         <div className="w-full flex items-center gap-3">
           <Avatar className="size-24 border-3 border-accent">
             <AvatarImage src={token.image} />
-            <AvatarFallback />
+            <AvatarFallback>{token.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
             <h1 className="text-xl font-bold uppercase">{token.name}</h1>
@@ -356,7 +427,10 @@ const Token = () => {
               </p>
               <button
                 className="cursor-pointer"
-                onClick={() => writeToClipboard(token.createdBy)}
+                onClick={() => {
+                  writeToClipboard(token.createdBy);
+                  toast.success("Creator address copied to clipboard");
+                }}
               >
                 <Copy className="size-5" />
               </button>
@@ -368,11 +442,14 @@ const Token = () => {
             <div className="w-auto px-4 py-3 bg-primary-foreground rounded-lg border flex items-center gap-2">
               <p>
                 Contract Address:{" "}
-                <span>{ellipsizeAddress(token.createdBy, 4, 4)}</span>
+                <span>{ellipsizeAddress(token.contractAddress, 4, 4)}</span>
               </p>
               <button
                 className="cursor-pointer"
-                onClick={() => writeToClipboard(token.createdBy)}
+                onClick={() => {
+                  writeToClipboard(token.contractAddress);
+                  toast.success("Contract address copied to clipboard");
+                }}
               >
                 <Copy className="size-5" />
               </button>
@@ -384,27 +461,26 @@ const Token = () => {
                 Time Created: <span>{formatISODate(token.creationDate)}</span>
               </p>
             </div>
-            <a
-              href={token.website}
-              target="_blank"
-              className="px-4 py-3 bg-primary-foreground border rounded-lg"
-            >
-              <Globe />
-            </a>
+            {token.website && token.website !== "#" && (
+              <a
+                href={token.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-3 bg-primary-foreground border rounded-lg hover:bg-primary-foreground/80 transition-colors"
+              >
+                <Globe />
+              </a>
+            )}
           </div>
           <div className="w-full px-4 py-3 bg-primary-foreground rounded-lg border flex flex-col justify-between gap-3">
             <div className="w-full flex justify-between">
               <span>Curve Progress:</span>
               <span className="text-accent">
-                {(100 * token.curveProgress.current) /
-                  token.curveProgress.target}
-                %
+                {((100 * token.curveProgress.current) / token.curveProgress.target).toFixed(2)}%
               </span>
             </div>
             <Progress
-              value={
-                (100 * token.curveProgress.current) / token.curveProgress.target
-              }
+              value={(100 * token.curveProgress.current) / token.curveProgress.target}
               indicatorClassName="bg-green-500 dark:bg-green-600"
             />
             <div className="w-full flex justify-between">
@@ -458,10 +534,7 @@ const Token = () => {
                   <h2 className="text-lg font-semibold">Agent Description</h2>
                 </div>
                 <div className="mt-2 px-2">
-                  Lorem, ipsum dolor sit amet consectetur adipisicing elit.
-                  Vitae quam, harum at pariatur optio quos aut commodi numquam
-                  enim, earum nulla. Soluta ducimus adipisci placeat quas
-                  perferendis excepturi non beatae.
+                  {agent?.description || "No description available for this agent."}
                 </div>
               </div>
               <div className="mt-5 flex flex-col gap-3">
@@ -502,7 +575,10 @@ const Token = () => {
                     <span>{ellipsizeAddress(token.contractAddress)}</span>
                     <button
                       className="cursor-pointer"
-                      onClick={() => writeToClipboard(token.contractAddress)}
+                      onClick={() => {
+                        writeToClipboard(token.contractAddress);
+                        toast.success("Contract address copied to clipboard");
+                      }}
                     >
                       <Copy className="size-4" />
                     </button>
@@ -517,12 +593,32 @@ const Token = () => {
                     <span>{ellipsizeAddress(token.devAddress)}</span>
                     <button
                       className="cursor-pointer"
-                      onClick={() => writeToClipboard(token.devAddress)}
+                      onClick={() => {
+                        writeToClipboard(token.devAddress);
+                        toast.success("Developer address copied to clipboard");
+                      }}
                     >
                       <Copy className="size-4" />
                     </button>
                   </div>
                 </div>
+                {agent?.tags && agent.tags.length > 0 && (
+                  <div className="px-4 py-3 bg-primary-foreground rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium">Tags:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {agent.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-accent/20 text-accent rounded-md text-sm"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -603,7 +699,7 @@ const Token = () => {
                     <div className="mt-1.25 text-neutral-400 text-xs flex items-center justify-center">
                       <p>
                         You will receive <span>1,000,000</span>{" "}
-                        {token.name.toUpperCase()}
+                        {agent?.tokenSymbol?.toUpperCase() || token.name.toUpperCase()}
                       </p>
                     </div>
                   </div>
@@ -623,7 +719,7 @@ const Token = () => {
                         <th scope="col">Type</th>
                         <th scope="col">SEI</th>
                         <th scope="col" className="capitalize">
-                          {token.name}
+                          {agent?.tokenSymbol?.toUpperCase() || token.name}
                         </th>
                         <th>Account</th>
                       </tr>
@@ -710,4 +806,4 @@ const Token = () => {
   );
 };
 
-export default Token; 
+export default Agent; 

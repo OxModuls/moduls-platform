@@ -24,9 +24,12 @@ export async function fetchUtil({
     if (["POST", "PUT", "PATCH"].includes(method)) {
         if (formEncoded) {
             const form = new FormData();
-            for (const key in body) {
-                form.append(key, body[key]);
-            }
+
+            Object.entries(body).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    form.append(key, value);
+                }
+            });
             options.body = form;
         } else {
             options.body = JSON.stringify(body);
