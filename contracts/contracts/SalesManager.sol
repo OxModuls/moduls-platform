@@ -5,32 +5,37 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract ModulsSalesManager is Ownable, Pausable {
+contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using SafeERC20 for IERC20;
 
     // === Constants ===
     address public constant PLATFORM_ADMIN =
         0x2396d72C6Da898C43023f6C66344a143c0d6278f; // Replace with real admin address
-    uint256 public constant INITIAL_PRICE = 0.001 ether;
-    uint256 public constant PRICE_SLOPE = 0.00001 ether;
-    uint256 public constant MAX_ETH_CAP = 100 ether;
+
+    // === Bonding Curve Parameters ===
+    uint256 public initialPrice = 0.0000000001 ether; // 0.0000001 ETH = ~$0.0002 at $2000/ETH
+    uint256 public priceSlope = 0.000000000001 ether; // 0.000000001 ETH = ~$0.000002 at $2000/ETH
+    uint256 public maxEthCap = 1000 ether; // $2M cap for 1B supply
 
     // === Market Data Structures ===
     struct MarketConfig {
         address token;
         address payable agentWallet;
+        address payable devWallet;
         uint8 taxPercent;
         uint8 agentSplit;
-        uint256 totalSupply;
         bool exists;
     }
 
     struct MarketStats {
         uint256 ethCollected;
         uint256 tokensSold;
-        uint256 lastBuyBlock;
-        uint256 lastSellBlock;
+        uint256 lastBuyTime;
+        uint256 lastSellTime;
     }
 
     struct TradeStats {
@@ -45,9 +50,10 @@ contract ModulsSalesManager is Ownable, Pausable {
     mapping(address => TradeStats) public tradeStats;
     EnumerableSet.AddressSet private supportedTokens;
 
-    mapping(address => uint256) public lastBuyBlock;
-    mapping(address => uint256) public lastSellBlock;
-    uint256 public cooldownBlocks = 2;
+    // Per-user per-token cooldown tracking
+    mapping(address => mapping(address => uint256)) public lastBuyTime; // token => user => timestamp
+    mapping(address => mapping(address => uint256)) public lastSellTime; // token => user => timestamp
+    uint256 public cooldownTime = 2; // seconds
 
     // === Events ===
     event ModulsTokenRegistered(
@@ -75,6 +81,11 @@ contract ModulsSalesManager is Ownable, Pausable {
         address indexed to,
         uint256 amount
     );
+    event BondingCurveParametersUpdated(
+        uint256 initialPrice,
+        uint256 priceSlope,
+        uint256 maxEthCap
+    );
 
     constructor() Ownable(PLATFORM_ADMIN) {}
 
@@ -83,9 +94,9 @@ contract ModulsSalesManager is Ownable, Pausable {
     function registerToken(
         address token,
         address payable agentWallet,
+        address payable devWallet,
         uint8 taxPercent,
-        uint8 agentSplit,
-        uint256 totalSupply
+        uint8 agentSplit
     ) external {
         require(!marketConfigs[token].exists, "Token already registered");
         require(taxPercent <= 10, "Tax too high");
@@ -98,9 +109,9 @@ contract ModulsSalesManager is Ownable, Pausable {
         marketConfigs[token] = MarketConfig({
             token: token,
             agentWallet: agentWallet,
+            devWallet: devWallet,
             taxPercent: taxPercent,
             agentSplit: agentSplit,
-            totalSupply: totalSupply,
             exists: true
         });
 
@@ -110,54 +121,193 @@ contract ModulsSalesManager is Ownable, Pausable {
     }
 
     function getCurrentPrice(address token) public view returns (uint256) {
+        return initialPrice + (marketStats[token].tokensSold * priceSlope);
+    }
+
+    function getBuyCost(
+        address token,
+        uint256 tokenAmount
+    ) public view returns (uint256 cost, uint256 tax, uint256 totalCost) {
+        require(
+            marketConfigs[token].token != address(0),
+            "Token not registered"
+        );
+        require(tokenAmount > 0, "Amount must be greater than 0");
+
+        MarketConfig memory config = marketConfigs[token];
         MarketStats memory stats = marketStats[token];
-        return INITIAL_PRICE + (PRICE_SLOPE * stats.tokensSold);
+
+        // Calculate ETH needed using linear bonding curve integration
+        uint256 ethNeeded = calculateBondingCurveCost(
+            token,
+            stats.tokensSold,
+            stats.tokensSold + tokenAmount
+        );
+
+        cost = ethNeeded;
+        tax = (cost * config.taxPercent) / 100;
+        totalCost = cost + tax;
+
+        return (cost, tax, totalCost);
+    }
+
+    function getSellReturn(
+        address token,
+        uint256 tokenAmount
+    ) public view returns (uint256 ethReturn) {
+        require(
+            marketConfigs[token].token != address(0),
+            "Token not registered"
+        );
+        require(tokenAmount > 0, "Amount must be greater than 0");
+
+        MarketStats memory stats = marketStats[token];
+        require(
+            stats.tokensSold >= tokenAmount,
+            "Insufficient tokens in market"
+        );
+
+        // Calculate ETH return using linear bonding curve integration
+        ethReturn = calculateBondingCurveCost(
+            token,
+            stats.tokensSold - tokenAmount,
+            stats.tokensSold
+        );
+
+        return ethReturn;
+    }
+
+    function calculateBondingCurveCost(
+        address token,
+        uint256 fromTokens,
+        uint256 toTokens
+    ) internal view returns (uint256) {
+        // Linear bonding curve integration: area under the line
+        // Area = (base1 + base2) * height / 2 (trapezoid formula)
+        // Where base1 = price at fromTokens, base2 = price at toTokens, height = token difference
+
+        uint256 priceAtFrom = initialPrice + (fromTokens * priceSlope);
+        uint256 priceAtTo = initialPrice + (toTokens * priceSlope);
+        uint256 tokenDifference = toTokens - fromTokens;
+
+        // Area under the linear curve = (price1 + price2) * tokenDifference / 2
+        return ((priceAtFrom + priceAtTo) * tokenDifference) / 2;
+    }
+
+    function sqrt(uint256 x) internal pure returns (uint256) {
+        if (x == 0) return 0;
+        uint256 z = (x + 1) / 2;
+        uint256 y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+        return y;
     }
 
     function buyToken(
         address token,
-        uint256 tokenAmount
-    ) external payable whenNotPaused {
-        require(supportedTokens.contains(token), "Unsupported token");
+        uint256 tokenAmount,
+        uint256 maxCost
+    ) external payable nonReentrant {
+        require(tokenAmount > 0, "Amount must be greater than 0");
         require(
-            block.number > lastBuyBlock[msg.sender] + cooldownBlocks,
-            "Buy cooldown"
+            marketConfigs[token].token != address(0),
+            "Token not registered"
         );
 
         MarketConfig memory config = marketConfigs[token];
         MarketStats storage stats = marketStats[token];
 
-        uint256 pricePerToken = getCurrentPrice(token);
-        uint256 cost = tokenAmount * pricePerToken;
-        require(msg.value >= cost, "Insufficient ETH");
-        require(stats.ethCollected + cost <= MAX_ETH_CAP, "Max cap reached");
+        // Check cooldown
+        require(
+            block.timestamp >= lastBuyTime[msg.sender][token] + cooldownTime,
+            "Cooldown not met"
+        );
 
+        // Calculate cost using linear bonding curve integration
+        uint256 cost = calculateBondingCurveCost(
+            token,
+            stats.tokensSold,
+            stats.tokensSold + tokenAmount
+        );
         uint256 tax = (cost * config.taxPercent) / 100;
+        uint256 totalCost = cost + tax;
+
+        // Check if this purchase would exceed maxEthCap
+        if (stats.ethCollected + cost > maxEthCap) {
+            // Calculate how much ETH we can still collect
+            uint256 remainingEth = maxEthCap - stats.ethCollected;
+
+            uint256 price1 = initialPrice + (stats.tokensSold * priceSlope);
+
+            uint256 a = priceSlope;
+            uint256 b = 2 * price1;
+            uint256 c = 2 * remainingEth;
+
+            uint256 discriminant = b * b + 4 * a * c;
+            uint256 sqrtDiscriminant = sqrt(discriminant);
+            uint256 actualTokenAmount = (sqrtDiscriminant - b) / (2 * a);
+
+            require(actualTokenAmount > 0, "No tokens to buy");
+
+            // Recalculate cost and tax for the actual amount
+            cost = calculateBondingCurveCost(
+                token,
+                stats.tokensSold,
+                stats.tokensSold + actualTokenAmount
+            );
+            tax = (cost * config.taxPercent) / 100;
+            totalCost = cost + tax;
+
+            // Update tokenAmount to the actual amount we can buy
+            tokenAmount = actualTokenAmount;
+        }
+
+        // Slippage protection
+        require(totalCost <= maxCost, "Slippage too high");
+        require(msg.value >= totalCost, "Insufficient ETH");
+
+        // Max ETH cap enforcement (now always satisfied due to above logic)
+        require(stats.ethCollected + cost <= maxEthCap, "Max ETH cap reached");
+
+        // Calculate shares
         uint256 agentShare = (tax * config.agentSplit) / 100;
-        uint256 remaining = cost - tax;
+        uint256 devShare = tax - agentShare;
 
-        IERC20(config.token).transfer(msg.sender, tokenAmount);
-
-        (bool sent1, ) = config.agentWallet.call{value: agentShare}("");
-        require(sent1, "Agent wallet transfer failed");
-        (bool sent2, ) = owner().call{value: tax - agentShare}("");
-        require(sent2, "Dev wallet transfer failed");
-
-        stats.ethCollected += cost;
+        // Update state before external calls
         stats.tokensSold += tokenAmount;
-        stats.lastBuyBlock = block.number;
-        lastBuyBlock[msg.sender] = block.number;
+        stats.ethCollected += cost;
+        stats.lastBuyTime = block.timestamp;
+        lastBuyTime[msg.sender][token] = block.timestamp;
 
         tradeStats[token].totalVolumeETH += cost;
         tradeStats[token].totalVolumeToken += tokenAmount;
         tradeStats[token].totalBuys++;
+
+        // Transfer tokens to buyer
+        IERC20(config.token).safeTransfer(msg.sender, tokenAmount);
+
+        // Send tax to agent wallet and dev wallet
+        (bool sent1, ) = config.agentWallet.call{value: agentShare}("");
+        require(sent1, "Failed to send agent share");
+
+        (bool sent2, ) = config.devWallet.call{value: devShare}("");
+        require(sent2, "Failed to send dev share");
+
+        // Refund excess ETH
+        uint256 excess = msg.value - totalCost;
+        if (excess > 0) {
+            (bool refundSent, ) = msg.sender.call{value: excess}("");
+            require(refundSent, "Refund failed");
+        }
 
         emit ModulsTokenPurchase(
             token,
             msg.sender,
             tokenAmount,
             cost,
-            pricePerToken,
+            getCurrentPrice(token),
             block.timestamp
         );
     }
@@ -165,20 +315,45 @@ contract ModulsSalesManager is Ownable, Pausable {
     function sellToken(
         address token,
         uint256 tokenAmount
-    ) external whenNotPaused {
+    ) external whenNotPaused nonReentrant {
         require(supportedTokens.contains(token), "Unsupported token");
+        require(tokenAmount > 0, "Amount must be greater than 0");
         require(
-            block.number > lastSellBlock[msg.sender] + cooldownBlocks,
+            block.timestamp > lastSellTime[msg.sender][token] + cooldownTime,
             "Sell cooldown"
+        );
+
+        // Check approval first
+        require(
+            IERC20(token).allowance(msg.sender, address(this)) >= tokenAmount,
+            "Insufficient allowance"
         );
 
         MarketConfig memory config = marketConfigs[token];
         MarketStats storage stats = marketStats[token];
 
-        uint256 pricePerToken = getCurrentPrice(token);
-        uint256 ethToReturn = tokenAmount * pricePerToken;
+        // Calculate ETH to return using linear bonding curve integration
+        uint256 ethToReturn = calculateBondingCurveCost(
+            token,
+            stats.tokensSold - tokenAmount,
+            stats.tokensSold
+        );
 
-        IERC20(config.token).transferFrom(
+        // Check for underflow protection
+        require(stats.tokensSold >= tokenAmount, "Underflow on tokensSold");
+
+        // Update state before external calls
+        stats.ethCollected -= ethToReturn;
+        stats.tokensSold -= tokenAmount; // Reduce token depth for symmetric pricing
+        stats.lastSellTime = block.timestamp;
+        lastSellTime[msg.sender][token] = block.timestamp;
+
+        tradeStats[token].totalVolumeETH += ethToReturn;
+        tradeStats[token].totalVolumeToken += tokenAmount;
+        tradeStats[token].totalSells++;
+
+        // External calls after state updates
+        IERC20(config.token).safeTransferFrom(
             msg.sender,
             address(this),
             tokenAmount
@@ -186,21 +361,12 @@ contract ModulsSalesManager is Ownable, Pausable {
         (bool sent, ) = msg.sender.call{value: ethToReturn}("");
         require(sent, "ETH transfer failed");
 
-        stats.tokensSold -= tokenAmount;
-        stats.ethCollected -= ethToReturn;
-        stats.lastSellBlock = block.number;
-        lastSellBlock[msg.sender] = block.number;
-
-        tradeStats[token].totalVolumeETH += ethToReturn;
-        tradeStats[token].totalVolumeToken += tokenAmount;
-        tradeStats[token].totalSells++;
-
         emit ModulsTokenSell(
             token,
             msg.sender,
             tokenAmount,
             ethToReturn,
-            pricePerToken,
+            getCurrentPrice(token),
             block.timestamp
         );
     }
@@ -219,9 +385,75 @@ contract ModulsSalesManager is Ownable, Pausable {
         address payable to,
         uint256 amount
     ) external onlyOwner {
+        require(
+            address(this).balance >= amount,
+            "Insufficient contract balance"
+        );
         (bool sent, ) = to.call{value: amount}("");
         require(sent, "Withdraw failed");
         emit ModulsTokenWithdraw(address(0), to, amount);
+    }
+
+    function setCooldownTime(uint256 _cooldownTime) external onlyOwner {
+        require(_cooldownTime <= 3600, "Cooldown too high"); // Max 1 hour
+        cooldownTime = _cooldownTime;
+    }
+
+    function setInitialPrice(uint256 _initialPrice) external onlyOwner {
+        require(_initialPrice > 0, "Initial price must be greater than 0");
+        require(_initialPrice <= 1 ether, "Initial price too high");
+        initialPrice = _initialPrice;
+        emit BondingCurveParametersUpdated(initialPrice, priceSlope, maxEthCap);
+    }
+
+    function setPriceSlope(uint256 _priceSlope) external onlyOwner {
+        require(_priceSlope > 0, "Price slope must be greater than 0");
+        require(_priceSlope <= 0.1 ether, "Price slope too high");
+        priceSlope = _priceSlope;
+        emit BondingCurveParametersUpdated(initialPrice, priceSlope, maxEthCap);
+    }
+
+    function setMaxEthCap(uint256 _maxEthCap) external onlyOwner {
+        require(_maxEthCap > 0, "Max ETH cap must be greater than 0");
+        require(_maxEthCap <= 1000 ether, "Max ETH cap too high");
+        maxEthCap = _maxEthCap;
+        emit BondingCurveParametersUpdated(initialPrice, priceSlope, maxEthCap);
+    }
+
+    function setBondingCurveParameters(
+        uint256 _initialPrice,
+        uint256 _priceSlope,
+        uint256 _maxEthCap
+    ) external onlyOwner {
+        require(_initialPrice > 0, "Initial price must be greater than 0");
+        require(_initialPrice <= 1 ether, "Initial price too high");
+        require(_priceSlope > 0, "Price slope must be greater than 0");
+        require(_priceSlope <= 0.1 ether, "Price slope too high");
+        require(_maxEthCap > 0, "Max ETH cap must be greater than 0");
+        require(_maxEthCap <= 1000 ether, "Max ETH cap too high");
+
+        initialPrice = _initialPrice;
+        priceSlope = _priceSlope;
+        maxEthCap = _maxEthCap;
+
+        emit BondingCurveParametersUpdated(initialPrice, priceSlope, maxEthCap);
+    }
+
+    function emergencyWithdrawToken(
+        address token,
+        address to,
+        uint256 amount
+    ) external onlyOwner {
+        IERC20(token).safeTransfer(to, amount);
+        emit ModulsTokenWithdraw(token, to, amount);
+    }
+
+    function removeToken(address token) external onlyOwner {
+        require(marketConfigs[token].exists, "Token not registered");
+        supportedTokens.remove(token);
+        delete marketConfigs[token];
+        delete marketStats[token];
+        delete tradeStats[token];
     }
 
     function getSupportedTokens() external view returns (address[] memory) {
