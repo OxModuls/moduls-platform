@@ -109,7 +109,7 @@ contract ModulsDeployer {
         address salesManager,
         uint8 taxPercent,
         uint8 agentSplit,
-        uint256 intentId,
+        uint256 indexed intentId,
         string metadataURI,
         address indexed creator
     );

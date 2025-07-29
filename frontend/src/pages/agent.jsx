@@ -30,7 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import SeiIcon from "@/components/sei-icon";
 import { useParams, useNavigate } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFetcher } from "@/lib/fetcher";
 import config from "@/shared/config";
 import { toast } from "sonner";
@@ -47,6 +47,8 @@ const Agent = () => {
       method: 'GET',
     })(),
     enabled: !!uniqueId,
+    refetchInterval: 10000,
+    placeholderData: keepPreviousData,
   });
 
   const [chartData, _setChartData] = useState([
@@ -344,7 +346,7 @@ const Agent = () => {
   ]);
 
   // Handle loading state
-  if (isLoading) {
+  if (isLoading && !agentData) {
     return (
       <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
         <div className="w-full max-w-lg mx-auto">
@@ -396,7 +398,7 @@ const Agent = () => {
   const token = {
     name: agent?.name || "Unknown Agent",
     image: agent?.logoUrl || "https://example.com/default-logo.png",
-    contractAddress:  "0x0000000000000000000000000000000000000000",
+    contractAddress: agent?.tokenAddress || "0x0000000000000000000000000000000000000000",
     walletAddress: agent?.walletAddress,
     devAddress: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
     createdBy: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
@@ -411,6 +413,8 @@ const Agent = () => {
     tradeFees: agent?.taxSettings?.totalTaxPercentage || 0,
   };
 
+  
+
   return (
     <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
       <div className="w-full max-w-lg mx-auto">
@@ -420,7 +424,18 @@ const Agent = () => {
             <AvatarFallback>{token.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-xl font-bold uppercase">{token.name}</h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-xl font-bold uppercase">{token.name}</h1>
+              {agent?.status && (
+                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  agent.status === 'ACTIVE' 
+                    ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+                    : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                }`}>
+                  {agent.status === 'ACTIVE' ? 'Confirmed' : 'Pending Confirmation'}
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <p>
                 Created by: <span>{ellipsizeAddress(token.createdBy)}</span>

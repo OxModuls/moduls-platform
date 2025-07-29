@@ -12,8 +12,14 @@ import { useAccount } from "wagmi";
 
 // AgentCard component for consistent agent card UI
 function AgentCard({ agent }) {
+  const isPending = agent.status === 'PENDING';
+  const isInactive = agent.status === 'INACTIVE';
+  const isActive = agent.status === 'ACTIVE';
+
   return (
-    <div className="py-3 px-4 bg-primary-foreground border rounded-lg flex gap-3 items-center">
+    <div className={`py-3 px-4 bg-primary-foreground border rounded-lg flex gap-3 items-center ${
+      isPending ? 'opacity-60' : isInactive ? 'opacity-40 bg-muted/20' : ''
+    }`}>
       <div className="size-10 bg-accent rounded-lg flex items-center justify-center">
         {
           agent.logoUrl ? (
@@ -26,7 +32,18 @@ function AgentCard({ agent }) {
         }
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-accent truncate">{agent.name}</p>
+        <div className="flex items-center gap-2">
+          <p className="font-bold text-accent truncate">{agent.name}</p>
+          {!isActive && (
+            <div className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+              isPending 
+                ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' 
+                : 'bg-red-500/20 text-red-600 dark:text-red-400'
+            }`}>
+              {isPending ? 'Pending' : 'Inactive'}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2 mt-1">
           <span className="text-xs text-muted-foreground truncate">{agent.description}</span>
         </div>
@@ -46,7 +63,7 @@ function AgentCard({ agent }) {
 
 const Home = () => {
 
-  const { user, isAuthenticated, accessToken, isAuthChecked } = useAuth();
+  const {  isAuthenticated, accessToken, isAuthChecked } = useAuth();
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
 

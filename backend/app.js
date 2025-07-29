@@ -52,6 +52,8 @@ function startContractWatcher() {
 
     console.log("Starting contract watcher for", modulsDeployerAddress);
     unwatch = registerContractWatcher(modulsDeployerAddress, "ModulsTokenCreated", async (logs) => {
+
+        console.log(`Received ${logs.length} logs`);
         for (const log of logs) {
             if (log.eventName === "ModulsTokenCreated") {
                 const { tokenAddress, intentId } = log.args;
@@ -72,6 +74,8 @@ function startContractWatcher() {
                 }
 
 
+            } else {
+                console.log("Unknown event", log.eventName);
             }
         }
     }, (error) => {
@@ -81,7 +85,7 @@ function startContractWatcher() {
     }, () => {
         console.log("Connected to contract event");
     });
-    return unwatch;
+
 }
 
 function stopContractWatcher() {
@@ -125,6 +129,7 @@ app.listen(app.get("port"), () => {
 process.on('SIGINT', () => {
     stopContractWatcher();
     console.log("SIGINT signal received, stopping event watcher");
+
 });
 
 process.on('SIGTERM', () => {

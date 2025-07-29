@@ -58,7 +58,7 @@ function registerContractWatcher(contractAddress, eventName, onLogsCallback, onE
     const unwatch = watchContractEvent(publicClient, {
         address: contractAddress,
         abi: ModulsDeployerAbi,
-        eventName: eventName,
+        // eventName: eventName,
         onLogs: onLogsCallback,
         args: undefined,
         batch: true,
