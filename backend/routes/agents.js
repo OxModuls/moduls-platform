@@ -43,11 +43,12 @@ const upload = multer({
 router.get("/agents/mine", verifyToken, async (req, res) => {
     try {
         const { _id: userId } = req.user;
-        const agents = await Agent.find({ creator: userId }).lean();
+        const agents = await Agent.find({ creator: userId }).populate('creator').lean()
 
 
         // Filter and compose the response using the schema
         const filteredAgents = agents.map(agent => {
+
             // Remove null fields from each agent object
             Object.keys(agent).forEach(key => {
                 if (agent[key] === null) {
@@ -65,11 +66,11 @@ router.get("/agents/mine", verifyToken, async (req, res) => {
             // Validate and transform the data
             const { success, data, error } = agentResponseSchema.safeParse(agentData);
             if (!success) {
-                console.error('Agent data validation failed:', error);
+                console.error(`Data validation failed for agent ${agent.uniqueId}:`, error.message);
                 return null;
             }
             return data;
-        }).filter(Boolean); // Remove any null entries from failed validation
+        }).filter(Boolean);
 
 
         return res.status(200).json({
@@ -118,9 +119,9 @@ router.get("/agents/:uniqueId", async (req, res) => {
         // Validate and transform the data
         const { success, data, error } = agentResponseSchema.safeParse(agentData);
         if (!success) {
-            console.error('Agent data validation failed:', error);
+            console.error(`Data validation failed for agent ${agent.uniqueId}:`, error.message);
             return res.status(500).json({
-                message: 'Agent data validation failed',
+                message: `Data validation failed for agent ${agent.uniqueId}`,
                 error: error.message
             });
         }
@@ -244,6 +245,7 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
                 agentWalletShare: agent.taxSettings.agentWalletShare,
                 devWalletShare: agent.taxSettings.devWalletShare,
                 slippage: agent.prebuySettings.slippage,
+
             }
         });
 

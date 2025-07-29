@@ -130,6 +130,12 @@ const agentSchema = new mongoose.Schema({
         enum: agentModulEnum
     },
 
+    tokenAddress: {
+        type: String,
+        required: false,
+        default: null
+    },
+
     tokenSymbol: {
         type: String,
         required: true,

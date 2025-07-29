@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
 const swaggerUi = require('swagger-ui-express');
+const Agent = require('./core/models/agents');
+const { registerContractWatcher, getModulsDeployerAddress } = require('./core/blockchainclient');
 
 const app = express();
 
@@ -38,6 +40,57 @@ app.use(cors({
 
 }));
 
+// EVENTS 
+
+let unwatch;
+
+function startContractWatcher() {
+    if (unwatch) {
+        unwatch();
+    }
+    const modulsDeployerAddress = getModulsDeployerAddress();
+
+    console.log("Starting contract watcher for", modulsDeployerAddress);
+    unwatch = registerContractWatcher(modulsDeployerAddress, "ModulsTokenCreated", async (logs) => {
+        for (const log of logs) {
+            if (log.eventName === "ModulsTokenCreated") {
+                const { tokenAddress, intentId } = log.args;
+
+
+                const correspondingAgent = await Agent.findOne({
+                    intentId: Number(intentId)
+                });
+
+                if (correspondingAgent && correspondingAgent.status === "PENDING") {
+                    correspondingAgent.status = "ACTIVE";
+                    correspondingAgent.tokenAddress = tokenAddress;
+                    await correspondingAgent.save();
+                    console.log("Agent updated", correspondingAgent.uniqueId);
+                }
+                else {
+                    console.log("Agent not found or already active", intentId);
+                }
+
+
+            }
+        }
+    }, (error) => {
+        console.error(error);
+    }, () => {
+        console.log("Disconnected from contract event");
+    }, () => {
+        console.log("Connected to contract event");
+    });
+    return unwatch;
+}
+
+function stopContractWatcher() {
+    if (unwatch) {
+        unwatch();
+    }
+    unwatch = null;
+}
+
 // ROUTES
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
@@ -64,6 +117,17 @@ app.get('/', (req, res) => {
 
 app.listen(app.get("port"), () => {
     connectDB();
+    startContractWatcher();
     console.log(`${config.appName} is running on port ${app.get("port")}`);
 });
 
+
+process.on('SIGINT', () => {
+    stopContractWatcher();
+    console.log("SIGINT signal received, stopping event watcher");
+});
+
+process.on('SIGTERM', () => {
+    stopContractWatcher();
+    console.log("SIGTERM signal received, stopping event watcher");
+});

@@ -15,10 +15,19 @@ const config = {
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '1234567890',
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '1234567890',
     agentWalletSecret: process.env.AGENT_WALLET_SECRET || 'moduls-agent-wallet-secret',
+    chainMode: process.env.CHAIN_MODE || 'testnet',
     allowedOrigins: [
         'http://localhost:5173',
 
-    ]
+    ],
+    contractAddresses: {
+        testnet: {
+            modulsDeployer: process.env.MODULS_DEPLOYER_ADDRESS_TESTNET || '0x882aABa3F22c7590ac819Bf946534E388230596D',
+        },
+        mainnet: {
+            modulsDeployer: process.env.MODULS_DEPLOYER_ADDRESS_MAINNET || '0x882aABa3F22c7590ac819Bf946534E388230596D',
+        }
+    }
 
 
 }
