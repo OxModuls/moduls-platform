@@ -1,4 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-verify");
+
 
 
 
@@ -34,6 +36,17 @@ module.exports = {
 
 
   etherscan: {
+
+    apiKey: {
+
+      seiTestnet: "<SEI_TESTNET_API_KEY>",
+      seiMainnet: "<SEI_MAINNET_API_KEY>",
+
+    },
+
+
+
+
     customChains: [
       {
         network: "seiTestnet",

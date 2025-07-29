@@ -15,6 +15,15 @@ const config = {
         agentsCreate: "/api/agents/create",
         agent: "/api/agents", // Base path for single agent operations
 
+    },
+
+    contractAddresses: {
+        testnet: {
+            modulsDeployer: "0x882aABa3F22c7590ac819Bf946534E388230596D"
+        },
+        mainnet: {
+            modulsDeployer: "0x0000000000000000000000000000000000000000"
+        }
     }
 };
 

@@ -61,7 +61,7 @@ contract ModulsToken is ERC20, Ownable, Pausable {
 
         _isAdmin[PLATFORM_ADMIN] = true;
 
-        _mint(salesManager_, initialSupply_);
+        _mint(salesManager_, initialSupply_ * 10 ** decimals());
         _transferOwnership(PLATFORM_ADMIN);
 
         emit ModulsTokenInitialized(
@@ -165,5 +165,9 @@ contract ModulsDeployer {
 
     function getDeployedTokens() external view returns (address[] memory) {
         return deployedTokens;
+    }
+
+    function getDeployedTokensCount() external view returns (uint256) {
+        return deployedTokens.length;
     }
 }

@@ -14,7 +14,6 @@ import {
 import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import SeiIcon from "@/components/sei-icon";
-import { writeToClipboard } from "@/lib/utils";
 import { useAccount } from "wagmi";
 import { useAuth } from "../shared/hooks/useAuth";
 import { useNavigate } from "react-router";
@@ -24,6 +23,8 @@ import * as Yup from "yup";
 import { useMutation } from "@tanstack/react-query";
 import { createFetcher } from "@/lib/fetcher";
 import AuthWrapper from "@/components/auth-wrapper";
+import ModulsDeployerABI from "@/lib/abi/ModulsDeployer.json";
+import { useWriteContract } from "wagmi";
 
 const modulTypes = [
   {
@@ -145,13 +146,50 @@ const CreateAgent = () => {
   const { address } = useAccount();
   const navigate = useNavigate();
   const { getAccessToken } = useAuth();
-  const pickModulDivRef = useRef(null);
+  const agentUniqueIdRef = useRef(null)
+  
   const taxSettingsDivRef = useRef(null);
   const prebuyDivRef = useRef(null);
 
   const [showSocialLinks, setShowSocialLinks] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [agentImageUrl, setAgentImageURL] = useState();
+
+  // contract interactions 
+  const { writeContract, data : deployModulsTokenHash, isPending : deployModulsTokenPending } = useWriteContract({
+    mutation : {
+      onSuccess : (data) => {
+        toast.success("Token deployed successfully");
+
+        console.log("Token Created, ", deployModulsTokenHash)
+        navigate(`/agents/${agentUniqueIdRef.current}`);
+      },
+      onError : (error) => {
+        console.log(error);
+        toast.error("Failed to deploy token, please try again");
+      }
+    }
+  });
+
+
+  function deployModulsToken(args){
+    writeContract({
+      address: config.contractAddresses.testnet.modulsDeployer,
+      abi: ModulsDeployerABI,
+      functionName: "deployToken",
+      args : [
+        args.name,
+        args.symbol,
+        args.initialSupply,
+        args.agentWallet,
+        args.salesManager,
+        args.taxPercent,
+        args.agentSplit,
+        args.intentId,
+        args.metadataURI
+      ]
+    });
+  }
 
   
 
@@ -174,12 +212,30 @@ const CreateAgent = () => {
       })();
       return response;
     },
-    onSuccess: (data) => {
-      toast.success(`Agent ${data.agent.name} created successfully!`);
-      navigate(`/agents/${data.agent.uniqueId}`);
+    onSuccess: (data, variables) => {
+      
+      toast.info("Agent created, pulling up your wallet to sign the transaction");
+
+      agentUniqueIdRef.current = data.agent.uniqueId;
+
+      const deploymentData = {
+        name : data.agent.name,
+        symbol : data.agent.tokenSymbol,
+        initialSupply : data.agent.totalSupply,
+        agentWallet : data.agent.walletAddress,
+        salesManager : address,
+        taxPercent : data.agent.totalTaxPercentage,
+        agentSplit : data.agent.agentWalletShare,
+        intentId : data.agent.intentId,
+        metadataURI : data.agent.logoUrl
+      }
+
+      console.log(deploymentData);
+      deployModulsToken(deploymentData)
+
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create agent');
+      toast.error(error.message || 'Failed to create agent, please try again');
     },
   });
 
@@ -228,7 +284,7 @@ const CreateAgent = () => {
       agentWalletShare: values.taxSettings.agentWalletShare,
       devWalletShare: values.taxSettings.devWalletShare,
       slippage: values.prebuySettings.slippage,
-      amountInWei: values.prebuySettings.amountInWei,
+      amountInWei: BigInt(values.prebuySettings.amountInWei * 10 ** 18).toString(),
       websiteUrl: values.websiteUrl,
       twitterUrl: values.twitterUrl,
       telegramUrl: values.telegramUrl,
@@ -680,17 +736,20 @@ const CreateAgent = () => {
                   <div className="mt-4 flex justify-end gap-2">
                     <button
                       type="submit"
-                      disabled={createAgentMutation.isPending || !isValid}
+                      disabled={createAgentMutation.isPending || !isValid || deployModulsTokenPending}
                       className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {createAgentMutation.isPending ? (
+                      {(createAgentMutation.isPending || deployModulsTokenPending) ? (
                         <>
                           <span className="inline-block align-middle mr-1">
                             <span className="relative flex h-3 w-3">
                               <span className="animate-spin inline-block w-full h-full rounded-full border-2 border-white border-t-transparent"></span>
                             </span>
                           </span>
-                          <span>Creating Agent...</span>
+                          <span>{
+                            createAgentMutation.isPending ? "Creating Agent..." : "Deploying Token..."
+                          }
+                          </span>
                         </>
                       ) : (
                         'Launch Agent'

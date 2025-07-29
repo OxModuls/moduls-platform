@@ -107,6 +107,7 @@ router.get("/agents/:uniqueId", async (req, res) => {
             }
         });
 
+
         const agentData = Object.assign({}, agent, {
             prebuySettings: {
                 slippage: agent.prebuySettings.slippage,
@@ -228,15 +229,21 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
 
         return res.status(201).json({
             agent: {
+                intentId: agent.intentId,
                 uniqueId: agent.uniqueId,
                 name: agent.name,
+                tokenSymbol: agent.tokenSymbol,
                 description: agent.description,
                 modulType: agent.modulType,
-                tokenSymbol: agent.tokenSymbol,
                 image: agent.logoUrl,
                 status: agent.status,
                 createdAt: agent.createdAt,
-                walletAddress: agent.walletAddress
+                walletAddress: agent.walletAddress,
+                totalSupply: agent.totalSupply,
+                totalTaxPercentage: agent.taxSettings.totalTaxPercentage,
+                agentWalletShare: agent.taxSettings.agentWalletShare,
+                devWalletShare: agent.taxSettings.devWalletShare,
+                slippage: agent.prebuySettings.slippage,
             }
         });
 
