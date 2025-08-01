@@ -19,10 +19,12 @@ const config = {
 
     contractAddresses: {
         testnet: {
-            modulsDeployer: "0x882aABa3F22c7590ac819Bf946534E388230596D"
+            modulsDeployer: "0x882aABa3F22c7590ac819Bf946534E388230596D",
+            modulsSalesManager: "0xD27e6eF5845Ef65a48Ccd59790FBDC5B17F25D6c"
         },
         mainnet: {
-            modulsDeployer: "0x0000000000000000000000000000000000000000"
+            modulsDeployer: "0x0000000000000000000000000000000000000000",
+            modulsSalesManager: "0x0000000000000000000000000000000000000000"
         }
     }
 };

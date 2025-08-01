@@ -14,7 +14,7 @@ import {
 import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import SeiIcon from "@/components/sei-icon";
-import { useAccount } from "wagmi";
+import { useAccount,useChainId } from "wagmi";
 import { useAuth } from "../shared/hooks/useAuth";
 import { useNavigate } from "react-router";
 import config from "../shared/config";
@@ -147,7 +147,7 @@ const CreateAgent = () => {
   const navigate = useNavigate();
   const { getAccessToken } = useAuth();
   const agentUniqueIdRef = useRef(null)
-  
+  const chainId = useChainId();
   const taxSettingsDivRef = useRef(null);
   const prebuyDivRef = useRef(null);
 
@@ -218,19 +218,21 @@ const CreateAgent = () => {
 
       agentUniqueIdRef.current = data.agent.uniqueId;
 
+
+   
       const deploymentData = {
         name : data.agent.name,
         symbol : data.agent.tokenSymbol,
         initialSupply : data.agent.totalSupply,
         agentWallet : data.agent.walletAddress,
-        salesManager : address,
+        salesManager : chainId === 1328 ? config.contractAddresses.testnet.modulsSalesManager : chainId === 1329 ? config.contractAddresses.mainnet.modulsSalesManager : config.contractAddresses.testnet.modulsSalesManager,
         taxPercent : data.agent.totalTaxPercentage,
         agentSplit : data.agent.agentWalletShare,
         intentId : data.agent.intentId,
         metadataURI : data.agent.logoUrl
       }
 
-      console.log(deploymentData);
+      // console.log(deploymentData);
       deployModulsToken(deploymentData)
 
     },
@@ -739,18 +741,11 @@ const CreateAgent = () => {
                       disabled={createAgentMutation.isPending || !isValid || deployModulsTokenPending}
                       className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
+                      {(createAgentMutation.isPending || deployModulsTokenPending) && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      )}
                       {(createAgentMutation.isPending || deployModulsTokenPending) ? (
-                        <>
-                          <span className="inline-block align-middle mr-1">
-                            <span className="relative flex h-3 w-3">
-                              <span className="animate-spin inline-block w-full h-full rounded-full border-2 border-white border-t-transparent"></span>
-                            </span>
-                          </span>
-                          <span>{
-                            createAgentMutation.isPending ? "Creating Agent..." : "Deploying Token..."
-                          }
-                          </span>
-                        </>
+                        createAgentMutation.isPending ? "Creating Agent..." : "Deploying Token..."
                       ) : (
                         'Launch Agent'
                       )}

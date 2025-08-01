@@ -44,14 +44,12 @@ app.use(cors({
 
 let unwatch;
 
-function startContractWatcher() {
-    if (unwatch) {
-        unwatch();
-    }
+async function startContractWatcher() {
+
     const modulsDeployerAddress = getModulsDeployerAddress();
 
     console.log("Starting contract watcher for", modulsDeployerAddress);
-    unwatch = registerContractWatcher(modulsDeployerAddress, "ModulsTokenCreated", async (logs) => {
+    unwatch = await registerContractWatcher(modulsDeployerAddress, async (logs) => {
 
         console.log(`Received ${logs.length} logs`);
         for (const log of logs) {
@@ -121,7 +119,7 @@ app.get('/', (req, res) => {
 
 app.listen(app.get("port"), () => {
     connectDB();
-    startContractWatcher();
+    startContractWatcher().catch(console.error);
     console.log(`${config.appName} is running on port ${app.get("port")}`);
 });
 
@@ -129,10 +127,12 @@ app.listen(app.get("port"), () => {
 process.on('SIGINT', () => {
     stopContractWatcher();
     console.log("SIGINT signal received, stopping event watcher");
+    process.exit(0);
 
 });
 
 process.on('SIGTERM', () => {
     stopContractWatcher();
     console.log("SIGTERM signal received, stopping event watcher");
+    process.exit(0);
 });

@@ -118,6 +118,8 @@ router.get("/agents/:uniqueId", async (req, res) => {
 
         // Validate and transform the data
         const { success, data, error } = agentResponseSchema.safeParse(agentData);
+
+
         if (!success) {
             console.error(`Data validation failed for agent ${agent.uniqueId}:`, error.message);
             return res.status(500).json({

@@ -73,6 +73,7 @@ const agentResponseSchema = z.object({
     tokenDecimals: z.number(),
     totalSupply: z.number(),
     tokenAddress: z.string().optional(),
+    walletAddress: z.string().optional(),
     taxSettings: z.object({
         totalTaxPercentage: z.number(),
         agentWalletShare: z.number(),

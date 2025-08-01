@@ -18,7 +18,7 @@ const seiTestnet = {
     id: 1328,
     name: "Sei Testnet",
     rpcUrls: {
-        default: { http: ["https://evm-rpc-testnet.sei-apis.com"] },
+        default: { http: ["https://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/"] },
     },
 };
 

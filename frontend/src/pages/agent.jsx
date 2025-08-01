@@ -1,43 +1,40 @@
-import CandlestickChart from "@/components/candlestick-chart";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import AgentAboutTab from "@/components/agent-about-tab";
+import AgentTradeTab from "@/components/agent-trade-tab";
+import AgentHoldersTab from "@/components/agent-holders-tab";
 import {
-  ArrowLeftRight,
-  ArrowUpDown,
   BadgeDollarSign,
-  Banknote,
   Bot,
-  Calendar,
-  ChartCandlestick,
-  CircleQuestionMark,
   Copy,
-  Database,
-  Globe,
   Info,
-  Link,
-  SquareArrowOutUpRight,
   UserRound,
-  Wallet,
+  Play,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import {
   ellipsizeAddress,
   formatISODate,
-  getHumanReadableTimeAgo,
   writeToClipboard,
 } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import SeiIcon from "@/components/sei-icon";
+
+
 import { useParams, useNavigate } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFetcher } from "@/lib/fetcher";
 import config from "@/shared/config";
 import { toast } from "sonner";
+import { useAccount } from "wagmi";
+import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
+
 
 const Agent = () => {
   const { uniqueId } = useParams();
   const navigate = useNavigate();
+  const { address: connectedAddress } = useAccount();
+  
   
   // Fetch agent data
   const { data: agentData, isLoading, error } = useQuery({
@@ -50,6 +47,95 @@ const Agent = () => {
     refetchInterval: 10000,
     placeholderData: keepPreviousData,
   });
+
+  // Use ModulsSalesManager hook
+  const {
+    data: contractData,
+    isLoading: contractLoading,
+    error: contractError,
+    isTokenRegistered,
+    isTradingEnabled,
+    isWritePending,
+    buyTokenStatus,
+    sellTokenStatus,
+    buyToken,
+    sellToken,
+    registerToken,
+  } = useModulsSalesManager(
+    agentData?.agent?.tokenAddress && 
+    agentData.agent.tokenAddress !== "0x0000000000000000000000000000000000000000" 
+      ? agentData.agent.tokenAddress 
+      : undefined
+  );
+
+
+
+  // Handle opening trading (registering token)
+  const handleOpenTrading = async () => {
+    if (!agent?.tokenAddress || !connectedAddress) {
+      toast.error("Missing token address or wallet connection");
+      return;
+    }
+
+    try {
+      // Register the token with default parameters
+
+      
+      await registerToken({
+        token: agent.tokenAddress,
+        agentWallet: agent.walletAddress,
+        devWallet: agent.creator.walletAddress,
+        taxPercent: agent.taxSettings?.totalTaxPercentage,
+        agentSplit: agent.taxSettings?.agentWalletShare,
+      });
+      
+      // toast.success("Token registered for trading!");
+    } catch (error) {
+      console.error("Error registering token:", error);
+      toast.error("Failed to register token for trading");
+    }
+  };
+
+
+
+  // Handle buy token
+  const handleBuyToken = async (amount, maxCost) => {
+    if (!amount || !maxCost || !connectedAddress) {
+      toast.error("Please enter amount and ensure wallet is connected");
+      return;
+    }
+
+    try {
+
+      await buyToken({
+        tokenAmount: amount,
+        maxCost: maxCost
+      });
+      toast.info("Pulling up your wallet now...");
+    } catch (error) {
+      console.error("Buy error:", error);
+      toast.error("Buy transaction failed");
+    }
+  };
+
+  // Handle sell token
+  const handleSellToken = async (amount) => {
+    if (!amount || !connectedAddress) {
+      toast.error("Please enter amount and ensure wallet is connected");
+      return;
+    }
+
+    try {
+      await sellToken({
+        tokenAmount: amount,
+      });
+      toast.info("Pulling up your wallet now...");
+
+    } catch (error) {
+      console.error("Sell error:", error);
+      toast.error("Sell transaction failed");
+    }
+  };
 
   const [chartData, _setChartData] = useState([
     {
@@ -346,7 +432,7 @@ const Agent = () => {
   ]);
 
   // Handle loading state
-  if (isLoading && !agentData) {
+  if (isLoading || contractLoading) {
     return (
       <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
         <div className="w-full max-w-lg mx-auto">
@@ -370,17 +456,29 @@ const Agent = () => {
   }
 
   // Handle error state
-  if (error) {
+  if (error || contractError) {
     return (
       <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
         <div className="w-full max-w-lg mx-auto text-center">
           <div className="mb-4">
             <Bot className="size-16 text-muted-foreground mx-auto" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">Agent Not Found</h2>
+          <h2 className="text-xl font-semibold mb-2">
+            {error ? "Agent Not Found" : "Contract Error"}
+          </h2>
           <p className="text-muted-foreground mb-4">
-            The agent you're looking for doesn't exist or has been removed.
+            {error 
+              ? "The agent you're looking for doesn't exist or has been removed."
+              : "There was an error loading contract data. Please check your connection and try again."
+            }
           </p>
+          {contractError && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-left">
+              <p className="text-sm text-red-600 dark:text-red-400">
+                Contract Error: {contractError.message}
+              </p>
+            </div>
+          )}
           <button
             onClick={() => navigate('/')}
             className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
@@ -394,6 +492,10 @@ const Agent = () => {
 
   const agent = agentData?.agent;
 
+  // Check if token address is valid
+  const isTokenAddressValid = agent?.tokenAddress && 
+    agent.tokenAddress !== "0x0000000000000000000000000000000000000000";
+
   // Fallback data structure if agent is not available
   const token = {
     name: agent?.name || "Unknown Agent",
@@ -403,14 +505,21 @@ const Agent = () => {
     devAddress: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
     createdBy: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
     creationDate: agent?.createdAt,
-    tokenSymbol: agent?.tokenSymbol ,
+    tokenSymbol: agent?.tokenSymbol,
     curveProgress: {
-      current: 25000,
-      target: 100000,
+      current: contractData?.marketStats?.ethCollected ? parseFloat(contractData.marketStats.ethCollected) : 0, // Use actual SEI value
+      target: contractData?.maxEthCap ? parseFloat(contractData.maxEthCap) : 0, // Use actual SEI value
     },
+    maxEthCap: contractData?.maxEthCap || "0",
     website: agent?.websiteUrl || "#",
     supply: agent?.totalSupply,
-    tradeFees: agent?.taxSettings?.totalTaxPercentage || 0,
+    tradeFees: contractData?.marketConfig?.taxPercent || agent?.taxSettings?.totalTaxPercentage || 0,
+    currentPrice: contractData?.currentPrice || "0",
+    marketStats: contractData?.marketStats,
+    tradeStats: contractData?.tradeStats,
+    isRegistered: isTokenRegistered,
+    isTradingEnabled: isTradingEnabled,
+    isAddressValid: isTokenAddressValid,
   };
 
   
@@ -423,18 +532,31 @@ const Agent = () => {
             <AvatarImage src={token.image} />
             <AvatarFallback>{token.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col items-start gap-2 mb-1">
               <h1 className="text-xl font-bold uppercase">{token.name}</h1>
-              {agent?.status && (
-                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  agent.status === 'ACTIVE' 
-                    ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                    : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-                }`}>
-                  {agent.status === 'ACTIVE' ? 'Confirmed' : 'Pending Confirmation'}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {agent?.status && (
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    agent.status === 'ACTIVE' 
+                      ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+                      : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                  }`}>
+                    {agent.status === 'ACTIVE' ? 'Confirmed' : 'Pending Confirmation'}
+                  </div>
+                )}
+                {!isTradingEnabled && connectedAddress && agent?.creator?.walletAddress && 
+                 connectedAddress.toLowerCase() === agent.creator.walletAddress.toLowerCase() && (
+                  <button
+                    onClick={handleOpenTrading}
+                    disabled={isWritePending || !token.isAddressValid}
+                    className="px-3 py-1 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-1 text-xs font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Play className="size-3" />
+                    {isWritePending ? "Registering..." : !token.isAddressValid ? "No Token Address" : "Open Trading"}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <p>
@@ -487,26 +609,57 @@ const Agent = () => {
               </a>
             )}
           </div>
-          <div className="w-full px-4 py-3 bg-primary-foreground rounded-lg border flex flex-col justify-between gap-3">
-            <div className="w-full flex justify-between">
-              <span>Curve Progress:</span>
-              <span className="text-accent">
-                {((100 * token.curveProgress.current) / token.curveProgress.target).toFixed(2)}%
-              </span>
+          {token.isRegistered && (
+            <div className="w-full px-4 py-3 bg-primary-foreground rounded-lg border flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Trading Status:</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  token.isTradingEnabled 
+                    ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+                    : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                }`}>
+                  {token.isTradingEnabled ? 'Active' : 'Paused'}
+                </span>
+              </div>
+              {token.currentPrice && (
+                <div className="flex items-center justify-between">
+                  <span>Current Price:</span>
+                  <span className="text-accent font-medium">
+                    {parseFloat(token.currentPrice).toFixed(10)} SEI
+                  </span>
+                </div>
+              )}
+              {token.marketStats && (
+                <div className="flex items-center justify-between">
+                  <span>Total Volume:</span>
+                  <span className="text-accent font-medium">
+                    {parseFloat(token.marketStats.ethCollected).toFixed(10)} SEI
+                  </span>
+                </div>
+              )}
+              {/* Curve Progress */}
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <div className="w-full flex justify-between mb-2">
+                  <span>Curve Progress:</span>
+                  <span className="text-accent">
+                    {((100 * token.curveProgress.current) / token.curveProgress.target).toFixed(2)}%
+                  </span>
+                </div>
+                <Progress
+                  value={(100 * token.curveProgress.current) / token.curveProgress.target}
+                  indicatorClassName="bg-green-500 dark:bg-green-600"
+                />
+                <div className="w-full flex justify-between mt-2 text-sm">
+                  <span>
+                    Current: {parseFloat(token.marketStats?.ethCollected || "0").toFixed(10)} SEI
+                  </span>
+                  <span>
+                    Target: {parseFloat(token.maxEthCap || "0").toFixed(0)} SEI
+                  </span>
+                </div>
+              </div>
             </div>
-            <Progress
-              value={(100 * token.curveProgress.current) / token.curveProgress.target}
-              indicatorClassName="bg-green-500 dark:bg-green-600"
-            />
-            <div className="w-full flex justify-between">
-              <span>
-                Current: ${token.curveProgress.current.toLocaleString()}
-              </span>
-              <span>
-                Target: ${token.curveProgress.target.toLocaleString()}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
         <Tabs defaultValue="about" className="mt-5">
           <TabsList className="w-full py-5">
@@ -519,301 +672,48 @@ const Agent = () => {
             </TabsTrigger>
             <TabsTrigger
               value="trade"
-              className="flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent"
+              disabled={!isTradingEnabled}
+              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                !isTradingEnabled ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <BadgeDollarSign className="size-5" />
               <h2 className="text-base font-semibold">Buy/Sell</h2>
             </TabsTrigger>
             <TabsTrigger
               value="holders"
-              className="flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent"
+              disabled={!isTradingEnabled}
+              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                !isTradingEnabled ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <UserRound className="size-5" />
               <h2 className="text-base font-semibold">Holders</h2>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="about" asChild>
-            <div className="mt-3">
-              <div className="">
-                <div className="ml-2 flex items-center gap-2">
-                  <ChartCandlestick className="size-4" />
-                  <h2 className="text-lg font-semibold">Chart</h2>
-                </div>
-                <div className="mt-2 px-2 py-4 bg-primary-foreground rounded-lg">
-                  <CandlestickChart data={chartData} />
-                </div>
-              </div>
-              <div className="mt-5">
-                <div className="ml-2 flex items-center gap-2">
-                  <Bot className="size-4" />
-                  <h2 className="text-lg font-semibold">Agent Description</h2>
-                </div>
-                <div className="mt-2 px-2">
-                  {agent?.description || "No description available for this agent."}
-                </div>
-              </div>
-              <div className="mt-5 flex flex-col gap-3">
-                <div className="ml-2 flex items-center gap-2">
-                  <Info className="size-4" />
-                  <h2 className="text-lg font-semibold">Info</h2>
-                </div>
-                <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
-                  <div className="flex items-center gap-2">
-                    <Database className="size-5" />
-                    <span className="font-medium">Supply</span>
-                  </div>
-                  <span>{token.supply.toLocaleString()}</span>
-                </div>
-                <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-5" />
-                    <span className="font-medium">Created</span>
-                  </div>
-                  <span>{formatISODate(token.creationDate)}</span>
-                </div>
-                <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
-                  <div className="flex items-center gap-2">
-                    <Banknote className="size-5" />
-                    <span className="font-medium">Trade fees</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>{token.tradeFees}%</span>
-                    <CircleQuestionMark className="size-4 text-muted-foreground" />
-                  </div>
-                </div>
-                <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
-                  <div className="flex items-center gap-2">
-                    <Link className="size-5" />
-                    <span className="font-medium">Contract Address:</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>{ellipsizeAddress(token.contractAddress)}</span>
-                    <button
-                      className="cursor-pointer"
-                      onClick={() => {
-                        writeToClipboard(token.contractAddress);
-                        toast.success("Contract address copied to clipboard");
-                      }}
-                    >
-                      <Copy className="size-4" />
-                    </button>
-                  </div>
-                </div>
-                <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
-                  <div className="flex items-center gap-2">
-                    <UserRound className="size-5" />
-                    <span className="font-medium">Developer Address:</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>{ellipsizeAddress(token.devAddress)}</span>
-                    <button
-                      className="cursor-pointer"
-                      onClick={() => {
-                        writeToClipboard(token.devAddress);
-                        toast.success("Developer address copied to clipboard");
-                      }}
-                    >
-                      <Copy className="size-4" />
-                    </button>
-                  </div>
-                </div>
-                {agent?.tags && agent.tags.length > 0 && (
-                  <div className="px-4 py-3 bg-primary-foreground rounded-lg border">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-medium">Tags:</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {agent.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-accent/20 text-accent rounded-md text-sm"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <AgentAboutTab 
+              token={token}
+              agent={agent}
+              isTradingEnabled={isTradingEnabled}
+              chartData={chartData}
+            />
           </TabsContent>
           <TabsContent value="trade" asChild>
-            <div className="w-full">
-              <div className="pt-4">
-                <div className="w-full flex gap-2 bg-primary-foreground">
-                  <button
-                    data-active={activeTradeTab === "buy"}
-                    className="py-2 flex-1 border-2 data-[active=true]:border-green-600 data-[active=true]:text-green-600 rounded-lg font-semibold cursor-pointer"
-                    onClick={() => setActiveTradeTab("buy")}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    data-active={activeTradeTab === "sell"}
-                    className="py-2 flex-1 border-2 data-[active=true]:border-red-600 data-[active=true]:text-red-600 rounded-lg font-semibold cursor-pointer"
-                    onClick={() => setActiveTradeTab("sell")}
-                  >
-                    Sell
-                  </button>
-                </div>
-                <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
-                  <div className="w-full flex flex-col gap-1">
-                    <label
-                      htmlFor="slippage"
-                      className="ml-1 text-sm font-semibold"
-                    >
-                      Slippage (%)
-                    </label>
-                    <Input
-                      type="number"
-                      id="slippage"
-                      className="py-2"
-                      defaultValue={5}
-                    />
-                  </div>
-                  <div className="w-full flex flex-col gap-1">
-                    <label
-                      htmlFor="amount"
-                      className="ml-1 text-sm font-semibold"
-                    >
-                      Amount
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        id="amount"
-                        className="py-2 pr-28"
-                        defaultValue={0}
-                      />
-                      <div className="absolute top-[50%] translate-y-[-50%] right-4 flex items-center gap-2 text-neutral-400">
-                        <div className="flex items-center gap-2">
-                          <span className="uppercase">sei</span>
-                          <SeiIcon className="size-4" />
-                        </div>
-                        <div className="h-4 w-0.5 bg-neutral-400" />
-                        <button className="cursor-pointer">
-                          <ArrowLeftRight className="size-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="px-1 w-full flex justify-between text-xs">
-                      <span className="text-red-500">Insufficient balance</span>
-                      <div className="flex items-center gap-1">
-                        <Wallet className="size-3" />
-                        <span className="">0 SEI</span>
-                        <button className="text-green-500">MAX</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <button
-                      className={`py-2 w-full capitalize rounded-lg font-semibold cursor-pointer ${activeTradeTab === "buy" ? "bg-green-600" : "bg-red-600"}`}
-                    >
-                      {activeTradeTab}
-                    </button>
-                    <div className="mt-1.25 text-neutral-400 text-xs flex items-center justify-center">
-                      <p>
-                        You will receive <span>1,000,000</span>{" "}
-                        {agent?.tokenSymbol?.toUpperCase() || token.name.toUpperCase()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* transactions */}
-              <div className="mt-5 w-full">
-                <div className="ml-2 flex items-center gap-2">
-                  <ArrowUpDown className="size-4" />
-                  <h2 className="text-lg font-semibold">Transactions</h2>
-                </div>
-                <div className="mt-3 px-3 py-2 bg-primary-foreground border rounded-lg overflow-x-auto">
-                  <table className="">
-                    <thead>
-                      <tr className="[&>th]:font-semibold [&>th]:px-4 border-b whitespace-nowrap">
-                        <th scope="col">Time</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">SEI</th>
-                        <th scope="col" className="capitalize">
-                          {agent?.tokenSymbol?.toUpperCase() || token.name}
-                        </th>
-                        <th>Account</th>
-                      </tr>
-                    </thead>
-                    <tbody className="[&>tr:not(:last-child)]:border-b">
-                      {transactions.map((transaction, idx) => (
-                        <tr
-                          key={idx}
-                          className="[&>td]:px-4 [&>td]:py-0.5 [&>td]:whitespace-nowrap"
-                        >
-                          <td>{getHumanReadableTimeAgo(transaction.date)}</td>
-                          <td className="">
-                            <div
-                              className={`px-2.5 py-1 rounded-xl capitalize text-sm font-medium ${transaction.type === "sell" ? "bg-red-600" : "bg-green-600"}`}
-                            >
-                              {transaction.type}
-                            </div>
-                          </td>
-                          <td className="font-mono text-center">
-                            {transaction.seiAmount.toLocaleString()}
-                          </td>
-                          <td className="font-mono text-center">
-                            {transaction.tokenAmount.toLocaleString()}
-                          </td>
-                          <td className="flex items-center gap-2 font-mono">
-                            <span>
-                              {ellipsizeAddress(transaction.account, 4, 4)}
-                            </span>
-                            <a
-                              href={`https://seitrace.com/address/${transaction.account}`}
-                              target="_blank"
-                            >
-                              <SquareArrowOutUpRight className="size-4" />
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <AgentTradeTab
+              token={token}
+              agent={agent}
+              activeTradeTab={activeTradeTab}
+              setActiveTradeTab={setActiveTradeTab}
+              handleBuyToken={handleBuyToken}
+              handleSellToken={handleSellToken}
+              buyTokenStatus={buyTokenStatus}
+              sellTokenStatus={sellTokenStatus}
+              connectedAddress={connectedAddress}
+            />
           </TabsContent>
           <TabsContent value="holders" asChild>
-            <div>
-              <p className="mt-3 ml-2 font-semibold">Top Token Holders</p>
-              <div className="mt-3 px-3 py-2 bg-primary-foreground border rounded-lg">
-                <table className="w-full">
-                  <thead>
-                    <tr className="[&>th]:font-semibold border-b">
-                      <th scope="col">#</th>
-                      <th scope="col">Holder</th>
-                      <th scope="col">%</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-mono [&>tr:not(:last-child)]:border-b">
-                    {holders.map((holder, idx) => (
-                      <tr key={idx} className="[&>th,td]:py-0.5">
-                        <th scope="row" className="font-semibold">
-                          {idx + 1}
-                        </th>
-                        <td className="flex justify-center items-center gap-2">
-                          <span className="text-accent">
-                            {ellipsizeAddress(holder.address)}
-                          </span>
-                          <button
-                            className="cursor-pointer"
-                            onClick={() => writeToClipboard(holder.address)}
-                          >
-                            <Copy className="size-4" />
-                          </button>
-                        </td>
-                        <td className="text-center">{holder.percentage}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AgentHoldersTab holders={holders} />
           </TabsContent>
         </Tabs>
       </div>

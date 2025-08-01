@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -124,7 +125,7 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         return initialPrice + (marketStats[token].tokensSold * priceSlope);
     }
 
-    function getBuyCost(
+    function getEtherCostForToken(
         address token,
         uint256 tokenAmount
     ) public view returns (uint256 cost, uint256 tax, uint256 totalCost) {
@@ -137,10 +138,14 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         MarketConfig memory config = marketConfigs[token];
         MarketStats memory stats = marketStats[token];
 
+        // Convert tokenAmount from wei to natural units using token decimals
+        uint256 tokenDecimals = IERC20Metadata(token).decimals();
+        uint256 tokenAmountNatural = tokenAmount / (10 ** tokenDecimals);
+
         // Calculate ETH needed using linear bonding curve integration
         uint256 ethNeeded = calculateBondingCurveCost(
             stats.tokensSold,
-            stats.tokensSold + tokenAmount
+            stats.tokensSold + tokenAmountNatural
         );
 
         cost = ethNeeded;
@@ -150,7 +155,7 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         return (cost, tax, totalCost);
     }
 
-    function getSellReturn(
+    function getEtherReturnForToken(
         address token,
         uint256 tokenAmount
     ) public view returns (uint256 ethReturn) {
@@ -161,18 +166,92 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         require(tokenAmount > 0, "Amount must be greater than 0");
 
         MarketStats memory stats = marketStats[token];
+
+        // Convert tokenAmount from wei to natural units using token decimals
+        uint256 tokenDecimals = IERC20Metadata(token).decimals();
+        uint256 tokenAmountNatural = tokenAmount / (10 ** tokenDecimals);
+
         require(
-            stats.tokensSold >= tokenAmount,
+            stats.tokensSold >= tokenAmountNatural,
             "Insufficient tokens in market"
         );
 
         // Calculate ETH return using linear bonding curve integration
         ethReturn = calculateBondingCurveCost(
-            stats.tokensSold - tokenAmount,
+            stats.tokensSold - tokenAmountNatural,
             stats.tokensSold
         );
 
         return ethReturn;
+    }
+
+    function _calculateTokenAmountForEth(
+        uint256 ethAmount,
+        uint256 tokensSold
+    )
+        internal
+        view
+        returns (uint256 tokenAmountNatural, uint256 actualEthAmount)
+    {
+        uint256 price1 = initialPrice + (tokensSold * priceSlope);
+        uint256 a = priceSlope;
+        uint256 b = 2 * price1;
+        uint256 c = 2 * ethAmount;
+
+        uint256 discriminant = b * b + 4 * a * c;
+        uint256 sqrtDiscriminant = sqrt(discriminant);
+        tokenAmountNatural = (sqrtDiscriminant - b) / (2 * a);
+        actualEthAmount = ethAmount;
+
+        return (tokenAmountNatural, actualEthAmount);
+    }
+
+    function getTokenAmountForEther(
+        address token,
+        uint256 ethAmount
+    )
+        public
+        view
+        returns (
+            uint256 tokenAmount,
+            uint256 cost,
+            uint256 tax,
+            uint256 totalCost
+        )
+    {
+        require(
+            marketConfigs[token].token != address(0),
+            "Token not registered"
+        );
+        require(ethAmount > 0, "Amount must be greater than 0");
+
+        MarketConfig memory config = marketConfigs[token];
+        MarketStats memory stats = marketStats[token];
+
+        // Calculate how many tokens can be bought with this ETH amount
+        (
+            uint256 tokenAmountNatural,
+            uint256 actualEthAmount
+        ) = _calculateTokenAmountForEth(ethAmount, stats.tokensSold);
+
+        // Check if this would exceed maxEthCap
+        if (stats.ethCollected + ethAmount > maxEthCap) {
+            uint256 remainingEth = maxEthCap - stats.ethCollected;
+            (tokenAmountNatural, actualEthAmount) = _calculateTokenAmountForEth(
+                remainingEth,
+                stats.tokensSold
+            );
+        }
+
+        // Convert tokenAmountNatural to wei
+        uint256 tokenDecimals = IERC20Metadata(token).decimals();
+        tokenAmount = tokenAmountNatural * (10 ** tokenDecimals);
+
+        cost = actualEthAmount;
+        tax = (cost * config.taxPercent) / 100;
+        totalCost = cost + tax;
+
+        return (tokenAmount, cost, tax, totalCost);
     }
 
     function calculateBondingCurveCost(
@@ -202,6 +281,19 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         return y;
     }
 
+    function _calculateMaxTokenAmountForEth(
+        uint256 remainingEth,
+        uint256 tokensSold
+    ) internal view returns (uint256) {
+        uint256 price1 = initialPrice + (tokensSold * priceSlope);
+        uint256 a = priceSlope;
+        uint256 b = 2 * price1;
+        uint256 c = 2 * remainingEth;
+        uint256 discriminant = b * b + 4 * a * c;
+        uint256 sqrtDiscriminant = sqrt(discriminant);
+        return (sqrtDiscriminant - b) / (2 * a);
+    }
+
     function buyToken(
         address token,
         uint256 tokenAmount,
@@ -222,41 +314,38 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
             "Cooldown not met"
         );
 
+        // Convert tokenAmount from wei to natural units using token decimals
+        uint256 tokenDecimals = IERC20Metadata(token).decimals();
+        uint256 tokenAmountNatural = tokenAmount / (10 ** tokenDecimals);
+
         // Calculate cost using linear bonding curve integration
         uint256 cost = calculateBondingCurveCost(
             stats.tokensSold,
-            stats.tokensSold + tokenAmount
+            stats.tokensSold + tokenAmountNatural
         );
         uint256 tax = (cost * config.taxPercent) / 100;
         uint256 totalCost = cost + tax;
 
         // Check if this purchase would exceed maxEthCap
         if (stats.ethCollected + cost > maxEthCap) {
-            // Calculate how much ETH we can still collect
             uint256 remainingEth = maxEthCap - stats.ethCollected;
-
-            uint256 price1 = initialPrice + (stats.tokensSold * priceSlope);
-
-            uint256 a = priceSlope;
-            uint256 b = 2 * price1;
-            uint256 c = 2 * remainingEth;
-
-            uint256 discriminant = b * b + 4 * a * c;
-            uint256 sqrtDiscriminant = sqrt(discriminant);
-            uint256 actualTokenAmount = (sqrtDiscriminant - b) / (2 * a);
-
-            require(actualTokenAmount > 0, "No tokens to buy");
+            uint256 actualTokenAmountNatural = _calculateMaxTokenAmountForEth(
+                remainingEth,
+                stats.tokensSold
+            );
+            require(actualTokenAmountNatural > 0, "No tokens to buy");
 
             // Recalculate cost and tax for the actual amount
             cost = calculateBondingCurveCost(
                 stats.tokensSold,
-                stats.tokensSold + actualTokenAmount
+                stats.tokensSold + actualTokenAmountNatural
             );
             tax = (cost * config.taxPercent) / 100;
             totalCost = cost + tax;
 
-            // Update tokenAmount to the actual amount we can buy
-            tokenAmount = actualTokenAmount;
+            // Update tokenAmount to the actual amount we can buy (convert back to wei)
+            tokenAmount = actualTokenAmountNatural * (10 ** tokenDecimals);
+            tokenAmountNatural = actualTokenAmountNatural;
         }
 
         // Slippage protection
@@ -271,16 +360,14 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         uint256 devShare = tax - agentShare;
 
         // Update state before external calls
-        stats.tokensSold += tokenAmount;
+        stats.tokensSold += tokenAmountNatural;
         stats.ethCollected += cost;
         stats.lastBuyTime = block.timestamp;
         lastBuyTime[msg.sender][token] = block.timestamp;
 
-        tradeStats[token].totalVolumeETH += cost;
-        tradeStats[token].totalVolumeToken += tokenAmount;
-        tradeStats[token].totalBuys++;
+        _updateBuyStats(token, cost, tokenAmountNatural);
 
-        // Transfer tokens to buyer
+        // Transfer tokens to buyer (use original tokenAmount in wei)
         IERC20(config.token).safeTransfer(msg.sender, tokenAmount);
 
         // Send tax to agent wallet and dev wallet
@@ -302,11 +389,31 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         emit ModulsTokenPurchase(
             token,
             msg.sender,
-            tokenAmount,
+            tokenAmount, // Keep original wei amount for event
             cost,
             currentPrice,
             block.timestamp
         );
+    }
+
+    function _updateBuyStats(
+        address token,
+        uint256 cost,
+        uint256 tokenAmountNatural
+    ) internal {
+        tradeStats[token].totalVolumeETH += cost;
+        tradeStats[token].totalVolumeToken += tokenAmountNatural;
+        tradeStats[token].totalBuys++;
+    }
+
+    function _updateSellStats(
+        address token,
+        uint256 ethToReturn,
+        uint256 tokenAmountNatural
+    ) internal {
+        tradeStats[token].totalVolumeETH += ethToReturn;
+        tradeStats[token].totalVolumeToken += tokenAmountNatural;
+        tradeStats[token].totalSells++;
     }
 
     function sellToken(
@@ -329,30 +436,35 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         MarketConfig memory config = marketConfigs[token];
         MarketStats storage stats = marketStats[token];
 
+        // Convert tokenAmount from wei to natural units using token decimals
+        uint256 tokenDecimals = IERC20Metadata(token).decimals();
+        uint256 tokenAmountNatural = tokenAmount / (10 ** tokenDecimals);
+
         // Calculate ETH to return using linear bonding curve integration
         uint256 ethToReturn = calculateBondingCurveCost(
-            stats.tokensSold - tokenAmount,
+            stats.tokensSold - tokenAmountNatural,
             stats.tokensSold
         );
 
         // Check for underflow protection
-        require(stats.tokensSold >= tokenAmount, "Underflow on tokensSold");
+        require(
+            stats.tokensSold >= tokenAmountNatural,
+            "Underflow on tokensSold"
+        );
 
         // Update state before external calls
         stats.ethCollected -= ethToReturn;
-        stats.tokensSold -= tokenAmount; // Reduce token depth for symmetric pricing
+        stats.tokensSold -= tokenAmountNatural; // Reduce token depth for symmetric pricing
         stats.lastSellTime = block.timestamp;
         lastSellTime[msg.sender][token] = block.timestamp;
 
-        tradeStats[token].totalVolumeETH += ethToReturn;
-        tradeStats[token].totalVolumeToken += tokenAmount;
-        tradeStats[token].totalSells++;
+        _updateSellStats(token, ethToReturn, tokenAmountNatural);
 
         // External calls after state updates
         IERC20(config.token).safeTransferFrom(
             msg.sender,
             address(this),
-            tokenAmount
+            tokenAmount // Use original wei amount for transfer
         );
         (bool sent, ) = msg.sender.call{value: ethToReturn}("");
         require(sent, "ETH transfer failed");
@@ -362,7 +474,7 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         emit ModulsTokenSell(
             token,
             msg.sender,
-            tokenAmount,
+            tokenAmount, // Keep original wei amount for event
             ethToReturn,
             currentPrice,
             block.timestamp
