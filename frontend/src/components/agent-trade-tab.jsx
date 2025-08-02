@@ -78,7 +78,6 @@ const sellReturnDataQueryEnabled = !!currentAmount  && activeTradeTab == "sell" 
 
 const parsedCurrentAmount = currentAmount ? parseEther(currentAmount.toString()) : BigInt(0)
 
-console.log("Current Amount", currentAmount, "Parsed Current Amount", parsedCurrentAmount)
   
   // Internal contract calls for real-time price calculation
   const { data: buyCostData } = useReadContract({
@@ -354,6 +353,13 @@ console.log("Current Amount", currentAmount, "Parsed Current Amount", parsedCurr
       setConvertedAmount(0);
       
     }
+
+
+    // we want to set the amount type to tokens if the tab is sell
+
+    if(tab === "sell"){
+        setAmountType("tokens");
+    }
   };
 
 
@@ -605,18 +611,22 @@ console.log("Current Amount", currentAmount, "Parsed Current Amount", parsedCurr
                   </div>
                   
                   {/* Amount Type Toggle */}
-                  <div className="flex gap-2 mb-2">
+                  <div className="flex gap-2 mb-2">{
+                    
+                    activeTradeTab === "buy" &&
                     <button
-                      type="button"
+                    type="button"
                       onClick={() => handleAmountTypeChange("sei", setFieldValue)}
                       className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                        amountType === "sei" 
+                          amountType === "sei" 
                           ? "bg-blue-600 text-white" 
                           : "bg-neutral-700 text-neutral-400 hover:text-neutral-300"
-                      }`}
-                    >
+                          }`}
+                        >
                         SEI 
                     </button>
+                        }
+                        
                     <button
                       type="button"
                       onClick={() => handleAmountTypeChange("tokens", setFieldValue)}

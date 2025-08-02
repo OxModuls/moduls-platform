@@ -8,14 +8,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./IModulsToken.sol";
 
 contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
     // === Constants ===
-    address public constant PLATFORM_ADMIN =
-        0x2396d72C6Da898C43023f6C66344a143c0d6278f; // Replace with real admin address
+    address public platformAdmin;
 
     // === Bonding Curve Parameters ===
     uint256 public initialPrice = 0.0000000001 ether; // 0.0000001 ETH = ~$0.0002 at $2000/ETH
@@ -88,24 +88,36 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         uint256 maxEthCap
     );
 
-    constructor() Ownable(PLATFORM_ADMIN) {}
+    constructor(address _platformAdmin) Ownable(_platformAdmin) {
+        platformAdmin = _platformAdmin;
+    }
 
     // === Core ===
 
-    function registerToken(
-        address token,
-        address payable agentWallet,
-        address payable devWallet,
-        uint8 taxPercent,
-        uint8 agentSplit
-    ) external {
+    function registerToken(address token) external {
         require(!marketConfigs[token].exists, "Token already registered");
-        require(taxPercent <= 10, "Tax too high");
-        require(agentSplit <= 100, "Invalid split");
         require(
             IERC20(token).balanceOf(address(this)) > 0,
             "SalesManager must hold token"
         );
+
+        // Fetch configuration from the token contract
+        IModulsToken tokenContract = IModulsToken(token);
+
+        address payable agentWallet = payable(tokenContract.agentWallet());
+        address payable devWallet = payable(tokenContract.devWallet());
+        uint8 taxPercent = tokenContract.taxPercent();
+        uint8 agentSplit = tokenContract.agentSplit();
+
+        // Only the devWallet (creator) can register the token
+        require(
+            msg.sender == devWallet,
+            "Only token creator can register token"
+        );
+
+        // Validate the fetched values
+        require(taxPercent <= 10, "Tax too high");
+        require(agentSplit <= 100, "Invalid split");
 
         marketConfigs[token] = MarketConfig({
             token: token,
@@ -252,6 +264,104 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         totalCost = cost + tax;
 
         return (tokenAmount, cost, tax, totalCost);
+    }
+
+    function getTokenAmountForEtherReturn(
+        address token,
+        uint256 ethAmount
+    ) public view returns (uint256 tokenAmount) {
+        require(
+            marketConfigs[token].token != address(0),
+            "Token not registered"
+        );
+        require(ethAmount > 0, "Amount must be greater than 0");
+
+        MarketStats memory stats = marketStats[token];
+
+        // Check if there are any tokens in the market to sell
+        require(stats.tokensSold > 0, "No tokens in market to sell");
+
+        // Check if the requested ETH amount is achievable
+        // The maximum ETH that can be returned is the total ETH collected
+        require(
+            ethAmount <= stats.ethCollected,
+            "Requested ETH amount exceeds market capacity"
+        );
+
+        // Calculate the maximum ETH return possible (selling all tokens)
+        uint256 maxEthReturn = calculateBondingCurveCost(0, stats.tokensSold);
+        require(
+            ethAmount <= maxEthReturn,
+            "Requested ETH amount exceeds maximum possible return"
+        );
+
+        // We need to find the token amount that when sold, gives us the desired ETH amount
+        // This is the inverse of the bonding curve calculation
+        // We'll use binary search to find the token amount
+
+        uint256 low = 0;
+        uint256 high = stats.tokensSold;
+        uint256 mid;
+        uint256 ethReturn;
+        uint256 bestTokenAmount = 0;
+        uint256 bestEthReturn = 0;
+        uint256 iterations = 0;
+        uint256 maxIterations = 100; // Prevent infinite loops
+
+        // Binary search to find the token amount
+        while (low <= high && iterations < maxIterations) {
+            mid = (low + high) / 2;
+
+            // Prevent underflow in calculation
+            if (mid > stats.tokensSold) {
+                high = mid - 1;
+                iterations++;
+                continue;
+            }
+
+            // Calculate ETH return for this token amount
+            ethReturn = calculateBondingCurveCost(
+                stats.tokensSold - mid,
+                stats.tokensSold
+            );
+
+            // Track the best approximation
+            if (ethReturn <= ethAmount && ethReturn > bestEthReturn) {
+                bestTokenAmount = mid;
+                bestEthReturn = ethReturn;
+            }
+
+            if (ethReturn == ethAmount) {
+                bestTokenAmount = mid;
+                break;
+            } else if (ethReturn < ethAmount) {
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+
+            iterations++;
+        }
+
+        // Ensure we found a valid result
+        require(
+            bestTokenAmount > 0,
+            "Could not find valid token amount for requested ETH"
+        );
+        require(bestEthReturn > 0, "Invalid ETH return calculation");
+
+        // Convert to wei using token decimals
+        uint256 tokenDecimals = IERC20Metadata(token).decimals();
+
+        // Prevent overflow in conversion
+        require(
+            bestTokenAmount <= type(uint256).max / (10 ** tokenDecimals),
+            "Token amount overflow"
+        );
+
+        tokenAmount = bestTokenAmount * (10 ** tokenDecimals);
+
+        return tokenAmount;
     }
 
     function calculateBondingCurveCost(
@@ -418,7 +528,8 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
 
     function sellToken(
         address token,
-        uint256 tokenAmount
+        uint256 tokenAmount,
+        uint256 minReturn
     ) external whenNotPaused nonReentrant {
         require(supportedTokens.contains(token), "Unsupported token");
         require(tokenAmount > 0, "Amount must be greater than 0");
@@ -451,6 +562,9 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
             stats.tokensSold >= tokenAmountNatural,
             "Underflow on tokensSold"
         );
+
+        // Slippage protection
+        require(ethToReturn >= minReturn, "Slippage too high");
 
         // Update state before external calls
         stats.ethCollected -= ethToReturn;

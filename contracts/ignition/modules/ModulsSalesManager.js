@@ -6,7 +6,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("ModulsSalesManager", (m) => {
 
-    const modulsSalesManager = m.contract("ModulsSalesManager", []);
+    const modulsSalesManager = m.contract("ModulsSalesManager", ["0x2396d72C6Da898C43023f6C66344a143c0d6278f"]);
 
 
 

@@ -1,6 +1,12 @@
 [
     {
-        "inputs": [],
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_platformAdmin",
+                "type": "address"
+            }
+        ],
         "stateMutability": "nonpayable",
         "type": "constructor"
     },
@@ -253,19 +259,6 @@
         "type": "event"
     },
     {
-        "inputs": [],
-        "name": "PLATFORM_ADMIN",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
         "inputs": [
             {
                 "internalType": "address",
@@ -447,6 +440,30 @@
             {
                 "internalType": "uint256",
                 "name": "totalCost",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "ethAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "getTokenAmountForEtherReturn",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenAmount",
                 "type": "uint256"
             }
         ],
@@ -640,6 +657,19 @@
     },
     {
         "inputs": [],
+        "name": "platformAdmin",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
         "name": "priceSlope",
         "outputs": [
             {
@@ -657,26 +687,6 @@
                 "internalType": "address",
                 "name": "token",
                 "type": "address"
-            },
-            {
-                "internalType": "address payable",
-                "name": "agentWallet",
-                "type": "address"
-            },
-            {
-                "internalType": "address payable",
-                "name": "devWallet",
-                "type": "address"
-            },
-            {
-                "internalType": "uint8",
-                "name": "taxPercent",
-                "type": "uint8"
-            },
-            {
-                "internalType": "uint8",
-                "name": "agentSplit",
-                "type": "uint8"
             }
         ],
         "name": "registerToken",
@@ -714,6 +724,11 @@
             {
                 "internalType": "uint256",
                 "name": "tokenAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "minReturn",
                 "type": "uint256"
             }
         ],

@@ -148,6 +148,8 @@ export const useModulsSalesManager = (tokenAddress) => {
             isPaused,
         ] = contractData;
 
+
+
         return {
             // Market configuration
             marketConfig: marketConfig.result ? {
@@ -170,7 +172,7 @@ export const useModulsSalesManager = (tokenAddress) => {
             // Trade statistics
             tradeStats: tradeStats.result ? {
                 totalVolumeETH: formatEther(tradeStats.result[0]),
-                totalVolumeToken: formatEther(tradeStats.result[1]),
+                totalVolumeToken: Number(tradeStats.result[1]),
                 totalBuys: Number(tradeStats.result[2]),
                 totalSells: Number(tradeStats.result[3]),
             } : null,
