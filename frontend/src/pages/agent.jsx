@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import AgentAboutTab from "@/components/agent-about-tab";
@@ -14,12 +13,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
-import {
-  ellipsizeAddress,
-  formatISODate,
-  writeToClipboard,
-} from "@/lib/utils";
-
+import { ellipsizeAddress, formatISODate, writeToClipboard } from "@/lib/utils";
 
 import { useParams, useNavigate } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -29,20 +23,23 @@ import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
 
-
 const Agent = () => {
   const { uniqueId } = useParams();
   const navigate = useNavigate();
   const { address: connectedAddress } = useAccount();
-  
-  
+
   // Fetch agent data
-  const { data: agentData, isLoading, error } = useQuery({
-    queryKey: ['agent', uniqueId],
-    queryFn: () => createFetcher({
-      url: `${config.endpoints.agent}/${uniqueId}`,
-      method: 'GET',
-    })(),
+  const {
+    data: agentData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["agent", uniqueId],
+    queryFn: () =>
+      createFetcher({
+        url: `${config.endpoints.agent}/${uniqueId}`,
+        method: "GET",
+      })(),
     enabled: !!uniqueId,
     refetchInterval: 10000,
     placeholderData: keepPreviousData,
@@ -62,41 +59,31 @@ const Agent = () => {
     sellToken,
     registerToken,
   } = useModulsSalesManager(
-    agentData?.agent?.tokenAddress && 
-    agentData.agent.tokenAddress !== "0x0000000000000000000000000000000000000000" 
-      ? agentData.agent.tokenAddress 
-      : undefined
+    agentData?.agent?.tokenAddress &&
+      agentData.agent.tokenAddress !==
+        "0x0000000000000000000000000000000000000000"
+      ? agentData.agent.tokenAddress
+      : undefined,
   );
-
-
 
   // Handle opening trading (registering token)
   const handleOpenTrading = async () => {
-    if (!agent?.tokenAddress || !connectedAddress) {
+    if (!agentData?.agent?.tokenAddress || !connectedAddress) {
       toast.error("Missing token address or wallet connection");
       return;
     }
 
     try {
-      // Register the token with default parameters
+      // Register token with the sales manager
 
-      
-      await registerToken({
-        token: agent.tokenAddress,
-        agentWallet: agent.walletAddress,
-        devWallet: agent.creator.walletAddress,
-        taxPercent: agent.taxSettings?.totalTaxPercentage,
-        agentSplit: agent.taxSettings?.agentWalletShare,
-      });
-      
+      await registerToken();
+
       // toast.success("Token registered for trading!");
     } catch (error) {
       console.error("Error registering token:", error);
       toast.error("Failed to register token for trading");
     }
   };
-
-
 
   // Handle buy token
   const handleBuyToken = async (amount, maxCost) => {
@@ -106,10 +93,9 @@ const Agent = () => {
     }
 
     try {
-
       await buyToken({
         tokenAmount: amount,
-        maxCost: maxCost
+        maxCost: maxCost,
       });
       toast.info("Pulling up your wallet now...");
     } catch (error) {
@@ -119,8 +105,8 @@ const Agent = () => {
   };
 
   // Handle sell token
-  const handleSellToken = async (amount) => {
-    if (!amount || !connectedAddress) {
+  const handleSellToken = async (amount, minReturn) => {
+    if (!amount || !minReturn || !connectedAddress) {
       toast.error("Please enter amount and ensure wallet is connected");
       return;
     }
@@ -128,9 +114,9 @@ const Agent = () => {
     try {
       await sellToken({
         tokenAmount: amount,
+        minReturn: minReturn,
       });
       toast.info("Pulling up your wallet now...");
-
     } catch (error) {
       console.error("Sell error:", error);
       toast.error("Sell transaction failed");
@@ -209,84 +195,7 @@ const Agent = () => {
       close: 111.26,
     },
   ]);
-  const [holders, _setHolders] = useState([
-    {
-      address: "0x742d35Cc6634C05329C3aAbb04cFeB53",
-      percentage: 15.75,
-    },
-    {
-      address: "0xAb5801a7D398351b8bE11C439e05C5B3259AeC9B",
-      percentage: 10.2,
-    },
-    {
-      address: "0x5A0b54D5dc17e0AadC383d2db43B0a0d3E0B2c0e",
-      percentage: 8.5,
-    },
-    {
-      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-      percentage: 7.0,
-    },
-    {
-      address: "0x82fF41e3D4EbA3C1c5B7F8eB4C5A03C12b1875eA",
-      percentage: 5.12,
-    },
-    {
-      address: "0x1dBB943b1D2C9E4C2A3C4B5E6D7E8F9A0B1C2D3E",
-      percentage: 4.88,
-    },
-    {
-      address: "0x0A9F9B0000000000000000000000000000000000",
-      percentage: 3.9,
-    },
-    {
-      address: "0x2eCa6d4D3B000000000000000000000000000000",
-      percentage: 3.5,
-    },
-    {
-      address: "0x3f5CE5F1EDf14d80D1bE4A99979b977755555555",
-      percentage: 2.1,
-    },
-    {
-      address: "0x4feC95B5B3000000000000000000000000000000",
-      percentage: 1.8,
-    },
-    {
-      address: "0x5E6D7E8F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D",
-      percentage: 1.5,
-    },
-    {
-      address: "0x6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B",
-      percentage: 1.2,
-    },
-    {
-      address: "0x7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C",
-      percentage: 0.9,
-    },
-    {
-      address: "0x8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D",
-      percentage: 0.75,
-    },
-    {
-      address: "0x9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8E",
-      percentage: 0.5,
-    },
-    {
-      address: "0xA0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9",
-      percentage: 0.25,
-    },
-    {
-      address: "0xB0C1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9",
-      percentage: 0.1,
-    },
-    {
-      address: "0xC1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0",
-      percentage: 0.05,
-    },
-    {
-      address: "0xD2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0E1",
-      percentage: 0.01,
-    },
-  ]);
+  // Removed hardcoded holders data - now using real data from API
   const [activeTradeTab, setActiveTradeTab] = useState("buy");
   const [transactions, _setTransactions] = useState([
     {
@@ -467,10 +376,9 @@ const Agent = () => {
             {error ? "Agent Not Found" : "Contract Error"}
           </h2>
           <p className="text-muted-foreground mb-4">
-            {error 
+            {error
               ? "The agent you're looking for doesn't exist or has been removed."
-              : "There was an error loading contract data. Please check your connection and try again."
-            }
+              : "There was an error loading contract data. Please check your connection and try again."}
           </p>
           {contractError && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-left">
@@ -480,7 +388,7 @@ const Agent = () => {
             </div>
           )}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
           >
             Go Home
@@ -493,27 +401,38 @@ const Agent = () => {
   const agent = agentData?.agent;
 
   // Check if token address is valid
-  const isTokenAddressValid = agent?.tokenAddress && 
+  const isTokenAddressValid =
+    agent?.tokenAddress &&
     agent.tokenAddress !== "0x0000000000000000000000000000000000000000";
 
   // Fallback data structure if agent is not available
   const token = {
     name: agent?.name || "Unknown Agent",
     image: agent?.logoUrl || "https://example.com/default-logo.png",
-    contractAddress: agent?.tokenAddress || "0x0000000000000000000000000000000000000000",
+    contractAddress:
+      agent?.tokenAddress || "0x0000000000000000000000000000000000000000",
     walletAddress: agent?.walletAddress,
-    devAddress: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
-    createdBy: agent?.creator?.walletAddress || "0x0000000000000000000000000000000000000000",
+    devAddress:
+      agent?.creator?.walletAddress ||
+      "0x0000000000000000000000000000000000000000",
+    createdBy:
+      agent?.creator?.walletAddress ||
+      "0x0000000000000000000000000000000000000000",
     creationDate: agent?.createdAt,
     tokenSymbol: agent?.tokenSymbol,
     curveProgress: {
-      current: contractData?.marketStats?.ethCollected ? parseFloat(contractData.marketStats.ethCollected) : 0, // Use actual SEI value
+      current: contractData?.marketStats?.ethCollected
+        ? parseFloat(contractData.marketStats.ethCollected)
+        : 0, // Use actual SEI value
       target: contractData?.maxEthCap ? parseFloat(contractData.maxEthCap) : 0, // Use actual SEI value
     },
     maxEthCap: contractData?.maxEthCap || "0",
     website: agent?.websiteUrl || "#",
     supply: agent?.totalSupply,
-    tradeFees: contractData?.marketConfig?.taxPercent || agent?.taxSettings?.totalTaxPercentage || 0,
+    tradeFees:
+      contractData?.marketConfig?.taxPercent ||
+      agent?.taxSettings?.totalTaxPercentage ||
+      0,
     currentPrice: contractData?.currentPrice || "0",
     marketStats: contractData?.marketStats,
     tradeStats: contractData?.tradeStats,
@@ -522,40 +441,51 @@ const Agent = () => {
     isAddressValid: isTokenAddressValid,
   };
 
-  
-
   return (
     <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
       <div className="w-full max-w-lg mx-auto">
         <div className="w-full flex items-center gap-3">
           <Avatar className="size-24 border-3 border-accent">
             <AvatarImage src={token.image} />
-            <AvatarFallback>{token.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {token.name?.charAt(0)?.toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col items-start gap-2 mb-1">
               <h1 className="text-xl font-bold uppercase">{token.name}</h1>
               <div className="flex items-center gap-2">
                 {agent?.status && (
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    agent.status === 'ACTIVE' 
-                      ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                      : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-                  }`}>
-                    {agent.status === 'ACTIVE' ? 'Confirmed' : 'Pending Confirmation'}
+                  <div
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      agent.status === "ACTIVE"
+                        ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                        : "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                    }`}
+                  >
+                    {agent.status === "ACTIVE"
+                      ? "Confirmed"
+                      : "Pending Confirmation"}
                   </div>
                 )}
-                {!isTradingEnabled && connectedAddress && agent?.creator?.walletAddress && 
-                 connectedAddress.toLowerCase() === agent.creator.walletAddress.toLowerCase() && (
-                  <button
-                    onClick={handleOpenTrading}
-                    disabled={isWritePending || !token.isAddressValid}
-                    className="px-3 py-1 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-1 text-xs font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Play className="size-3" />
-                    {isWritePending ? "Registering..." : !token.isAddressValid ? "No Token Address" : "Open Trading"}
-                  </button>
-                )}
+                {!isTradingEnabled &&
+                  connectedAddress &&
+                  agent?.creator?.walletAddress &&
+                  connectedAddress.toLowerCase() ===
+                    agent.creator.walletAddress.toLowerCase() && (
+                    <button
+                      onClick={handleOpenTrading}
+                      disabled={isWritePending || !token.isAddressValid}
+                      className="px-3 py-1 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-1 text-xs font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Play className="size-3" />
+                      {isWritePending
+                        ? "Registering..."
+                        : !token.isAddressValid
+                          ? "No Token Address"
+                          : "Open Trading"}
+                    </button>
+                  )}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -613,12 +543,14 @@ const Agent = () => {
             <div className="w-full px-4 py-3 bg-primary-foreground rounded-lg border flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Trading Status:</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  token.isTradingEnabled 
-                    ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                    : 'bg-red-500/20 text-red-600 dark:text-red-400'
-                }`}>
-                  {token.isTradingEnabled ? 'Active' : 'Paused'}
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    token.isTradingEnabled
+                      ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                      : "bg-red-500/20 text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {token.isTradingEnabled ? "Active" : "Paused"}
                 </span>
               </div>
               {token.currentPrice && (
@@ -642,16 +574,27 @@ const Agent = () => {
                 <div className="w-full flex justify-between mb-2">
                   <span>Curve Progress:</span>
                   <span className="text-accent">
-                    {((100 * token.curveProgress.current) / token.curveProgress.target).toFixed(2)}%
+                    {(
+                      (100 * token.curveProgress.current) /
+                      token.curveProgress.target
+                    ).toFixed(2)}
+                    %
                   </span>
                 </div>
                 <Progress
-                  value={(100 * token.curveProgress.current) / token.curveProgress.target}
+                  value={
+                    (100 * token.curveProgress.current) /
+                    token.curveProgress.target
+                  }
                   indicatorClassName="bg-green-500 dark:bg-green-600"
                 />
                 <div className="w-full flex justify-between mt-2 text-sm">
                   <span>
-                    Current: {parseFloat(token.marketStats?.ethCollected || "0").toFixed(10)} SEI
+                    Current:{" "}
+                    {parseFloat(token.marketStats?.ethCollected || "0").toFixed(
+                      10,
+                    )}{" "}
+                    SEI
                   </span>
                   <span>
                     Target: {parseFloat(token.maxEthCap || "0").toFixed(0)} SEI
@@ -674,7 +617,7 @@ const Agent = () => {
               value="trade"
               disabled={!isTradingEnabled}
               className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
-                !isTradingEnabled ? 'opacity-50 cursor-not-allowed' : ''
+                !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               <BadgeDollarSign className="size-5" />
@@ -684,7 +627,7 @@ const Agent = () => {
               value="holders"
               disabled={!isTradingEnabled}
               className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
-                !isTradingEnabled ? 'opacity-50 cursor-not-allowed' : ''
+                !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               <UserRound className="size-5" />
@@ -692,7 +635,7 @@ const Agent = () => {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="about" asChild>
-            <AgentAboutTab 
+            <AgentAboutTab
               token={token}
               agent={agent}
               isTradingEnabled={isTradingEnabled}
@@ -713,7 +656,10 @@ const Agent = () => {
             />
           </TabsContent>
           <TabsContent value="holders" asChild>
-            <AgentHoldersTab holders={holders} />
+            <AgentHoldersTab
+              tokenAddress={token?.contractAddress}
+              isTradingEnabled={isTradingEnabled}
+            />
           </TabsContent>
         </Tabs>
       </div>
@@ -721,4 +667,4 @@ const Agent = () => {
   );
 };
 
-export default Agent; 
+export default Agent;

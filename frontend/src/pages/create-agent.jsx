@@ -159,10 +159,10 @@ const CreateAgent = () => {
   const { writeContract, data : deployModulsTokenHash, isPending : deployModulsTokenPending } = useWriteContract({
     mutation : {
       onSuccess : (data) => {
-        toast.success("Token deployed successfully");
-
-        console.log("Token Created, ", deployModulsTokenHash)
-        navigate(`/agents/${agentUniqueIdRef.current}`);
+          toast.success("Token deployment submitted");
+          
+          console.log("Token deployment submitted, ", data)
+          navigate(`/agents/${agentUniqueIdRef.current}`);
       },
       onError : (error) => {
         console.log(error);
@@ -182,11 +182,11 @@ const CreateAgent = () => {
         args.symbol,
         args.initialSupply,
         args.agentWallet,
-        args.salesManager,
         args.taxPercent,
         args.agentSplit,
         args.intentId,
-        args.metadataURI
+        args.metadataURI,
+        false // autoRegister = true
       ]
     });
   }
@@ -225,7 +225,6 @@ const CreateAgent = () => {
         symbol : data.agent.tokenSymbol,
         initialSupply : data.agent.totalSupply,
         agentWallet : data.agent.walletAddress,
-        salesManager : chainId === 1328 ? config.contractAddresses.testnet.modulsSalesManager : chainId === 1329 ? config.contractAddresses.mainnet.modulsSalesManager : config.contractAddresses.testnet.modulsSalesManager,
         taxPercent : data.agent.totalTaxPercentage,
         agentSplit : data.agent.agentWalletShare,
         intentId : data.agent.intentId,

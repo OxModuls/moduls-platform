@@ -4,17 +4,21 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers.js
 
 describe("ModulsDeployer", function () {
     async function deployModulsDeployerFixture() {
-        const [owner, creator, agentWallet, salesManager, otherAccount] = await ethers.getSigners();
+        const [owner, creator, agentWallet, platformAdmin, otherAccount] = await ethers.getSigners();
+
+        const ModulsSalesManager = await ethers.getContractFactory("ModulsSalesManager");
+        const salesManager = await ModulsSalesManager.deploy(platformAdmin.address);
 
         const ModulsDeployer = await ethers.getContractFactory("ModulsDeployer");
-        const deployer = await ModulsDeployer.deploy();
+        const deployer = await ModulsDeployer.deploy(salesManager.target);
 
         return {
             deployer,
+            salesManager,
             owner,
             creator,
             agentWallet,
-            salesManager,
+            platformAdmin,
             otherAccount,
         };
     }
@@ -51,11 +55,11 @@ describe("ModulsDeployer", function () {
                 tokenParams.symbol,
                 tokenParams.initialSupply,
                 agentWallet.address,
-                salesManager.address,
                 tokenParams.taxPercent,
                 tokenParams.agentSplit,
                 tokenParams.intentId,
-                tokenParams.metadataURI
+                tokenParams.metadataURI,
+                true // autoRegister
             );
 
             const receipt = await tx.wait();
@@ -73,18 +77,18 @@ describe("ModulsDeployer", function () {
         });
 
         it("Should add deployed token to the array", async function () {
-            const { deployer, creator, agentWallet, salesManager } = await loadFixture(deployModulsDeployerFixture);
+            const { deployer, creator, agentWallet } = await loadFixture(deployModulsDeployerFixture);
 
             await deployer.connect(creator).deployToken(
                 tokenParams.name,
                 tokenParams.symbol,
                 tokenParams.initialSupply,
                 agentWallet.address,
-                salesManager.address,
                 tokenParams.taxPercent,
                 tokenParams.agentSplit,
                 tokenParams.intentId,
-                tokenParams.metadataURI
+                tokenParams.metadataURI,
+                true // autoRegister
             );
 
             const deployedTokens = await deployer.getDeployedTokens();
@@ -92,18 +96,18 @@ describe("ModulsDeployer", function () {
         });
 
         it("Should set correct token creator mapping", async function () {
-            const { deployer, creator, agentWallet, salesManager } = await loadFixture(deployModulsDeployerFixture);
+            const { deployer, creator, agentWallet } = await loadFixture(deployModulsDeployerFixture);
 
             const tx = await deployer.connect(creator).deployToken(
                 tokenParams.name,
                 tokenParams.symbol,
                 tokenParams.initialSupply,
                 agentWallet.address,
-                salesManager.address,
                 tokenParams.taxPercent,
                 tokenParams.agentSplit,
                 tokenParams.intentId,
-                tokenParams.metadataURI
+                tokenParams.metadataURI,
+                true // autoRegister
             );
 
             const receipt = await tx.wait();
@@ -131,11 +135,11 @@ describe("ModulsDeployer", function () {
                     tokenParams.symbol,
                     tokenParams.initialSupply,
                     agentWallet.address,
-                    salesManager.address,
                     tokenParams.taxPercent,
                     tokenParams.agentSplit,
                     tokenParams.intentId,
-                    tokenParams.metadataURI
+                    tokenParams.metadataURI,
+                    true // autoRegister
                 )
             )
                 .to.emit(deployer, "ModulsTokenCreated")
@@ -145,7 +149,7 @@ describe("ModulsDeployer", function () {
                     tokenParams.symbol,
                     tokenParams.initialSupply,
                     agentWallet.address,
-                    salesManager.address,
+                    salesManager.target,
                     tokenParams.taxPercent,
                     tokenParams.agentSplit,
                     tokenParams.intentId,

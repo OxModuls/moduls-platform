@@ -136,6 +136,12 @@ const agentSchema = new mongoose.Schema({
         default: null
     },
 
+    deploymentBlock: {
+        type: Number,
+        required: false,
+        default: null
+    },
+
     tokenSymbol: {
         type: String,
         required: true,

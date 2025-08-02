@@ -1,6 +1,7 @@
 import { http, createConfig } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { metaMask } from "wagmi/connectors";
+import config from "./shared/config.js";
 
 // Sei Mainnet settings
 const seiMainnet = {
@@ -8,7 +9,10 @@ const seiMainnet = {
     id: 1329,
     name: "Sei Mainnet",
     rpcUrls: {
-        default: { http: ["https://evm-rpc.sei-apis.com"] },
+        default: {
+            http: [config.rpcUrls.mainnet.http],
+            webSocket: [config.rpcUrls.mainnet.webSocket]
+        },
     },
 };
 
@@ -18,11 +22,14 @@ const seiTestnet = {
     id: 1328,
     name: "Sei Testnet",
     rpcUrls: {
-        default: { http: ["https://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/"] },
+        default: {
+            http: [config.rpcUrls.testnet.http],
+            webSocket: [config.rpcUrls.testnet.webSocket]
+        },
     },
 };
 
-export const config = createConfig({
+export const wagmiConfig = createConfig({
     chains: [seiMainnet, seiTestnet],
     connectors: [metaMask()],
     transports: {

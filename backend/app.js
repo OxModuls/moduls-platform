@@ -9,8 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
 const swaggerUi = require('swagger-ui-express');
-const Agent = require('./core/models/agents');
-const { registerContractWatcher, getModulsDeployerAddress } = require('./core/blockchainclient');
+const { IndexerService, routes: indexerRoutes } = require('./core/indexer');
 
 const app = express();
 
@@ -40,64 +39,18 @@ app.use(cors({
 
 }));
 
-// EVENTS 
+// INDEXER SERVICE
 
-let unwatch;
+let indexerService;
 
-async function startContractWatcher() {
-
-    const modulsDeployerAddress = getModulsDeployerAddress();
-
-    console.log("Starting contract watcher for", modulsDeployerAddress);
-    unwatch = await registerContractWatcher(modulsDeployerAddress, async (logs) => {
-
-        console.log(`Received ${logs.length} logs`);
-        for (const log of logs) {
-            if (log.eventName === "ModulsTokenCreated") {
-                const { tokenAddress, intentId } = log.args;
-
-
-                const correspondingAgent = await Agent.findOne({
-                    intentId: Number(intentId)
-                });
-
-                if (correspondingAgent && correspondingAgent.status === "PENDING") {
-                    correspondingAgent.status = "ACTIVE";
-                    correspondingAgent.tokenAddress = tokenAddress;
-                    await correspondingAgent.save();
-                    console.log("Agent updated", correspondingAgent.uniqueId);
-                }
-                else {
-                    console.log("Agent not found or already active", intentId);
-                }
-
-
-            } else {
-                console.log("Unknown event", log.eventName);
-            }
-        }
-    }, (error) => {
-        console.error(error);
-    }, () => {
-        console.log("Disconnected from contract event");
-    }, () => {
-        console.log("Connected to contract event");
-    });
-
-}
-
-function stopContractWatcher() {
-    if (unwatch) {
-        unwatch();
-    }
-    unwatch = null;
-}
+// Contract watching is now handled by the indexer service
 
 // ROUTES
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
 app.use('/api', usersRouter);
 app.use('/api', agentsRouter);
+app.use('/api/indexer', indexerRoutes);
 
 // ERROR HANDLER
 app.use((err, req, res, next) => {
@@ -117,22 +70,37 @@ app.get('/', (req, res) => {
     res.send('Hello World');
 });
 
-app.listen(app.get("port"), () => {
-    connectDB();
-    startContractWatcher().catch(console.error);
+app.listen(app.get("port"), async () => {
+    await connectDB();
+
+    // Initialize and start indexer service
+    try {
+        indexerService = IndexerService.getInstance();
+        await indexerService.start();
+        console.log('Indexer service started successfully');
+    } catch (error) {
+        console.error('Failed to start indexer service:', error);
+    }
+
     console.log(`${config.appName} is running on port ${app.get("port")}`);
 });
 
 
-process.on('SIGINT', () => {
-    stopContractWatcher();
-    console.log("SIGINT signal received, stopping event watcher");
+process.on('SIGINT', async () => {
+    if (indexerService) {
+        await indexerService.stop();
+        console.log("Indexer service stopped");
+    }
+    console.log("SIGINT signal received, stopping indexer service");
     process.exit(0);
 
 });
 
-process.on('SIGTERM', () => {
-    stopContractWatcher();
-    console.log("SIGTERM signal received, stopping event watcher");
+process.on('SIGTERM', async () => {
+    if (indexerService) {
+        await indexerService.stop();
+        console.log("Indexer service stopped");
+    }
+    console.log("SIGTERM signal received, stopping indexer service");
     process.exit(0);
 });

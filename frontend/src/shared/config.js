@@ -15,6 +15,23 @@ const config = {
         agentsCreate: "/api/agents/create",
         agent: "/api/agents", // Base path for single agent operations
 
+        // Indexer endpoints
+        indexer: "/api/indexer",
+        holders: "/api/indexer/holders",
+        holderStats: "/api/indexer/holders/stats",
+
+    },
+
+    // Centralized RPC Configuration
+    rpcUrls: {
+        mainnet: {
+            http: import.meta.env.VITE_SEI_MAINNET_RPC_URL || "https://evm-rpc.sei-apis.com",
+            webSocket: import.meta.env.VITE_SEI_MAINNET_WS_URL || "wss://evm-ws.sei-apis.com"
+        },
+        testnet: {
+            http: import.meta.env.VITE_SEI_TESTNET_RPC_URL || "https://evm-rpc-testnet.sei-apis.com",
+            webSocket: import.meta.env.VITE_SEI_TESTNET_WS_URL || "wss://evm-ws-testnet.sei-apis.com"
+        }
     },
 
     contractAddresses: {

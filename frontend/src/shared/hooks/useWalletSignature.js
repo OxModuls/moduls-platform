@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { signMessage } from "wagmi/actions";
 import { toast } from 'sonner';
-import { config } from '../../wagmi';
+import { wagmiConfig } from '../../wagmi';
 
 const signatureCache = new Map();
 
@@ -24,7 +24,7 @@ export const useWalletSignature = () => {
         }
         try {
             setIsSigning(true);
-            const signature = await signMessage(config, {
+            const signature = await signMessage(wagmiConfig, {
                 message: msg,
                 account: address,
             });

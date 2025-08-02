@@ -49,7 +49,7 @@ const AgentAboutTab = ({
           <Bot className="size-4" />
           <h2 className="text-lg font-semibold">Agent Description</h2>
         </div>
-        <div className="mt-2 px-2">
+        <div className="mt-2 px-2 break-words">
           {agent?.description || "No description available for this agent."}
         </div>
       </div>

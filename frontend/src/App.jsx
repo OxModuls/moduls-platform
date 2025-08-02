@@ -7,7 +7,7 @@ import Agent from "./pages/agent";
 import CreateAgent from "./pages/create-agent";
 import NotFound from "./pages/not-found";
 import { WagmiProvider } from "wagmi";
-import { config } from "./wagmi";
+import { wagmiConfig } from "./wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import WalletConnectModal from "./components/wallet-connect-modal";
 
@@ -27,12 +27,12 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <ThemeProvider defaultTheme="dark">
-      <WagmiProvider config={config}>
+      <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <Routes>
             <Route element={<RootLayout />}>
               <Route path="/" element={<Home />} />
-                <Route path="/agents/:uniqueId" element={<Agent />} />
+              <Route path="/agents/:uniqueId" element={<Agent />} />
               <Route path="/create" element={<CreateAgent />} />
             </Route>
             {/* Catch-all route for undefined routes */}
@@ -45,4 +45,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { formatEther, parseEther } from "viem";
 import ModulsSalesManagerABI from "@/lib/abi/ModulsSalesManager.json";
 import config from "../config";
-import { config as wagmiConfig } from "../../wagmi";
+import { wagmiConfig } from "../../wagmi";
 import { toast } from "sonner";
 
 export const useModulsSalesManager = (tokenAddress) => {
@@ -86,6 +86,35 @@ export const useModulsSalesManager = (tokenAddress) => {
     // Track current operation type
     const [currentOperation, setCurrentOperation] = useState(null); // "buy" or "sell" or null
 
+
+    // Extract error message from error object
+    const extractErrorMessage = (error) => {
+        if (!error) return 'Unknown error';
+        if (typeof error === 'string') return error;
+
+        const msg =
+            error?.cause?.cause?.message ||
+            error?.cause?.message ||
+            error?.data?.message ||
+            error?.error?.message ||
+            error?.message ||
+            (error?.constructor?.name === 'UserRejectedRequestError' && 'User rejected the request.');
+
+        if (msg) return msg;
+
+        try {
+            const parsed = JSON.parse(error.message);
+            if (parsed?.message) return parsed.message;
+        } catch { }
+
+        try {
+            return JSON.stringify(error, Object.getOwnPropertyNames(error)).slice(0, 300);
+        } catch { }
+
+        return 'Unknown error';
+    }
+
+
     // Write contract functions
     const { writeContract, isPending: isWritePending, isError: isWriteError, error: writeError } = useWriteContract({
 
@@ -105,18 +134,7 @@ export const useModulsSalesManager = (tokenAddress) => {
             },
             onError: (error) => {
                 // Extract a plain error message from the error object (Metamask and others)
-                let plainMessage = '';
-                if (typeof error === 'string') {
-                    plainMessage = error;
-                } else if (error?.data?.message) {
-                    plainMessage = error.data.message;
-                } else if (error?.message) {
-                    plainMessage = error.message;
-                } else if (error?.error?.message) {
-                    plainMessage = error.error.message;
-                } else {
-                    plainMessage = 'An unknown error occurred';
-                }
+                let plainMessage = extractErrorMessage(error);
 
                 if (currentOperation === "buy") {
                     toast.error('Buy transaction failed: ' + plainMessage);
@@ -197,15 +215,13 @@ export const useModulsSalesManager = (tokenAddress) => {
 
 
     // Write functions
-    const registerToken = async (params) => {
+    // Note: registerToken is no longer needed as tokens are auto-registered during deployment
+    const registerToken = async () => {
         if (!writeContract) return;
-
-        const { token, agentWallet, devWallet, taxPercent, agentSplit } = params;
-
         return writeContract({
             ...contract,
             functionName: "registerToken",
-            args: [token, agentWallet, devWallet, taxPercent, agentSplit],
+            args: [tokenAddress],
         });
     };
 
@@ -230,14 +246,14 @@ export const useModulsSalesManager = (tokenAddress) => {
     const sellToken = async (params) => {
         if (!writeContract) return;
 
-        const { tokenAmount } = params;
+        const { tokenAmount, minReturn } = params;
 
         setCurrentOperation("sell");
 
         return writeContract({
             ...contract,
             functionName: "sellToken",
-            args: [tokenAddress, tokenAmount],
+            args: [tokenAddress, tokenAmount, minReturn],
         });
     };
 
@@ -306,6 +322,24 @@ export const useModulsSalesManager = (tokenAddress) => {
         }
     };
 
+    const getTokenAmountForEtherReturn = async (ethAmount) => {
+        if (!tokenAddress || !ethAmount) return null;
+
+        try {
+            const ethAmountWei = parseEther(ethAmount.toString());
+            const result = await readContract(wagmiConfig, {
+                ...contract,
+                functionName: "getTokenAmountForEtherReturn",
+                args: [tokenAddress, ethAmountWei]
+            });
+
+            return formatEther(result);
+        } catch (error) {
+            console.error("Error getting token amount for ether return:", error);
+            return null;
+        }
+    };
+
     // Check user cooldowns
     const getUserCooldowns = async () => {
         if (!tokenAddress || !connectedAddress) return null;
@@ -356,12 +390,13 @@ export const useModulsSalesManager = (tokenAddress) => {
         },
 
         // Write functions
-        registerToken,
         buyToken,
         sellToken,
+        registerToken,
         getEtherCostForToken,
         getEtherReturnForToken,
         getTokenAmountForEther,
+        getTokenAmountForEtherReturn,
         getUserCooldowns,
 
         // Contract info

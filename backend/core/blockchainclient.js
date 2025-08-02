@@ -1,6 +1,6 @@
 const { createPublicClient, http } = require('viem');
 const { mainnet } = require('viem/chains');
-const { chainMode, contractAddresses } = require("../config")
+const { chainMode, contractAddresses, rpcUrls } = require("../config")
 const { watchContractEvent, getBlockNumber } = require('viem/actions');
 const ModulsDeployerAbi = require('./abi/ModulsDeployer.json');
 
@@ -10,7 +10,10 @@ const seiMainnet = {
     id: 1329,
     name: "Sei Mainnet",
     rpcUrls: {
-        default: { http: ["https://evm-rpc.sei-apis.com"], webSocket: ["wss://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/"] },
+        default: {
+            http: [rpcUrls.mainnet.http],
+            webSocket: [rpcUrls.mainnet.webSocket]
+        },
     },
 };
 
@@ -20,7 +23,10 @@ const seiTestnet = {
     id: 1328,
     name: "Sei Testnet",
     rpcUrls: {
-        default: { http: ["https://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/"], webSocket: ["wss://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/"] },
+        default: {
+            http: [rpcUrls.testnet.http],
+            webSocket: [rpcUrls.testnet.webSocket]
+        },
     },
 };
 
