@@ -1,7 +1,10 @@
+require('dotenv').config({
+    path: '.env.local'
+});
+
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
-const config = require('./config');
 const connectDB = require('./core/db');
 const usersRouter = require('./routes/users');
 const agentsRouter = require('./routes/agents');
@@ -9,48 +12,44 @@ const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
 const swaggerUi = require('swagger-ui-express');
-const { IndexerService, routes: indexerRoutes } = require('./core/indexer');
+
+// Import new webhook system
+const webhookRoutes = require('./core/webhooks/routes');
+const WebhookHandler = require('./core/webhooks/webhook-handler');
 
 const app = express();
 
 // CONFIG
-
-app.set("port", config.port);
-
-
+app.set("port", process.env.PORT || 8000);
 
 // MIDDLEWARES
-
-if (!config.isProd) {
+if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
 } else {
-
     const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
     app.use(morgan('combined', { stream: accessLogStream }));
 }
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Increase body parser limits for webhook payloads
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 app.use(cors({
-    origin: config.allowedOrigins,
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-
 }));
 
-// INDEXER SERVICE
-
-let indexerService;
-
-// Contract watching is now handled by the indexer service
+// WEBHOOK HANDLER
+let webhookHandler;
 
 // ROUTES
-
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
 app.use('/api', usersRouter);
 app.use('/api', agentsRouter);
-app.use('/api/indexer', indexerRoutes);
+
+// New webhook routes
+app.use('/api/webhooks', webhookRoutes);
 
 // ERROR HANDLER
 app.use((err, req, res, next) => {
@@ -64,8 +63,6 @@ app.use((err, req, res, next) => {
     res.status(500).send('An unexpected error occurred');
 });
 
-
-
 app.get('/', (req, res) => {
     res.send('Hello World');
 });
@@ -73,34 +70,23 @@ app.get('/', (req, res) => {
 app.listen(app.get("port"), async () => {
     await connectDB();
 
-    // Initialize and start indexer service
+    // Initialize new webhook handler
     try {
-        indexerService = IndexerService.getInstance();
-        await indexerService.start();
-        console.log('Indexer service started successfully');
+        webhookHandler = WebhookHandler.getInstance();
+        // await webhookHandler.initialize();
     } catch (error) {
-        console.error('Failed to start indexer service:', error);
+        console.error('Failed to initialize webhook handler:', error);
     }
 
-    console.log(`${config.appName} is running on port ${app.get("port")}`);
+    console.log(`${process.env.APP_NAME || 'Moduls API'} is running on port ${app.get("port")}`);
 });
 
-
 process.on('SIGINT', async () => {
-    if (indexerService) {
-        await indexerService.stop();
-        console.log("Indexer service stopped");
-    }
-    console.log("SIGINT signal received, stopping indexer service");
+    console.log("SIGINT signal received, stopping services");
     process.exit(0);
-
 });
 
 process.on('SIGTERM', async () => {
-    if (indexerService) {
-        await indexerService.stop();
-        console.log("Indexer service stopped");
-    }
-    console.log("SIGTERM signal received, stopping indexer service");
+    console.log("SIGTERM signal received, stopping services");
     process.exit(0);
 });

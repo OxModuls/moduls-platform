@@ -10,7 +10,7 @@ const config = {
     isDev: process.env.NODE_ENV === 'development',
     isProd: process.env.NODE_ENV === 'production',
     jwtSecret: process.env.JWT_SECRET || 'secret',
-    jwtExpiration: process.env.JWT_EXPIRATION || '1d',
+    jwtExpiration: process.env.JWT_EXPIRATION || '7d',
     cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || 'moduls',
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '1234567890',
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '1234567890',
@@ -18,20 +18,25 @@ const config = {
     chainMode: process.env.CHAIN_MODE || 'testnet',
     allowedOrigins: [
         'http://localhost:5173',
+        "https://moduls-one.vercel.app/"
     ],
+
+    // Webhook configuration
+    webhookUrl: process.env.WEBHOOK_URL || 'https://tunnel.timmypelumy.xyz/api/webhooks',
+
+    // QuickNode configuration
+    quicknodeApiKey: process.env.QUICKNODE_API_KEY || 'QN_bfae6488c3b74ab38719a7a60f124bca',
+    network: process.env.CHAIN_MODE === 'mainnet' ? 'sei-mainnet' : 'sei-testnet',
 
     // Centralized RPC Configuration
     rpcUrls: {
         mainnet: {
-            http: process.env.SEI_MAINNET_RPC_URL || 'https://evm-rpc.sei-apis.com',
-            webSocket: process.env.SEI_MAINNET_WS_URL || 'wss://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/',
+            http: process.env.SEI_MAINNET_RPC_URL || 'https://sei-mainnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi',
+            webSocket: process.env.SEI_MAINNET_WS_URL || 'wss://sei-mainnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi',
         },
         testnet: {
-            // http: process.env.SEI_TESTNET_RPC_URL || 'https://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/',
-            // webSocket: process.env.SEI_TESTNET_WS_URL || 'wss://wandering-serene-river.sei-atlantic.quiknode.pro/757d4dbb80f898f2fefd8542d4f75b50f1454aa6/',
-
-            http: "https://evm-rpc-testnet.sei-apis.com",
-            webSocket: "wss://evm-ws-testnet.sei-apis.com"
+            http: process.env.SEI_TESTNET_RPC_URL || "https://sei-testnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi",
+            webSocket: process.env.SEI_TESTNET_WS_URL || "wss://sei-testnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi"
         }
     },
 
