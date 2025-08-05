@@ -18,7 +18,7 @@ import { ellipsizeAddress, formatISODate, writeToClipboard } from "@/lib/utils";
 import { useParams, useNavigate } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFetcher } from "@/lib/fetcher";
-import config from "@/shared/config";
+import config from "../shared/config";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
@@ -37,7 +37,7 @@ const Agent = () => {
     queryKey: ["agent", uniqueId],
     queryFn: () =>
       createFetcher({
-        url: `${config.endpoints.agent}/${uniqueId}`,
+        url: `${config.endpoints.getAgent}/${uniqueId}`,
         method: "GET",
       })(),
     enabled: !!uniqueId,

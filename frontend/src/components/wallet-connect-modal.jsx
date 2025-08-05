@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useWalletModalStore } from "../shared/store";
 import { useAuth } from "../shared/hooks/useAuth";
 import { useEffect, useRef } from "react";
+import AuthStatusIndicator from "./auth-status-indicator";
 
 // map connector icons
 const connectorIcons = new Map([
@@ -102,6 +103,7 @@ const WalletConnectModal = () => {
                       alt={activeConnector?.name + "logo"}
                       className="size-6 rounded-full absolute bottom-0 right-0"
                     />
+                    <AuthStatusIndicator size="md" />
                   </div>
                   <div className="flex items-center gap-2">
                     <span className=" font-medium">
@@ -131,7 +133,13 @@ const WalletConnectModal = () => {
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <span className="inline-flex items-center justify-center rounded-full bg-green-600/10 text-green-600 h-5 w-5">
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none">
-                      <path d="M6 10.5l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path
+                        d="M6 10.5l3 3 5-6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </span>
                   <span className="text-sm font-semibold text-green-600 tracking-wide">
@@ -179,4 +187,4 @@ const WalletConnectModal = () => {
   );
 };
 
-export default WalletConnectModal; 
+export default WalletConnectModal;

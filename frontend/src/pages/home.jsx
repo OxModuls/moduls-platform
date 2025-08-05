@@ -1,7 +1,7 @@
 import { ArrowUpRight, Brain, Info } from "lucide-react";
 import { GiNinjaHead } from "react-icons/gi";
 import { Link } from "react-router";
-import {  keepPreviousData, useQueries } from "@tanstack/react-query";
+import { keepPreviousData, useQueries } from "@tanstack/react-query";
 import { createFetcher } from "../lib/fetcher";
 import config from "../shared/config";
 import ordinal from "ordinal";
@@ -12,40 +12,48 @@ import { useAccount } from "wagmi";
 
 // AgentCard component for consistent agent card UI
 function AgentCard({ agent }) {
-  const isPending = agent.status === 'PENDING';
-  const isInactive = agent.status === 'INACTIVE';
-  const isActive = agent.status === 'ACTIVE';
+  const isPending = agent.status === "PENDING";
+  const isInactive = agent.status === "INACTIVE";
+  const isActive = agent.status === "ACTIVE";
 
   return (
-    <div className={`py-3 px-4 bg-primary-foreground border rounded-lg flex gap-3 items-center ${
-      isPending ? 'opacity-60' : isInactive ? 'opacity-40 bg-muted/20' : ''
-    }`}>
+    <div
+      className={`py-3 px-4 bg-primary-foreground border rounded-lg flex gap-3 items-center ${
+        isPending ? "opacity-60" : isInactive ? "opacity-40 bg-muted/20" : ""
+      }`}
+    >
       <div className="size-10 bg-accent rounded-lg flex items-center justify-center">
-        {
-          agent.logoUrl ? (
-            <img src={agent.logoUrl} alt={agent.name} className="w-10 h-10 rounded-lg" />
-          ) : (
-            <span className="h-7 text-xl text-center font-extrabold">
-              {agent.name?.[0] || 'A'}
-            </span>
-          )
-        }
+        {agent.logoUrl ? (
+          <img
+            src={agent.logoUrl}
+            alt={agent.name}
+            className="w-10 h-10 rounded-lg"
+          />
+        ) : (
+          <span className="h-7 text-xl text-center font-extrabold">
+            {agent.name?.[0] || "A"}
+          </span>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="font-bold text-accent truncate">{agent.name}</p>
           {!isActive && (
-            <div className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-              isPending 
-                ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' 
-                : 'bg-red-500/20 text-red-600 dark:text-red-400'
-            }`}>
-              {isPending ? 'Pending' : 'Inactive'}
+            <div
+              className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                isPending
+                  ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                  : "bg-red-500/20 text-red-600 dark:text-red-400"
+              }`}
+            >
+              {isPending ? "Pending" : "Inactive"}
             </div>
           )}
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs text-muted-foreground truncate">{agent.description}</span>
+          <span className="text-xs text-muted-foreground truncate">
+            {agent.description}
+          </span>
         </div>
       </div>
       <div className="flex items-center">
@@ -62,49 +70,40 @@ function AgentCard({ agent }) {
 }
 
 const Home = () => {
-
-  const {  isAuthenticated, accessToken, isAuthChecked } = useAuth();
+  const { isAuthenticated, accessToken, isAuthChecked } = useAuth();
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
 
+  const [platformStatResult, myAgentsResult] = useQueries({
+    queries: [
+      {
+        queryKey: [config.endpoints.getStats],
+        queryFn: createFetcher({
+          url: config.endpoints.getStats,
+          method: "GET",
+        }),
+        placeholderData: keepPreviousData,
+        refetchInterval: 1000 * 60,
+      },
+      {
+        queryKey: [config.endpoints.getMyAgents, address],
+        queryFn: createFetcher({
+          url: config.endpoints.getMyAgents,
+          method: "GET",
+          auth: { accessToken },
+        }),
+        placeholderData: keepPreviousData,
+        enabled: isAuthenticated && isAuthChecked,
+        refetchInterval: 1000 * 60,
+      },
+    ],
+  });
 
-    const [platformStatResult, myAgentsResult] = useQueries({
-    queries : [{
-    queryKey : [config.endpoints.stats],
-    queryFn :  createFetcher({
-      url : config.endpoints.stats,
-      method : "GET",
-    }),
-    placeholderData : keepPreviousData,
-    refetchInterval : 1000 * 60,
-  },
-{
+  const { data: platformStats, isPending: isPlatformStatsPending } =
+    platformStatResult;
+  const { data: agentsData, isLoading: isMyAgentsLoading } = myAgentsResult;
 
-  queryKey : [config.endpoints.agentsMine, address],
-  queryFn :  createFetcher({
-      url : config.endpoints.agentsMine,
-      method : "GET",
-      auth : { accessToken }
-  }),
-  placeholderData : keepPreviousData,
-  enabled: isAuthenticated && isAuthChecked,
-  refetchInterval : 1000 * 60,
-
-
-
-}
-
-]})
-
-
-const {data : platformStats, isPending : isPlatformStatsPending} = platformStatResult;
-const {data : agentsData, isLoading : isMyAgentsLoading} = myAgentsResult;
-
-
-
-const myAgents = agentsData?.agents || [];
-
-
+  const myAgents = agentsData?.agents || [];
 
   return (
     <div className="px-6 pt-4 pb-12 flex flex-col items-center">
@@ -125,24 +124,20 @@ const myAgents = agentsData?.agents || [];
             Launch your Modul
           </h2>
           <p className="mt-2 text-center">
-
-            {
-              platformStats?.activeUsersCount > 0 ? `Deploy agents instantly with modular on-chain logic. Become the ${ordinal(platformStats?.activeUsersCount)} user to launch your own Modul` : 'Deploy agents instantly with modular on-chain logic.'
-            }{" "}
+            {platformStats?.activeUsersCount > 0
+              ? `Deploy agents instantly with modular on-chain logic. Become the ${ordinal(platformStats?.activeUsersCount)} user to launch your own Modul`
+              : "Deploy agents instantly with modular on-chain logic."}{" "}
             No coding required.
-
           </p>
           <div className="mt-4 px-4 py-4 w-full border rounded-2xl flex flex-col items-center">
             <button
-              onClick={
-                () => {
-                  if(isConnected && address) {
-                    navigate("/create");
-                  } else {
-                    useWalletModalStore.getState().openWalletModal();
-                  }
+              onClick={() => {
+                if (isConnected && address) {
+                  navigate("/create");
+                } else {
+                  useWalletModalStore.getState().openWalletModal();
                 }
-              }
+              }}
               className="w-full px-3 py-2 bg-accent rounded-xl font-bold flex justify-center cursor-pointer hover:-translate-y-1 transition-all duration-500"
             >
               <div className="w-40 flex justify-between items-center">
@@ -154,7 +149,7 @@ const myAgents = agentsData?.agents || [];
             {/* My Agents List */}
             <div className="w-full mt-4">
               <h3 className="text-lg font-semibold mb-2 ml-1">My Agents</h3>
-              {isMyAgentsLoading && !myAgents  ? (
+              {isMyAgentsLoading && !myAgents ? (
                 <div className="h-16 w-full bg-accent/20 rounded-lg animate-pulse transition-opacity duration-500" />
               ) : myAgents && myAgents.length > 0 ? (
                 <div className="flex flex-col gap-3">
@@ -168,14 +163,16 @@ const myAgents = agentsData?.agents || [];
                     {isAuthenticated ? "No agents yet" : "Connect wallet first"}
                   </span>
                   <span className="text-xs">
-                    {isAuthenticated 
-                      ? "You haven't launched any agents. Click \"Launch Agent\" to get started!"
-                      : "Connect your wallet to see your own agents"
-                    }
-                  </span>&nbsp;&nbsp;
+                    {isAuthenticated
+                      ? 'You haven\'t launched any agents. Click "Launch Agent" to get started!'
+                      : "Connect your wallet to see your own agents"}
+                  </span>
+                  &nbsp;&nbsp;
                   {!isAuthenticated && (
                     <button
-                      onClick={() => useWalletModalStore.getState().openWalletModal()}
+                      onClick={() =>
+                        useWalletModalStore.getState().openWalletModal()
+                      }
                       className="mt-2 text-xs text-accent hover:underline transition-colors duration-200 hover:cursor-pointer"
                     >
                       Connect Wallet
@@ -185,7 +182,6 @@ const myAgents = agentsData?.agents || [];
               )}
             </div>
             {/* End My Agents List */}
-            
           </div>
         </div>
         <div className="mt-8 w-full py-8 px-8 rounded-2xl shadow-l border flex items-start gap-4">
@@ -200,7 +196,7 @@ const myAgents = agentsData?.agents || [];
               ) : (
                 <>
                   <p className="mt-2 text-accent text-4xl font-bold">
-                    {platformStats?.activeAgentsCount ?? '0'}
+                    {platformStats?.activeAgentsCount ?? "0"}
                   </p>
                   <span className="mt-1 text-sm">Active Moduls</span>
                 </>
@@ -234,15 +230,13 @@ const myAgents = agentsData?.agents || [];
                 </div>
               </div>
               <button
-                onClick={
-                  () => {
-                    if(isConnected && address) {
-                      navigate("/create");
-                    } else {
-                      useWalletModalStore.getState().openWalletModal();
-                    }
+                onClick={() => {
+                  if (isConnected && address) {
+                    navigate("/create");
+                  } else {
+                    useWalletModalStore.getState().openWalletModal();
                   }
-                }
+                }}
                 className="inline-block mt-3 px-3 py-2 bg-accent rounded-xl font-bold hover:scale-105 transition-all duration-500"
               >
                 Get Started Now
@@ -280,4 +274,4 @@ const myAgents = agentsData?.agents || [];
   );
 };
 
-export default Home; 
+export default Home;

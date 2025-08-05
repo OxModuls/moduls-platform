@@ -97,7 +97,7 @@ export const useAuth = () => {
             // Request JWT token from backend
             const response = await createFetcher({
                 method: "POST",
-                url: config.endpoints.auth,
+                url: config.endpoints.walletLogin,
                 body: {
                     walletAddress: address,
                     signature,
@@ -147,7 +147,7 @@ export const useAuth = () => {
             try {
                 const userData = await createFetcher({
                     method: "GET",
-                    url: config.endpoints.user,
+                    url: config.endpoints.getAuthUser,
                     auth: {
                         accessToken
                     }

@@ -1,21 +1,9 @@
 import { useAccount } from "wagmi";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Copy, Power } from "lucide-react";
-
 import metamaskIcon from "../assets/icons/metamask.svg";
 import trustwalletIcon from "../assets/icons/trustwallet.svg";
 import avatarImage from "../assets/avatar.svg";
-import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
 import { useWalletModalStore } from "../shared/store";
+import AuthStatusIndicator from "./auth-status-indicator";
 
 // map connector icons
 const connectorIcons = new Map([
@@ -24,7 +12,7 @@ const connectorIcons = new Map([
 ]);
 
 const ConnectWalletButton = () => {
-  const { address, isConnected, connector: activeConnector } = useAccount();
+  const { isConnected, connector: activeConnector } = useAccount();
   const { openWalletModal } = useWalletModalStore();
 
   return (
@@ -39,16 +27,16 @@ const ConnectWalletButton = () => {
             />
             <img
               src={
-                activeConnector?.icon ||
-                connectorIcons.get(activeConnector?.id)
+                activeConnector?.icon || connectorIcons.get(activeConnector?.id)
               }
               alt={activeConnector?.name + "logo"}
               className="size-5 rounded-full absolute bottom-0 right-0"
             />
+            <AuthStatusIndicator size="sm" />
           </div>
         </button>
       ) : (
-        <button 
+        <button
           onClick={openWalletModal}
           className="px-3 py-2 bg-accent rounded-xl font-bold transition-all duration-500 hover:scale-105 cursor-pointer"
         >
@@ -59,4 +47,4 @@ const ConnectWalletButton = () => {
   );
 };
 
-export default ConnectWalletButton; 
+export default ConnectWalletButton;
