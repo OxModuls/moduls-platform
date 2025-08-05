@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
 const swaggerUi = require('swagger-ui-express');
+const config = require('./config');
 
 // Import new webhook system
 const webhookRoutes = require('./core/webhooks/routes');
@@ -20,10 +21,10 @@ const WebhookHandler = require('./core/webhooks/webhook-handler');
 const app = express();
 
 // CONFIG
-app.set("port", process.env.PORT || 8000);
+app.set("port", config.port);
 
 // MIDDLEWARES
-if (process.env.NODE_ENV !== 'production') {
+if (config.isDev) {
     app.use(morgan('dev'));
 } else {
     const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
@@ -35,9 +36,10 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 app.use(cors({
-    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173'],
+    origin: config.allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 }));
 
 // WEBHOOK HANDLER
@@ -78,7 +80,7 @@ app.listen(app.get("port"), async () => {
         console.error('Failed to initialize webhook handler:', error);
     }
 
-    console.log(`${process.env.APP_NAME || 'Moduls API'} is running on port ${app.get("port")}`);
+    console.log(`${config.appName} is running on port ${app.get("port")}`);
 });
 
 process.on('SIGINT', async () => {

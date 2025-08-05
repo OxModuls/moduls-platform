@@ -18,14 +18,15 @@ const config = {
     chainMode: process.env.CHAIN_MODE || 'testnet',
     allowedOrigins: [
         'http://localhost:5173',
-        "https://moduls-one.vercel.app/"
+        "https://moduls-one.vercel.app",
+        "http://moduls-one.vercel.app",
     ],
 
     // Webhook configuration
     webhookUrl: process.env.WEBHOOK_URL || 'https://tunnel.timmypelumy.xyz/api/webhooks',
 
     // QuickNode configuration
-    quicknodeApiKey: process.env.QUICKNODE_API_KEY || 'QN_bfae6488c3b74ab38719a7a60f124bca',
+    quicknodeApiKey: process.env.QUICKNODE_API_KEY || 'quicknode-api-key',
     network: process.env.CHAIN_MODE === 'mainnet' ? 'sei-mainnet' : 'sei-testnet',
 
     // Centralized RPC Configuration
