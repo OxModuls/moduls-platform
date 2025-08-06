@@ -7,7 +7,7 @@ const config = {
     port: process.env.PORT || 8000,
     dbUrl: process.env.DB_URL || 'mongodb://127.0.0.1:27017/test',
     env: process.env.NODE_ENV || 'development',
-    isDev: process.env.NODE_ENV === 'development',
+    isDev: process.env.NODE_ENV !== 'production',
     isProd: process.env.NODE_ENV === 'production',
     jwtSecret: process.env.JWT_SECRET || 'secret',
     jwtExpiration: process.env.JWT_EXPIRATION || '7d',
@@ -26,29 +26,29 @@ const config = {
     webhookUrl: process.env.WEBHOOK_URL || 'https://tunnel.timmypelumy.xyz/api/webhooks',
 
     // QuickNode configuration
-    quicknodeApiKey: process.env.QUICKNODE_API_KEY || 'quicknode-api-key',
+    quicknodeApiKey: process.env.QUICKNODE_API_KEY,
     network: process.env.CHAIN_MODE === 'mainnet' ? 'sei-mainnet' : 'sei-testnet',
 
     // Centralized RPC Configuration
     rpcUrls: {
         mainnet: {
-            http: process.env.SEI_MAINNET_RPC_URL || 'https://sei-mainnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi',
-            webSocket: process.env.SEI_MAINNET_WS_URL || 'wss://sei-mainnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi',
+            http: process.env.SEI_MAINNET_RPC_URL,
+            webSocket: process.env.SEI_MAINNET_WS_URL,
         },
         testnet: {
-            http: process.env.SEI_TESTNET_RPC_URL || "https://sei-testnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi",
-            webSocket: process.env.SEI_TESTNET_WS_URL || "wss://sei-testnet.g.alchemy.com/v2/c5cWZlVC4jKHFgyT5q9cYvt95N4yLiXi"
+            http: process.env.SEI_TESTNET_RPC_URL,
+            webSocket: process.env.SEI_TESTNET_WS_URL,
         }
     },
 
     contractAddresses: {
         testnet: {
-            modulsDeployer: process.env.MODULS_DEPLOYER_ADDRESS_TESTNET || '0xCFC7CB241D5643f07cB108bE5a3dEb25Ba70F8f8',
-            modulsSalesManager: process.env.MODULS_SALES_MANAGER_ADDRESS_TESTNET || '0x85A8817b2BAa9b36e7F9EbbB047e77Df5cCBE43a',
+            modulsDeployer: process.env.MODULS_DEPLOYER_ADDRESS_TESTNET,
+            modulsSalesManager: process.env.MODULS_SALES_MANAGER_ADDRESS_TESTNET,
         },
         mainnet: {
-            modulsDeployer: process.env.MODULS_DEPLOYER_ADDRESS_MAINNET || '0xCFC7CB241D5643f07cB108bE5a3dEb25Ba70F8f8',
-            modulsSalesManager: process.env.MODULS_SALES_MANAGER_ADDRESS_MAINNET || '0x85A8817b2BAa9b36e7F9EbbB047e77Df5cCBE43a',
+            modulsDeployer: process.env.MODULS_DEPLOYER_ADDRESS_MAINNET,
+            modulsSalesManager: process.env.MODULS_SALES_MANAGER_ADDRESS_MAINNET,
         }
     }
 }

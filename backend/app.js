@@ -18,6 +18,9 @@ const config = require('./config');
 const webhookRoutes = require('./core/webhooks/routes');
 const WebhookHandler = require('./core/webhooks/webhook-handler');
 
+// Import event listening system
+const { listenAndProcessOnchainEvents, stopEventListening } = require('./core/events');
+
 const app = express();
 
 // CONFIG
@@ -44,6 +47,9 @@ app.use(cors({
 
 // WEBHOOK HANDLER
 let webhookHandler;
+
+// EVENT LISTENER
+let eventUnwatch;
 
 // ROUTES
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
@@ -80,15 +86,29 @@ app.listen(app.get("port"), async () => {
         console.error('Failed to initialize webhook handler:', error);
     }
 
+    // Initialize event listener
+    try {
+        const modulsDeployerAddress = config.contractAddresses[config.chainMode].modulsDeployer;
+        eventUnwatch = await listenAndProcessOnchainEvents(modulsDeployerAddress);
+    } catch (error) {
+        console.error('Failed to initialize event listener:', error);
+    }
+
     console.log(`${config.appName} is running on port ${app.get("port")}`);
 });
 
 process.on('SIGINT', async () => {
     console.log("SIGINT signal received, stopping services");
+    if (eventUnwatch) {
+        await stopEventListening(eventUnwatch);
+    }
     process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
     console.log("SIGTERM signal received, stopping services");
+    if (eventUnwatch) {
+        await stopEventListening(eventUnwatch);
+    }
     process.exit(0);
 });

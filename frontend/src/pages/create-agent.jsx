@@ -75,11 +75,11 @@ const maxImageSize = 5 * 1024 * 1024;
 // Yup validation schema
 const validationSchema = Yup.object({
   name: Yup.string()
-    .min(1, "Agent name is required")
+    .min(3, "Agent name must be at least 3 characters")
     .max(100, "Agent name must be less than 100 characters")
     .required("Agent name is required"),
   description: Yup.string()
-    .min(1, "Agent description is required")
+    .min(10, "Agent description must be at least 10 characters")
     .max(1024, "Agent description must be less than 1024 characters")
     .required("Agent description is required"),
   modulType: Yup.string()
@@ -89,11 +89,11 @@ const validationSchema = Yup.object({
     )
     .required("Module type is required"),
   tokenSymbol: Yup.string()
-    .min(1, "Token symbol is required")
-    .max(16, "Token symbol must be less than 16 characters")
+    .min(3, "Token symbol must be at least 3 characters")
+    .max(8, "Token symbol must be less than 8 characters")
     .required("Token symbol is required"),
   totalSupply: Yup.number()
-    .min(1, "Total supply must be greater than 0")
+    .min(1000000000, "Total supply must be at least 1,000,000,000")
     .required("Total supply is required"),
   taxSettings: Yup.object({
     totalTaxPercentage: Yup.number()
@@ -159,24 +159,21 @@ const CreateAgent = () => {
   const [agentImageUrl, setAgentImageURL] = useState();
 
   // contract interactions
-  const {
-    writeContract,
-    data: deployModulsTokenHash,
-    isPending: deployModulsTokenPending,
-  } = useWriteContract({
-    mutation: {
-      onSuccess: (data) => {
-        toast.success("Token deployment submitted");
+  const { writeContract, isPending: deployModulsTokenPending } =
+    useWriteContract({
+      mutation: {
+        onSuccess: (data) => {
+          toast.success("Token deployment submitted");
 
-        console.log("Token deployment submitted, ", data);
-        navigate(`/agents/${agentUniqueIdRef.current}`);
+          console.log("Token deployment submitted, ", data);
+          navigate(`/agents/${agentUniqueIdRef.current}`);
+        },
+        onError: (error) => {
+          console.log(error);
+          toast.error("Failed to deploy token, please try again");
+        },
       },
-      onError: (error) => {
-        console.log(error);
-        toast.error("Failed to deploy token, please try again");
-      },
-    },
-  });
+    });
 
   function deployModulsToken(args) {
     writeContract({
@@ -607,7 +604,7 @@ const CreateAgent = () => {
                             thumbClassName="dark:border-accent"
                             min={2}
                             max={10}
-                            step={0.5}
+                            step={1}
                             value={[values.taxSettings.totalTaxPercentage]}
                             onValueChange={(value) =>
                               setFieldValue(

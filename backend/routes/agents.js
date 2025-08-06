@@ -8,6 +8,8 @@ const { agentCreateSchema, agentResponseSchema } = require('../core/schemas');
 const config = require('../config');
 const { createEncryptedWalletAccount } = require('../core/utils');
 const Secret = require('../core/models/secrets');
+
+
 // Configure Cloudinary
 cloudinary.config({
     cloud_name: config.cloudinaryCloudName,
@@ -140,7 +142,7 @@ router.get("/agents/:uniqueId", async (req, res) => {
     }
 });
 
-router.post("/agents/create", verifyToken, upload.single('image'), async (req, res) => {
+router.post("/agents", verifyToken, upload.single('image'), async (req, res) => {
     try {
         const { _id: userId } = req.user;
 
@@ -175,7 +177,16 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
 
         // Generate unique identifiers
         const uniqueId = `agent_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        const intentId = Math.floor(Math.random() * 1000000000000) + 1;
+
+        // check if intentId is already in use, if so, generate a new one
+        let intentId;
+        while (true) {
+            intentId = Math.floor(Math.random() * 1000000000000) + 1;
+            const existingAgent = await Agent.findOne({ intentId });
+            if (!existingAgent) {
+                break;
+            }
+        }
 
         // --- Create an encrypted wallet for the agent ---
         const password = config.agentWalletSecret + uniqueId;
@@ -238,7 +249,7 @@ router.post("/agents/create", verifyToken, upload.single('image'), async (req, r
                 tokenSymbol: agent.tokenSymbol,
                 description: agent.description,
                 modulType: agent.modulType,
-                image: agent.logoUrl,
+                logoUrl: agent.logoUrl,
                 status: agent.status,
                 createdAt: agent.createdAt,
                 walletAddress: agent.walletAddress,
