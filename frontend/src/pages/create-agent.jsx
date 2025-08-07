@@ -886,10 +886,32 @@ const CreateAgent = () => {
                               type="button"
                               className="text-green-500 hover:text-green-400 transition-colors text-xs font-medium"
                               onClick={() => {
-                                if (walletBalance?.formatted) {
+                                if (walletBalance?.formatted && deploymentFee) {
+                                  const walletBalanceInEther = parseFloat(
+                                    walletBalance.formatted,
+                                  );
+                                  const deploymentFeeInEther = parseFloat(
+                                    formatEther(deploymentFee),
+                                  );
+                                  const currentSlippage =
+                                    values.prebuySettings.slippage || 1;
+
+                                  // Calculate available balance after deployment fee
+                                  const availableBalance =
+                                    walletBalanceInEther - deploymentFeeInEther;
+
+                                  // Calculate max amount considering slippage: amount * (1 + slippage/100) = availableBalance
+                                  // So: amount = availableBalance / (1 + slippage/100)
+                                  const slippageMultiplier =
+                                    1 + currentSlippage / 100;
+                                  const maxAmount = Math.max(
+                                    0,
+                                    availableBalance / slippageMultiplier,
+                                  );
+
                                   setFieldValue(
                                     "prebuySettings.amountInEther",
-                                    parseFloat(walletBalance.formatted),
+                                    maxAmount,
                                   );
                                 }
                               }}
@@ -938,14 +960,24 @@ const CreateAgent = () => {
                             {deploymentFee &&
                             values.launchDate &&
                             values.prebuySettings.amountInEther
-                              ? `${formatEther(
-                                  BigInt(deploymentFee) +
-                                    parseEther(
-                                      (
-                                        values.prebuySettings.amountInEther || 0
-                                      ).toString(),
-                                    ),
-                                )} SEI`
+                              ? (() => {
+                                  const preBuyAmount = parseEther(
+                                    (
+                                      values.prebuySettings.amountInEther || 0
+                                    ).toString(),
+                                  );
+                                  const slippageMultiplier = BigInt(
+                                    values.prebuySettings.slippage || 1,
+                                  );
+                                  const slippageAmount =
+                                    (preBuyAmount * slippageMultiplier) /
+                                    BigInt(100);
+                                  const totalRequired =
+                                    BigInt(deploymentFee) +
+                                    preBuyAmount +
+                                    slippageAmount;
+                                  return `${formatEther(totalRequired)} SEI`;
+                                })()
                               : deploymentFee
                                 ? `${formatEther(deploymentFee)} SEI`
                                 : "Loading..."}

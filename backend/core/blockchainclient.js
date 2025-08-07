@@ -7,12 +7,12 @@ const ModulsDeployerAbi = require('./abi/ModulsDeployer.json');
 
 const seiMainnetClient = createPublicClient({
     chain: sei,
-    transport: http(rpcUrls.mainnet.http[0]),
+    transport: http(rpcUrls.mainnet.http),
 });
 
 const seiTestnetClient = createPublicClient({
     chain: seiTestnet,
-    transport: http(rpcUrls.testnet.http[0]),
+    transport: http(rpcUrls.testnet.http),
 });
 
 
