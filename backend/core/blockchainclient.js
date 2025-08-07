@@ -1,61 +1,28 @@
 const { createPublicClient, http } = require('viem');
-const { mainnet } = require('viem/chains');
+const { sei, seiTestnet } = require('viem/chains');
 const { chainMode, contractAddresses, rpcUrls } = require("../config")
 const { watchContractEvent, getBlockNumber } = require('viem/actions');
 const ModulsDeployerAbi = require('./abi/ModulsDeployer.json');
 
-// Sei Mainnet settings
-const seiMainnet = {
-    ...mainnet,
-    id: 1329,
-    name: "Sei Mainnet",
-    rpcUrls: {
-        default: {
-            http: [rpcUrls.mainnet.http],
-            webSocket: [rpcUrls.mainnet.webSocket]
-        },
-    },
-};
-
-// Sei Testnet settings
-const seiTestnet = {
-    ...mainnet,
-    id: 1328,
-    name: "Sei Testnet",
-    rpcUrls: {
-        default: {
-            http: [rpcUrls.testnet.http],
-            webSocket: [rpcUrls.testnet.webSocket]
-        },
-    },
-};
 
 const seiMainnetClient = createPublicClient({
-    chain: seiMainnet,
-    transport: http(seiMainnet.rpcUrls.default.http[0]),
+    chain: sei,
+    transport: http(rpcUrls.mainnet.http[0]),
 });
 
 const seiTestnetClient = createPublicClient({
     chain: seiTestnet,
-    transport: http(seiTestnet.rpcUrls.default.http[0]),
+    transport: http(rpcUrls.testnet.http[0]),
 });
 
 
 function getClient() {
-    if (chainMode === 'mainnet') {
-        return seiMainnetClient;
-    } else {
-        return seiTestnetClient;
-    }
+    return chainMode === 'mainnet' ? seiMainnetClient : seiTestnetClient;
 }
 
 
 function getModulsDeployerAddress() {
-    if (chainMode === 'mainnet') {
-        return contractAddresses.mainnet.modulsDeployer;
-    } else {
-        return contractAddresses.testnet.modulsDeployer;
-    }
+    return contractAddresses[chainMode].modulsDeployer;
 }
 
 async function registerContractWatcher(contractAddress, onLogsCallback, onErrorCallback,) {
