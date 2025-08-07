@@ -169,6 +169,13 @@ const agentSchema = new mongoose.Schema({
         required: true,
     },
 
+
+    launchDate: {
+        type: Date,
+        required: false,
+        default: null
+    },
+
     prebuySettings: {
         type: agentTokenPrebuySettingsSchema,
         required: true,

@@ -55,6 +55,18 @@ const agentCreateSchema = z.object({
     // Social links
     websiteUrl: z.string().optional(),
     twitterUrl: z.string().optional(),
+
+    // Launch schedule
+    launchDate: z.date()
+        .optional()
+        .refine(
+            (date) => {
+                if (!date) return true; // allow optional
+                const now = new Date();
+                return date.getTime() - now.getTime() >= 2 * 60 * 1000; // at least 2 mins from now
+            },
+            { message: "Launch date must be at least 2 minutes from now" }
+        ),
 });
 
 // Response schema for agent data - filters and composes the response
@@ -91,6 +103,7 @@ const agentResponseSchema = z.object({
     creator: z.object({
         walletAddress: z.string(),
     }).optional(),
+    launchDate: z.date().optional(),
 });
 
 module.exports = { walletLoginSchema, agentSchema, agentCreateSchema, agentResponseSchema };

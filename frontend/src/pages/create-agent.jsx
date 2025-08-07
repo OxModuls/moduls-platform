@@ -4,7 +4,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight,
   ChevronUp,
-  Copy,
   File,
   Image,
   Info,
@@ -14,7 +13,8 @@ import {
 import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import SeiIcon from "@/components/sei-icon";
-import { useAccount, useChainId } from "wagmi";
+import { useReadContract, useBalance, useAccount } from "wagmi";
+import { formatEther, parseEther } from "viem";
 import { useAuth } from "../shared/hooks/useAuth";
 import { useNavigate } from "react-router";
 import config from "../shared/config";
@@ -72,56 +72,6 @@ const acceptedImageFormats = [
 ];
 const maxImageSize = 5 * 1024 * 1024;
 
-// Yup validation schema
-const validationSchema = Yup.object({
-  name: Yup.string()
-    .min(3, "Agent name must be at least 3 characters")
-    .max(100, "Agent name must be less than 100 characters")
-    .required("Agent name is required"),
-  description: Yup.string()
-    .min(10, "Agent description must be at least 10 characters")
-    .max(1024, "Agent description must be less than 1024 characters")
-    .required("Agent description is required"),
-  modulType: Yup.string()
-    .oneOf(
-      ["GAME_FI_NPC", "DEFI_AI", "MEME", "ORACLE_FEED", "CUSTOM"],
-      "Invalid module type",
-    )
-    .required("Module type is required"),
-  tokenSymbol: Yup.string()
-    .min(3, "Token symbol must be at least 3 characters")
-    .max(8, "Token symbol must be less than 8 characters")
-    .required("Token symbol is required"),
-  totalSupply: Yup.number()
-    .min(1000000000, "Total supply must be at least 1,000,000,000")
-    .required("Total supply is required"),
-  taxSettings: Yup.object({
-    totalTaxPercentage: Yup.number()
-      .min(1, "Total tax percentage must be at least 1%")
-      .max(10, "Total tax percentage must be at most 10%")
-      .required("Total tax percentage is required"),
-    agentWalletShare: Yup.number()
-      .min(1, "Agent wallet share must be at least 1%")
-      .max(100, "Agent wallet share must be at most 100%")
-      .required("Agent wallet share is required"),
-    devWalletShare: Yup.number()
-      .min(1, "Dev wallet share must be at least 1%")
-      .max(100, "Dev wallet share must be at most 100%")
-      .required("Dev wallet share is required"),
-  }),
-  agentImage: Yup.mixed().required("Please upload an image"),
-  prebuySettings: Yup.object({
-    slippage: Yup.number()
-      .min(1, "Slippage must be at least 1%")
-      .max(100, "Slippage must be at most 100%")
-      .required("Slippage is required"),
-    amountInWei: Yup.string().optional(),
-  }),
-  websiteUrl: Yup.string().url("Invalid website URL").optional(),
-  twitterUrl: Yup.string().url("Invalid Twitter URL").optional(),
-  telegramUrl: Yup.string().url("Invalid Telegram URL").optional(),
-});
-
 // Initial form values
 const initialValues = {
   name: "",
@@ -137,8 +87,9 @@ const initialValues = {
   },
   prebuySettings: {
     slippage: 1,
-    amountInWei: "0",
+    amountInEther: 0,
   },
+  launchDate: "", // Optional - no preset value
   websiteUrl: "",
   twitterUrl: "",
   telegramUrl: "",
@@ -150,13 +101,97 @@ const CreateAgent = () => {
   const navigate = useNavigate();
   const { getAccessToken } = useAuth();
   const agentUniqueIdRef = useRef(null);
-  const chainId = useChainId();
   const taxSettingsDivRef = useRef(null);
   const prebuyDivRef = useRef(null);
 
   const [showSocialLinks, setShowSocialLinks] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [agentImageUrl, setAgentImageURL] = useState();
+
+  // Get wallet balance for MAX button
+  const { data: walletBalance } = useBalance({
+    address: address,
+  });
+
+  // Yup validation schema
+  const validationSchema = Yup.object({
+    name: Yup.string()
+      .min(3, "Agent name must be at least 3 characters")
+      .max(100, "Agent name must be less than 100 characters")
+      .required("Agent name is required"),
+    description: Yup.string()
+      .min(10, "Agent description must be at least 10 characters")
+      .max(1024, "Agent description must be less than 1024 characters")
+      .required("Agent description is required"),
+    modulType: Yup.string()
+      .oneOf(
+        ["GAME_FI_NPC", "DEFI_AI", "MEME", "ORACLE_FEED", "CUSTOM"],
+        "Invalid module type",
+      )
+      .required("Module type is required"),
+    tokenSymbol: Yup.string()
+      .min(3, "Token symbol must be at least 3 characters")
+      .max(8, "Token symbol must be less than 8 characters")
+      .required("Token symbol is required"),
+    totalSupply: Yup.number()
+      .min(1000000000, "Total supply must be at least 1,000,000,000")
+      .required("Total supply is required"),
+    taxSettings: Yup.object({
+      totalTaxPercentage: Yup.number()
+        .min(1, "Total tax percentage must be at least 1%")
+        .max(10, "Total tax percentage must be at most 10%")
+        .required("Total tax percentage is required"),
+      agentWalletShare: Yup.number()
+        .min(1, "Agent wallet share must be at least 1%")
+        .max(100, "Agent wallet share must be at most 100%")
+        .required("Agent wallet share is required"),
+      devWalletShare: Yup.number()
+        .min(1, "Dev wallet share must be at least 1%")
+        .max(100, "Dev wallet share must be at most 100%")
+        .required("Dev wallet share is required"),
+    }),
+    agentImage: Yup.mixed().required("Please upload an image"),
+    prebuySettings: Yup.object({
+      slippage: Yup.number()
+        .min(1, "Slippage must be at least 1%")
+        .max(50, "Slippage must be at most 50%")
+        .required("Slippage is required"),
+      amountInEther: Yup.number()
+        .min(0, "Amount must be at least 0")
+        .test("max-balance", "Insufficient balance", function (value) {
+          if (!value || value <= 0) return true;
+          return value <= walletBalance.value;
+        })
+        .optional(),
+    }),
+    launchDate: Yup.date()
+      .test(
+        "min-5-minutes",
+        "Launch date must be at least 5 minutes from now",
+        (value) => {
+          if (!value) return true; // Optional field
+          const now = new Date();
+          const minDate = new Date(now.getTime() + 5 * 60 * 1000);
+          return new Date(value) >= minDate;
+        },
+      )
+      .optional(),
+    websiteUrl: Yup.string().url("Invalid website URL").optional(),
+    twitterUrl: Yup.string().url("Invalid Twitter URL").optional(),
+    telegramUrl: Yup.string().url("Invalid Telegram URL").optional(),
+  });
+
+  // Read deployment fee from contract
+  const { data: deploymentFee, isSuccess: deploymentFeeSuccess } =
+    useReadContract({
+      address: config.contractAddresses[config.chainMode].modulsDeployer,
+      abi: ModulsDeployerABI,
+      functionName: "deploymentFee",
+      query: {
+        enabled: !!config.contractAddresses[config.chainMode].modulsDeployer,
+        refetchInterval: 20000,
+      },
+    });
 
   // contract interactions
   const { writeContract, isPending: deployModulsTokenPending } =
@@ -176,8 +211,33 @@ const CreateAgent = () => {
     });
 
   function deployModulsToken(args) {
+    // Calculate total value needed (deployment fee + pre-buy amount)
+    if (!deploymentFeeSuccess && !deploymentFee) {
+      toast.error("Deployment fee not loaded, please try again");
+      return;
+    }
+
+    // console.log(args.preBuySettings);
+    const deploymentFeeValue = BigInt(deploymentFee || 0);
+    const preBuyAmount = BigInt(args.preBuySettings.amountInWei);
+
+    // Apply slippage to pre-buy amount: value + (slippage% * value)
+    const slippageMultiplier = BigInt(args.preBuySettings.slippage.toString()); // Convert to basis points
+    const slippageAmount = (preBuyAmount * slippageMultiplier) / BigInt(100); // Divide by 100 for percentage
+    const effectivePreBuyAmount = preBuyAmount + slippageAmount;
+
+    const totalValue = deploymentFeeValue + effectivePreBuyAmount;
+
+    if (totalValue > walletBalance.value) {
+      toast.error("Insufficient balance");
+      return;
+    }
+
+    // Determine auto-register based on launch date
+    const autoRegister = !!args.launchDate;
+
     writeContract({
-      address: config.contractAddresses.testnet.modulsDeployer,
+      address: config.contractAddresses[config.chainMode].modulsDeployer,
       abi: ModulsDeployerABI,
       functionName: "deployToken",
       args: [
@@ -189,8 +249,10 @@ const CreateAgent = () => {
         args.agentSplit,
         args.intentId,
         args.metadataURI,
-        false, // autoRegister = true
+        preBuyAmount, // preBuyEthAmount
+        autoRegister, // autoRegister - true if launch date is set
       ],
+      value: totalValue,
     });
   }
 
@@ -212,7 +274,7 @@ const CreateAgent = () => {
       })();
       return response;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data) => {
       toast.info(
         "Agent created, pulling up your wallet to sign the transaction",
       );
@@ -228,6 +290,8 @@ const CreateAgent = () => {
         agentSplit: data.agent.agentWalletShare,
         intentId: data.agent.intentId,
         metadataURI: data.agent.logoUrl,
+        preBuySettings: data.agent.preBuySettings,
+        launchDate: data.agent.launchDate,
       };
 
       // console.log(deploymentData);
@@ -282,8 +346,8 @@ const CreateAgent = () => {
       agentWalletShare: values.taxSettings.agentWalletShare,
       devWalletShare: values.taxSettings.devWalletShare,
       slippage: values.prebuySettings.slippage,
-      amountInWei: BigInt(
-        values.prebuySettings.amountInWei * 10 ** 18,
+      amountInWei: parseEther(
+        (values.prebuySettings.amountInEther || 0).toString(),
       ).toString(),
       websiteUrl: values.websiteUrl,
       twitterUrl: values.twitterUrl,
@@ -294,6 +358,7 @@ const CreateAgent = () => {
         values.tokenSymbol,
       ].join(","),
       image: values.agentImage,
+      launchDate: values.launchDate,
     };
 
     createAgentMutation.mutate(agentData);
@@ -315,6 +380,7 @@ const CreateAgent = () => {
               initialValues={initialValues}
               validationSchema={validationSchema}
               onSubmit={handleSubmit}
+              context={{ walletBalance: walletBalance?.value || 0 }}
             >
               {({ values, setFieldValue, isValid }) => (
                 <Form className="">
@@ -386,11 +452,11 @@ const CreateAgent = () => {
                     {/* Modul Type Selection */}
                     <div className="">
                       <label className="ml-1">Modul Type</label>
-                      <div className="mt-2 grid grid-cols-1 gap-3">
+                      <div className="mt-2 grid grid-cols-1 gap-2">
                         {modulTypes.map((modul) => (
                           <div
                             key={modul.identifier}
-                            className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                            className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
                               values.modulType === modul.value
                                 ? "border-accent bg-accent/10"
                                 : "border-border hover:border-accent/50"
@@ -399,19 +465,19 @@ const CreateAgent = () => {
                               setFieldValue("modulType", modul.value)
                             }
                           >
-                            <div className="flex items-start gap-3">
-                              <div className="text-2xl">{modul.emoji}</div>
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-foreground">
+                            <div className="flex items-center gap-3">
+                              <div className="text-xl">{modul.emoji}</div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-foreground text-sm">
                                   {modul.name}
                                 </h3>
-                                <p className="text-sm text-muted-foreground mt-1">
+                                <p className="text-xs text-muted-foreground">
                                   {modul.description}
                                 </p>
                               </div>
                               {values.modulType === modul.value && (
-                                <div className="w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                                  <div className="w-2 h-2 bg-accent-foreground rounded-full"></div>
+                                <div className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
+                                  <div className="w-1.5 h-1.5 bg-accent-foreground rounded-full"></div>
                                 </div>
                               )}
                             </div>
@@ -727,13 +793,57 @@ const CreateAgent = () => {
                     className="flex flex-col mt-4 px-4 py-6 border rounded-xl"
                   >
                     <div className="ml-1">
-                      <h2 className="text-xl font-semibold">Pre-buy Token</h2>
+                      <h2 className="text-xl font-semibold">Launch Schedule</h2>
+                      <p className="text-muted-foreground">
+                        Set when trading opens for your token. Leave empty to
+                        deploy without opening trading yet.
+                      </p>
+                    </div>
+                    <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
+                      <div className="w-full flex flex-col gap-1">
+                        <label
+                          htmlFor="launch-date"
+                          className="ml-1 text-sm font-semibold"
+                        >
+                          Launch Date & Time
+                        </label>
+                        <Field
+                          as={Input}
+                          type="datetime-local"
+                          id="launch-date"
+                          name="launchDate"
+                          className="py-2"
+                        />
+                        <ErrorMessage
+                          name="launchDate"
+                          component="div"
+                          className="text-red-500 text-sm mt-1"
+                        />
+                        <p className="text-xs text-muted-foreground ml-1">
+                          Optional: Must be at least 5 minutes from now if set.
+                          Token deploys immediately, trading opens at the
+                          specified time.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 ml-1">
+                      <h3 className="text-lg font-semibold">Pre-buy Token</h3>
                       <p className="text-muted-foreground">
                         Purchasing a small amount of your token is optional but
                         can help protect your coin from snipers.
                       </p>
                     </div>
                     <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
+                      {values.prebuySettings.amountInEther > 0 &&
+                        !values.launchDate && (
+                          <div className="w-full p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                              ⚠️ Pre-buy requires trading to be enabled. Please
+                              set a launch date to enable pre-buy functionality.
+                            </p>
+                          </div>
+                        )}
                       <div className="w-full flex flex-col gap-1">
                         <label
                           htmlFor="slippage"
@@ -747,6 +857,7 @@ const CreateAgent = () => {
                           id="slippage"
                           name="prebuySettings.slippage"
                           className="py-2"
+                          disabled={!values.launchDate}
                         />
                         <ErrorMessage
                           name="prebuySettings.slippage"
@@ -766,46 +877,80 @@ const CreateAgent = () => {
                             as={Input}
                             type="number"
                             id="amount"
-                            name="prebuySettings.amountInWei"
-                            className="py-2 pr-28"
+                            name="prebuySettings.amountInEther"
+                            className="py-2 pr-24 appearance-none"
+                            disabled={!values.launchDate}
                           />
                           <div className="absolute top-[50%] translate-y-[-50%] right-4 flex items-center gap-2 text-neutral-400">
-                            <div className="flex items-center gap-2">
-                              <span className="uppercase">sei</span>
+                            <button
+                              type="button"
+                              className="text-green-500 hover:text-green-400 transition-colors text-xs font-medium"
+                              onClick={() => {
+                                if (walletBalance?.formatted) {
+                                  setFieldValue(
+                                    "prebuySettings.amountInEther",
+                                    parseFloat(walletBalance.formatted),
+                                  );
+                                }
+                              }}
+                            >
+                              MAX
+                            </button>
+                            <div className="w-px h-4 bg-border"></div>
+                            <div className="flex items-center gap-1">
+                              <span className="uppercase text-xs">sei</span>
                               <SeiIcon className="size-4" />
                             </div>
                           </div>
                         </div>
                         <ErrorMessage
-                          name="prebuySettings.amountInWei"
+                          name="prebuySettings.amountInEther"
                           component="div"
                           className="text-red-500 text-sm mt-1"
                         />
                         <div className="px-1 w-full flex justify-between text-xs">
-                          {/* <span className="text-red-500">Insufficient balance</span> */}
                           <div className="flex items-center gap-1">
                             <Wallet className="size-3" />
-                            <span className="">0 SEI</span>
-                            <button type="button" className="text-green-500">
-                              MAX
-                            </button>
+                            <span className="">
+                              {walletBalance?.formatted
+                                ? `${walletBalance.formatted} SEI`
+                                : "0 SEI"}
+                            </span>
                           </div>
                         </div>
                         <div className="w-full px-1 mt-2 text-xs text-muted-foreground flex justify-between items-center">
                           <div className="flex items-center gap-2">
-                            <span>Creation Fee</span>
+                            <span>Deployment Fee</span>
                             <Info className="size-3.5" />
                           </div>
-                          <span>0.000000000000000000 SEI</span>
+                          <span>
+                            {deploymentFee
+                              ? `${formatEther(deploymentFee)} SEI`
+                              : "Loading..."}
+                          </span>
                         </div>
-                        {values.tokenSymbol && (
-                          <div className="ml-1 w-full">
-                            <p className="mt-1.25 text-neutral-400 text-xs">
-                              You will receive <span>1,000,000</span>{" "}
-                              <span>${values.tokenSymbol.toUpperCase()}</span>
-                            </p>
+                        <div className="w-full px-1 mt-1 text-xs text-muted-foreground flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <span>Total Required</span>
+                            <Info className="size-3.5" />
                           </div>
-                        )}
+                          <span>
+                            {deploymentFee &&
+                            values.launchDate &&
+                            values.prebuySettings.amountInEther
+                              ? `${formatEther(
+                                  BigInt(deploymentFee) +
+                                    parseEther(
+                                      (
+                                        values.prebuySettings.amountInEther || 0
+                                      ).toString(),
+                                    ),
+                                )} SEI`
+                              : deploymentFee
+                                ? `${formatEther(deploymentFee)} SEI`
+                                : "Loading..."}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className="mt-4 flex justify-end gap-2">

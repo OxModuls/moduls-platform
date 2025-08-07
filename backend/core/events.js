@@ -1,38 +1,107 @@
-const { createPublicClient, http, getAddress } = require('viem');
-const { seiMainnet, seiTestnet } = require('viem/chains');
+const { createPublicClient, webSocket, getAddress, getEventSelector, http } = require('viem');
+const { sei, seiTestnet } = require('viem/chains');
 const Agent = require('./models/agents');
 const config = require('../config');
 
-
-
 // Create viem client based on environment
-const chain = config.chainMode === 'mainnet' ? seiMainnet : seiTestnet;
-const client = createPublicClient({
-    chain,
-    transport: http(config.rpcUrls[config.chainMode].http)
-});
+const chain = config.chainMode === 'mainnet' ? sei : seiTestnet;
+
+// Try WebSocket first, fallback to HTTP
+let client;
+try {
+    client = createPublicClient({
+        chain,
+        // transport: webSocket(config.rpcUrls[config.chainMode].webSocket)
+        transport: http(config.rpcUrls[config.chainMode].http)
+    });
+    console.log('✅ Using WebSocket transport for real-time events');
+} catch (error) {
+    console.warn('⚠️ WebSocket transport failed, falling back to HTTP');
+    const { http } = require('viem');
+    client = createPublicClient({
+        chain,
+        transport: http(config.rpcUrls[config.chainMode].http)
+    });
+}
 
 // Event name to callback mapping
 const eventCallbacks = new Map();
 
 // ModulsDeployer contract ABI for events
+// Using the exact ABI from the contract
 const MODULS_DEPLOYER_ABI = [
     {
-        type: 'event',
-        name: 'ModulsTokenCreated',
-        inputs: [
-            { type: 'address', name: 'tokenAddress', indexed: true },
-            { type: 'string', name: 'name', indexed: false },
-            { type: 'string', name: 'symbol', indexed: false },
-            { type: 'uint256', name: 'initialSupply', indexed: false },
-            { type: 'address', name: 'agentWallet', indexed: false },
-            { type: 'address', name: 'salesManager', indexed: false },
-            { type: 'uint8', name: 'taxPercent', indexed: false },
-            { type: 'uint8', name: 'agentSplit', indexed: false },
-            { type: 'uint256', name: 'intentId', indexed: true },
-            { type: 'string', name: 'metadataURI', indexed: false },
-            { type: 'address', name: 'creator', indexed: true }
-        ]
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "tokenAddress",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "symbol",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "initialSupply",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "agentWallet",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "salesManager",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint8",
+                "name": "taxPercent",
+                "type": "uint8"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint8",
+                "name": "agentSplit",
+                "type": "uint8"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "intentId",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "metadataURI",
+                "type": "string"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "creator",
+                "type": "address"
+            }
+        ],
+        "name": "ModulsTokenCreated",
+        "type": "event"
     }
 ];
 
@@ -112,40 +181,73 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
         console.log(`   From block: ${fromBlock}`);
         console.log(`   Registered events: ${Array.from(eventCallbacks.keys()).join(', ')}`);
 
-        // Watch for ModulsTokenCreated events
-        const unwatch = client.watchEvent({
-            address: getAddress(contractAddress),
-            event: MODULS_DEPLOYER_ABI[0], // ModulsTokenCreated event
-            onLogs: async (logs) => {
-                console.log(`📡 Received ${logs.length} ModulsTokenCreated event(s)`);
+        // Log the event signature for debugging
+        const eventSignature = getEventSelector(MODULS_DEPLOYER_ABI[0]);
+        console.log(`   Event signature: ${eventSignature}`);
 
-                for (const log of logs) {
-                    try {
-                        // Parse the event data
-                        const event = {
-                            args: log.args,
-                            blockNumber: log.blockNumber,
-                            transactionHash: log.transactionHash,
-                            logIndex: log.logIndex,
-                            address: log.address
-                        };
+        // First, try to get any recent events that might have been missed
+        try {
+            const recentLogs = await client.getLogs({
+                address: getAddress(contractAddress),
+                event: MODULS_DEPLOYER_ABI[0],
+                fromBlock: fromBlock === 'latest' ? 'latest' : BigInt(fromBlock),
+                toBlock: 'latest'
+            });
 
-                        // Get the callback for this event
-                        const callback = eventCallbacks.get('ModulsTokenCreated');
-                        if (callback) {
-                            await callback(event);
-                        } else {
-                            console.warn('No callback registered for ModulsTokenCreated event');
-                        }
-                    } catch (error) {
-                        console.error('Error processing event log:', error);
-                    }
-                }
-            },
-            onError: (error) => {
-                console.error('❌ Event listener error:', error);
+            if (recentLogs.length > 0) {
+                console.log(`📡 Found ${recentLogs.length} recent ModulsTokenCreated event(s)`);
+                await processLogs(recentLogs);
+            } else {
+                console.log('⚠️ No recent ModulsTokenCreated event(s) found');
             }
-        });
+        } catch (error) {
+            console.warn('⚠️ Could not fetch recent logs:', error.message);
+        }
+
+        // Watch for new ModulsTokenCreated events
+        let unwatch;
+        try {
+            unwatch = client.watchEvent({
+                address: getAddress(contractAddress),
+                event: MODULS_DEPLOYER_ABI[0], // ModulsTokenCreated event
+                onLogs: async (logs) => {
+                    console.log(`📡 Received ${logs.length} new ModulsTokenCreated event(s)`);
+                    await processLogs(logs);
+                },
+                onError: (error) => {
+                    console.error('❌ Event listener error:', error);
+                }
+            });
+        } catch (error) {
+            console.error('❌ Failed to start watchEvent:', error);
+            console.log('⚠️ Falling back to polling mode...');
+
+            // Fallback to polling if watchEvent fails
+            let lastBlock = await client.getBlockNumber();
+            const pollInterval = setInterval(async () => {
+                try {
+                    const currentBlock = await client.getBlockNumber();
+                    if (currentBlock > lastBlock) {
+                        const logs = await client.getLogs({
+                            address: getAddress(contractAddress),
+                            event: MODULS_DEPLOYER_ABI[0],
+                            fromBlock: lastBlock + 1n,
+                            toBlock: currentBlock
+                        });
+
+                        if (logs.length > 0) {
+                            console.log(`📡 Found ${logs.length} new ModulsTokenCreated event(s) via polling`);
+                            await processLogs(logs);
+                        }
+                        lastBlock = currentBlock;
+                    }
+                } catch (error) {
+                    console.error('❌ Polling error:', error);
+                }
+            }, 5000); // Poll every 5 seconds
+
+            unwatch = () => clearInterval(pollInterval);
+        }
 
         console.log('✅ Event listener started successfully');
 
@@ -155,6 +257,51 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
     } catch (error) {
         console.error('❌ Failed to start event listener:', error);
         throw error;
+    }
+}
+
+/**
+ * Process event logs
+ * @param {Array} logs - Array of event logs
+ */
+async function processLogs(logs) {
+    for (const log of logs) {
+        try {
+            console.log('Raw log:', JSON.stringify(log, null, 2));
+
+            // Parse the event data - log.args contains the decoded parameters
+            const event = {
+                args: {
+                    tokenAddress: log.args.tokenAddress,
+                    intentId: log.args.intentId,
+                    creator: log.args.creator,
+                    name: log.args.name,
+                    symbol: log.args.symbol,
+                    initialSupply: log.args.initialSupply,
+                    agentWallet: log.args.agentWallet,
+                    salesManager: log.args.salesManager,
+                    taxPercent: log.args.taxPercent,
+                    agentSplit: log.args.agentSplit,
+                    metadataURI: log.args.metadataURI
+                },
+                blockNumber: log.blockNumber,
+                transactionHash: log.transactionHash,
+                logIndex: log.logIndex,
+                address: log.address
+            };
+
+            console.log('Parsed event:', JSON.stringify(event, null, 2));
+
+            // Get the callback for this event
+            const callback = eventCallbacks.get('ModulsTokenCreated');
+            if (callback) {
+                await callback(event);
+            } else {
+                console.warn('No callback registered for ModulsTokenCreated event');
+            }
+        } catch (error) {
+            console.error('Error processing event log:', error);
+        }
     }
 }
 

@@ -79,12 +79,12 @@ app.listen(app.get("port"), async () => {
     await connectDB();
 
     // Initialize new webhook handler
-    try {
-        webhookHandler = WebhookHandler.getInstance();
-        // await webhookHandler.initialize();
-    } catch (error) {
-        console.error('Failed to initialize webhook handler:', error);
-    }
+    // try {
+    //     webhookHandler = WebhookHandler.getInstance();
+    //     await webhookHandler.initialize();
+    // } catch (error) {
+    //     console.error('Failed to initialize webhook handler:', error);
+    // }
 
     // Initialize event listener
     try {

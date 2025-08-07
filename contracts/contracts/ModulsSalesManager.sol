@@ -16,6 +16,7 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
 
     // === Constants ===
     address public platformAdmin;
+    address public factory; // Address of the ModulsDeployer contract
 
     // === Bonding Curve Parameters ===
     uint256 public initialPrice = 0.0000000001 ether; // 0.0000001 ETH = ~$0.0002 at $2000/ETH
@@ -114,6 +115,44 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
             msg.sender == devWallet,
             "Only token creator can register token"
         );
+
+        // Validate the fetched values
+        require(taxPercent <= 10, "Tax too high");
+        require(agentSplit <= 100, "Invalid split");
+
+        marketConfigs[token] = MarketConfig({
+            token: token,
+            agentWallet: agentWallet,
+            devWallet: devWallet,
+            taxPercent: taxPercent,
+            agentSplit: agentSplit,
+            exists: true
+        });
+
+        supportedTokens.add(token);
+
+        emit ModulsTokenRegistered(token, agentWallet);
+    }
+
+    /**
+     * @dev Register a token from the ModulsDeployer contract
+     * This function bypasses the devWallet check since it's called during deployment
+     */
+    function registerTokenFromDeployer(address token) external {
+        require(msg.sender == factory, "Only factory can call this function");
+        require(!marketConfigs[token].exists, "Token already registered");
+        require(
+            IERC20(token).balanceOf(address(this)) > 0,
+            "SalesManager must hold token"
+        );
+
+        // Fetch configuration from the token contract
+        IModulsToken tokenContract = IModulsToken(token);
+
+        address payable agentWallet = payable(tokenContract.agentWallet());
+        address payable devWallet = payable(tokenContract.devWallet());
+        uint8 taxPercent = tokenContract.taxPercent();
+        uint8 agentSplit = tokenContract.agentSplit();
 
         // Validate the fetched values
         require(taxPercent <= 10, "Tax too high");
@@ -678,6 +717,16 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         delete marketConfigs[token];
         delete marketStats[token];
         delete tradeStats[token];
+    }
+
+    /**
+     * @dev Set the factory address (ModulsDeployer contract)
+     * Only callable by the contract owner
+     */
+    function setFactory(address _factory) external onlyOwner {
+        require(_factory != address(0), "Invalid factory address");
+        require(_factory.code.length > 0, "Factory must be a contract");
+        factory = _factory;
     }
 
     function getSupportedTokens() external view returns (address[] memory) {

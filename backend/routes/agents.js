@@ -163,14 +163,18 @@ router.post("/agents", verifyToken, upload.single('image'), async (req, res) => 
             telegramUrl: req.body.telegramUrl,
             tags: req.body.tags ? req.body.tags.split(',') : [],
             image: req.file ? req.file.path : req.body.image || '',
+            launchDate: req.body.launchDate ? new Date(req.body.launchDate) : undefined
         };
+
+
 
         // Validate the request data
         const { success, data, error } = agentCreateSchema.safeParse(requestData);
 
+
         if (!success) {
             return res.status(400).json({
-                error: error.errors,
+                error: error.flatten(),
                 message: "Invalid request data"
             });
         }
@@ -211,7 +215,7 @@ router.post("/agents", verifyToken, upload.single('image'), async (req, res) => 
             image: data.image,
             tags: data.tags,
             status: 'PENDING',
-            launchDate: new Date(),
+            launchDate: data.launchDate,
             isVerified: false,
             creator: userId,
             modulType: data.modulType,
@@ -257,8 +261,11 @@ router.post("/agents", verifyToken, upload.single('image'), async (req, res) => 
                 totalTaxPercentage: agent.taxSettings.totalTaxPercentage,
                 agentWalletShare: agent.taxSettings.agentWalletShare,
                 devWalletShare: agent.taxSettings.devWalletShare,
-                slippage: agent.prebuySettings.slippage,
-
+                preBuySettings: {
+                    slippage: agent.prebuySettings.slippage,
+                    amountInWei: agent.prebuySettings.amountInWei?.toString(),
+                },
+                launchDate: agent.launchDate,
             }
         });
 

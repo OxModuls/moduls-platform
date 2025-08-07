@@ -19,12 +19,12 @@ const config = {
     // Contract addresses
     contractAddresses: {
         testnet: {
-            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_TESTNET || '0xCFC7CB241D5643f07cB108bE5a3dEb25Ba70F8f8',
-            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_TESTNET || '0x85A8817b2BAa9b36e7F9EbbB047e77Df5cCBE43a',
+            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_TESTNET || '0x8dF8b2124F558E6214FD78032a1AEC1e18461a63',
+            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_TESTNET || '0xab9e6EbEa548fB4E1ed493f066095971523DFD88',
         },
         mainnet: {
-            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_MAINNET || '0xCFC7CB241D5643f07cB108bE5a3dEb25Ba70F8f8',
-            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_MAINNET || '0x85A8817b2BAa9b36e7F9EbbB047e77Df5cCBE43a',
+            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_MAINNET || '0x8dF8b2124F558E6214FD78032a1AEC1e18461a63',
+            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_MAINNET || '0xab9e6EbEa548fB4E1ed493f066095971523DFD88',
         }
     },
 

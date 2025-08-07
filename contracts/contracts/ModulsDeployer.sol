@@ -105,6 +105,7 @@ contract ModulsDeployer is Ownable {
     address[] public deployedTokens;
     mapping(address => address) public tokenCreators;
     mapping(uint256 => bool) public usedIntentIds; // Track used intentIds
+    uint256 public deploymentFee = 1 wei; // Small deployment fee (1 wei)
 
     event SalesManagerUpdated(
         address indexed oldSalesManager,
@@ -138,10 +139,14 @@ contract ModulsDeployer is Ownable {
         uint8 agentSplit,
         uint256 intentId,
         string memory metadataURI,
+        uint256 preBuyEthAmount,
         bool autoRegister
-    ) external returns (address) {
+    ) external payable returns (address) {
         // Ensure intentId is unique
         require(!usedIntentIds[intentId], "IntentId already exists");
+
+        // Check deployment fee
+        require(msg.value >= deploymentFee, "Insufficient deployment fee");
 
         // Mark this intentId as used
         usedIntentIds[intentId] = true;
@@ -159,14 +164,72 @@ contract ModulsDeployer is Ownable {
             metadataURI,
             owner()
         );
+
         deployedTokens.push(address(token));
         tokenCreators[address(token)] = msg.sender;
 
         // Conditionally register the token with the SalesManager
         if (autoRegister) {
-            ModulsSalesManager(payable(salesManager)).registerToken(
-                address(token)
+            ModulsSalesManager(payable(salesManager)).registerTokenFromDeployer(
+                    address(token)
+                );
+        }
+
+        // Handle pre-buy if specified (must happen after registration)
+        if (preBuyEthAmount > 0) {
+            require(autoRegister, "Pre-buy requires auto-registration");
+            uint256 remainingValue = msg.value - deploymentFee;
+            require(
+                remainingValue >= preBuyEthAmount,
+                "Insufficient ETH for pre-buy"
             );
+
+            // Buy tokens for the developer using the specified ETH amount
+            ModulsSalesManager salesManagerContract = ModulsSalesManager(
+                payable(salesManager)
+            );
+
+            // Calculate maximum buy amount (99% of initial supply)
+            uint256 maxBuyAmount = (initialSupply * 99) / 100;
+
+            // Get the cost for maximum buy amount to check if we exceed 99%
+            (, , uint256 maxTotalCost) = salesManagerContract
+                .getEtherCostForToken(
+                    address(token),
+                    maxBuyAmount * 10 ** 18 // Convert to wei
+                );
+
+            require(maxTotalCost > 0, "Invalid token pricing");
+
+            uint256 actualEthToSpend = preBuyEthAmount;
+            uint256 actualTokenAmount;
+
+            // If the pre-buy amount would exceed 99% of supply, cap it at 99%
+            if (preBuyEthAmount > maxTotalCost) {
+                actualEthToSpend = maxTotalCost;
+                actualTokenAmount = maxBuyAmount;
+            } else {
+                // Use the proper function to calculate token amount for the ETH
+                (actualTokenAmount, , , ) = salesManagerContract
+                    .getTokenAmountForEther(address(token), preBuyEthAmount);
+                // Convert from wei back to natural units for the buy function
+                actualTokenAmount = actualTokenAmount / (10 ** 18);
+            }
+
+            // Execute the buy
+            require(actualTokenAmount > 0, "Token amount too small");
+            salesManagerContract.buyToken{value: actualEthToSpend}(
+                address(token),
+                actualTokenAmount * 10 ** 18,
+                actualEthToSpend
+            );
+
+            // Refund excess ETH
+            uint256 excess = remainingValue - actualEthToSpend;
+            if (excess > 0) {
+                (bool sent, ) = payable(msg.sender).call{value: excess}("");
+                require(sent, "Failed to refund excess ETH");
+            }
         }
 
         emit ModulsTokenCreated(
@@ -224,5 +287,25 @@ contract ModulsDeployer is Ownable {
         salesManager = newSalesManager;
 
         emit SalesManagerUpdated(oldSalesManager, newSalesManager);
+    }
+
+    /**
+     * @dev Set the deployment fee. Only callable by the contract owner.
+     * @param _deploymentFee The new deployment fee in wei
+     */
+    function setDeploymentFee(uint256 _deploymentFee) external onlyOwner {
+        require(_deploymentFee <= 100 ether, "Deployment fee too high");
+        deploymentFee = _deploymentFee;
+    }
+
+    /**
+     * @dev Withdraw accumulated deployment fees. Only callable by the contract owner.
+     */
+    function withdrawDeploymentFees() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No fees to withdraw");
+
+        (bool sent, ) = payable(owner()).call{value: balance}("");
+        require(sent, "Failed to withdraw fees");
     }
 }
