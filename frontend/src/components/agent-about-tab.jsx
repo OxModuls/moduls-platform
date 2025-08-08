@@ -1,24 +1,82 @@
-import { BadgeDollarSign, Banknote, Bot, Calendar, ChartCandlestick, CircleQuestionMark, Copy, Database, Info, Link, UserRound } from "lucide-react";
+import {
+  BadgeDollarSign,
+  Banknote,
+  Bot,
+  Calendar,
+  ChartCandlestick,
+  CircleQuestionMark,
+  Copy,
+  Database,
+  Info,
+  Link,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import CandlestickChart from "./candlestick-chart";
+import CountdownTimer from "./countdown-timer";
 import { ellipsizeAddress, formatISODate, writeToClipboard } from "@/lib/utils";
 
-const AgentAboutTab = ({ 
-  token, 
-  agent, 
-  isTradingEnabled, 
-  chartData 
+const AgentAboutTab = ({
+  token,
+  agent,
+  isTradingEnabled,
+  timeUntilTrading,
+  targetTimestamp,
+  onCountdownComplete,
+  chartData,
 }) => {
   return (
     <div className="mt-3">
       {!token.isAddressValid && (
-        <div className="mb-5 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+        <div
+          className={`mb-5 p-4 border rounded-lg ${
+            token.status === "PENDING"
+              ? "bg-yellow-500/10 border-yellow-500/20"
+              : token.status === "INACTIVE"
+                ? "bg-red-500/10 border-red-500/20"
+                : "bg-gray-500/10 border-gray-500/20"
+          }`}
+        >
           <div className="flex items-center gap-2 mb-2">
-            <BadgeDollarSign className="size-4 text-red-600 dark:text-red-400" />
-            <h3 className="font-medium text-red-600 dark:text-red-400">No Token Contract</h3>
+            <BadgeDollarSign
+              className={`size-4 ${
+                token.status === "PENDING"
+                  ? "text-yellow-600 dark:text-yellow-400"
+                  : token.status === "INACTIVE"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-gray-600 dark:text-gray-400"
+              }`}
+            />
+            <h3
+              className={`font-medium ${
+                token.status === "PENDING"
+                  ? "text-yellow-600 dark:text-yellow-400"
+                  : token.status === "INACTIVE"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-gray-600 dark:text-gray-400"
+              }`}
+            >
+              {token.status === "PENDING"
+                ? "Token Deployment in Progress"
+                : token.status === "INACTIVE"
+                  ? "Agent Deactivated"
+                  : "No Token Contract"}
+            </h3>
           </div>
-          <p className="text-sm text-red-600/80 dark:text-red-400/80">
-            This agent doesn't have a valid token contract address. Trading functionality is not available.
+          <p
+            className={`text-sm ${
+              token.status === "PENDING"
+                ? "text-yellow-600/80 dark:text-yellow-400/80"
+                : token.status === "INACTIVE"
+                  ? "text-red-600/80 dark:text-red-400/80"
+                  : "text-gray-600/80 dark:text-gray-400/80"
+            }`}
+          >
+            {token.status === "PENDING"
+              ? "Your agent token is being deployed to the blockchain. This usually takes a few minutes. Trading will be available once the deployment is confirmed."
+              : token.status === "INACTIVE"
+                ? "This agent has been deactivated by administrators. The token contract exists but trading has been disabled. Contact support if you believe this is an error."
+                : "This agent doesn't have a valid token contract address. Trading functionality is not available."}
           </p>
         </div>
       )}
@@ -26,10 +84,25 @@ const AgentAboutTab = ({
         <div className="mb-5 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <BadgeDollarSign className="size-4 text-yellow-600 dark:text-yellow-400" />
-            <h3 className="font-medium text-yellow-600 dark:text-yellow-400">Trading Not Open</h3>
+            <h3 className="font-medium text-yellow-600 dark:text-yellow-400">
+              {timeUntilTrading > 0
+                ? "Trading Opens Soon"
+                : "Trading Scheduled"}
+            </h3>
           </div>
           <p className="text-sm text-yellow-600/80 dark:text-yellow-400/80">
-            This token is not yet open for trading. Click the "Open Trading" button above to enable buying and selling.
+            {timeUntilTrading > 0 ? (
+              <>
+                Trading opens in{" "}
+                <CountdownTimer
+                  targetTimestamp={targetTimestamp}
+                  onComplete={onCountdownComplete}
+                />
+                . You'll be able to buy and sell tokens once trading begins.
+              </>
+            ) : (
+              "Trading has been scheduled but not yet opened. Check back later for updates."
+            )}
           </p>
         </div>
       )}
@@ -140,4 +213,4 @@ const AgentAboutTab = ({
   );
 };
 
-export default AgentAboutTab; 
+export default AgentAboutTab;

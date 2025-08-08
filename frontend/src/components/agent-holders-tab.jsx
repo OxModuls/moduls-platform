@@ -14,8 +14,15 @@ import {
 } from "@/shared/hooks/useTokenHolders";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import CountdownTimer from "./countdown-timer";
 
-const AgentHoldersTab = ({ tokenAddress, isTradingEnabled }) => {
+const AgentHoldersTab = ({
+  tokenAddress,
+  isTradingEnabled,
+  timeUntilTrading,
+  targetTimestamp,
+  onCountdownComplete,
+}) => {
   const [sortBy, setSortBy] = useState("balance");
   const [currentPage, setCurrentPage] = useState(0);
   const limit = 20;
@@ -75,11 +82,22 @@ const AgentHoldersTab = ({ tokenAddress, isTradingEnabled }) => {
         <div className="flex items-center gap-2 mb-2">
           <Users className="size-4 text-yellow-600 dark:text-yellow-400" />
           <h3 className="font-medium text-yellow-600 dark:text-yellow-400">
-            Trading Not Open
+            {timeUntilTrading > 0 ? "Trading Opens Soon" : "Trading Scheduled"}
           </h3>
         </div>
         <p className="text-sm text-yellow-600/80 dark:text-yellow-400/80">
-          Holder data will be available once trading is enabled for this token.
+          {timeUntilTrading > 0 ? (
+            <>
+              Holder data will be available when trading opens in{" "}
+              <CountdownTimer
+                targetTimestamp={targetTimestamp}
+                onComplete={onCountdownComplete}
+              />
+              .
+            </>
+          ) : (
+            "Holder data will be available once trading is enabled for this token."
+          )}
         </p>
       </div>
     );

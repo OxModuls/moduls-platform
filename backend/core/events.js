@@ -2,6 +2,11 @@ const { createPublicClient, webSocket, getAddress, getEventSelector, http } = re
 const { sei, seiTestnet } = require('viem/chains');
 const Agent = require('./models/agents');
 const config = require('../config');
+const ModulsDeployerAbi = require('./abi/ModulsDeployer.json');
+
+// Extract all events from the ABI
+const contractEvents = ModulsDeployerAbi.filter(item => item.type === 'event');
+console.log(`📋 Available events in ModulsDeployer ABI: ${contractEvents.map(e => e.name).join(', ')}`);
 
 // Create viem client based on environment
 const chain = config.chainMode === 'mainnet' ? sei : seiTestnet;
@@ -11,8 +16,8 @@ let client;
 try {
     client = createPublicClient({
         chain,
-        // transport: webSocket(config.rpcUrls[config.chainMode].webSocket)
-        transport: http(config.rpcUrls[config.chainMode].http)
+        transport: webSocket(config.rpcUrls[config.chainMode].webSocket)
+        // transport: http(config.rpcUrls[config.chainMode].http)
     });
     console.log('✅ Using WebSocket transport for real-time events');
 } catch (error) {
@@ -27,83 +32,7 @@ try {
 // Event name to callback mapping
 const eventCallbacks = new Map();
 
-// ModulsDeployer contract ABI for events
-// Using the exact ABI from the contract
-const MODULS_DEPLOYER_ABI = [
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "tokenAddress",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "name",
-                "type": "string"
-            },
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "symbol",
-                "type": "string"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "initialSupply",
-                "type": "uint256"
-            },
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "agentWallet",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "salesManager",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint8",
-                "name": "taxPercent",
-                "type": "uint8"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint8",
-                "name": "agentSplit",
-                "type": "uint8"
-            },
-            {
-                "indexed": true,
-                "internalType": "uint256",
-                "name": "intentId",
-                "type": "uint256"
-            },
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "metadataURI",
-                "type": "string"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "creator",
-                "type": "address"
-            }
-        ],
-        "name": "ModulsTokenCreated",
-        "type": "event"
-    }
-];
+
 
 // Register ModulsTokenCreated event callback
 eventCallbacks.set('ModulsTokenCreated', async (event) => {
@@ -122,9 +51,16 @@ eventCallbacks.set('ModulsTokenCreated', async (event) => {
             intentId,
             metadataURI,
             creator,
-            blockNumber,
-            transactionHash
+            launchDate
         } = event.args;
+
+        const { blockNumber, transactionHash } = event;
+
+        // Debug log the received values
+        console.log(`🔍 Debug values received:`);
+        console.log(`  blockNumber: ${blockNumber} (type: ${typeof blockNumber})`);
+        console.log(`  transactionHash: ${transactionHash}`);
+        console.log(`  intentId: ${intentId} (type: ${typeof intentId})`);
 
         // Find the corresponding agent by intentId
         const agent = await Agent.findOne({ intentId: Number(intentId) });
@@ -142,7 +78,16 @@ eventCallbacks.set('ModulsTokenCreated', async (event) => {
         // Update agent with token deployment data
         agent.status = 'ACTIVE';
         agent.tokenAddress = getAddress(tokenAddress);
-        agent.deploymentBlock = Number(blockNumber);
+
+        // Safely convert blockNumber to number
+        const deploymentBlockNumber = blockNumber ? Number(blockNumber) : 0;
+        if (isNaN(deploymentBlockNumber)) {
+            console.warn(`⚠️ Invalid blockNumber received: ${blockNumber}, using 0 as fallback`);
+            agent.deploymentBlock = 0;
+        } else {
+            agent.deploymentBlock = deploymentBlockNumber;
+        }
+
         agent.tokenSymbol = symbol;
 
         // Store additional data in a metadata field or log it
@@ -155,6 +100,7 @@ eventCallbacks.set('ModulsTokenCreated', async (event) => {
         console.log(`  Agent Split: ${agentSplit}`);
         console.log(`  Metadata URI: ${metadataURI}`);
         console.log(`  Creator: ${creator}`);
+        console.log(`  Launch Date: ${launchDate} (${launchDate === 0n || launchDate === '0' ? 'Immediate' : new Date(Number(launchDate) * 1000).toISOString()})`);
 
         await agent.save();
 
@@ -181,37 +127,69 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
         console.log(`   From block: ${fromBlock}`);
         console.log(`   Registered events: ${Array.from(eventCallbacks.keys()).join(', ')}`);
 
-        // Log the event signature for debugging
-        const eventSignature = getEventSelector(MODULS_DEPLOYER_ABI[0]);
-        console.log(`   Event signature: ${eventSignature}`);
+
 
         // First, try to get any recent events that might have been missed
         try {
-            const recentLogs = await client.getLogs({
-                address: getAddress(contractAddress),
-                event: MODULS_DEPLOYER_ABI[0],
-                fromBlock: fromBlock === 'latest' ? 'latest' : BigInt(fromBlock),
-                toBlock: 'latest'
-            });
+            let scanFromBlock;
+            const currentBlock = await client.getBlockNumber();
 
-            if (recentLogs.length > 0) {
-                console.log(`📡 Found ${recentLogs.length} recent ModulsTokenCreated event(s)`);
-                await processLogs(recentLogs);
+            if (fromBlock === 'latest') {
+                // Get current block and scan from last 1500 blocks
+                scanFromBlock = currentBlock - 2000n;
+                console.log(`📡 Scanning last 2000 blocks (from ${scanFromBlock} to ${currentBlock})`);
             } else {
-                console.log('⚠️ No recent ModulsTokenCreated event(s) found');
+                scanFromBlock = BigInt(fromBlock);
+                console.log(`📡 Scanning from specified block: ${scanFromBlock}`);
+            }
+
+            // Split into chunks of 500 blocks to respect RPC limits
+            const chunkSize = 500n;
+            const allLogs = [];
+            let currentFromBlock = scanFromBlock;
+
+            while (currentFromBlock <= currentBlock) {
+                const currentToBlock = currentFromBlock + chunkSize - 1n > currentBlock
+                    ? currentBlock
+                    : currentFromBlock + chunkSize - 1n;
+
+                console.log(`📡 Scanning chunk: blocks ${currentFromBlock} to ${currentToBlock}`);
+
+                try {
+                    const chunkLogs = await client.getLogs({
+                        address: getAddress(contractAddress),
+                        events: contractEvents,
+                        fromBlock: currentFromBlock,
+                        toBlock: currentToBlock
+                    });
+
+                    allLogs.push(...chunkLogs);
+                    console.log(`   Found ${chunkLogs.length} events in this chunk`);
+                } catch (chunkError) {
+                    console.warn(`⚠️ Failed to fetch chunk ${currentFromBlock} to ${currentToBlock}:`, chunkError.message);
+                }
+
+                currentFromBlock = currentToBlock + 1n;
+            }
+
+            if (allLogs.length > 0) {
+                console.log(`📡 Found ${allLogs.length} total recent event(s) from contract`);
+                await processLogs(allLogs);
+            } else {
+                console.log('⚠️ No recent events found from contract');
             }
         } catch (error) {
             console.warn('⚠️ Could not fetch recent logs:', error.message);
         }
 
-        // Watch for new ModulsTokenCreated events
+        // Watch for new events from the contract
         let unwatch;
         try {
             unwatch = client.watchEvent({
                 address: getAddress(contractAddress),
-                event: MODULS_DEPLOYER_ABI[0], // ModulsTokenCreated event
+                events: contractEvents,
                 onLogs: async (logs) => {
-                    console.log(`📡 Received ${logs.length} new ModulsTokenCreated event(s)`);
+                    console.log(`📡 Received ${logs.length} new event(s) from contract`);
                     await processLogs(logs);
                 },
                 onError: (error) => {
@@ -230,13 +208,13 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
                     if (currentBlock > lastBlock) {
                         const logs = await client.getLogs({
                             address: getAddress(contractAddress),
-                            event: MODULS_DEPLOYER_ABI[0],
+                            events: contractEvents,
                             fromBlock: lastBlock + 1n,
                             toBlock: currentBlock
                         });
 
                         if (logs.length > 0) {
-                            console.log(`📡 Found ${logs.length} new ModulsTokenCreated event(s) via polling`);
+                            console.log(`📡 Found ${logs.length} new event(s) via polling`);
                             await processLogs(logs);
                         }
                         lastBlock = currentBlock;
@@ -261,43 +239,49 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
 }
 
 /**
+ * Helper function to serialize objects with BigInt values
+ * @param {*} value - Value to serialize
+ * @returns {string} - JSON string with BigInt converted to string
+ */
+function serializeWithBigInt(value) {
+    return JSON.stringify(value, (key, val) => {
+        if (typeof val === 'bigint') {
+            return val.toString();
+        }
+        return val;
+    }, 2);
+}
+
+/**
  * Process event logs
  * @param {Array} logs - Array of event logs
  */
 async function processLogs(logs) {
     for (const log of logs) {
         try {
-            console.log('Raw log:', JSON.stringify(log, null, 2));
+            console.log('Raw log:', serializeWithBigInt(log));
 
-            // Parse the event data - log.args contains the decoded parameters
-            const event = {
-                args: {
-                    tokenAddress: log.args.tokenAddress,
-                    intentId: log.args.intentId,
-                    creator: log.args.creator,
-                    name: log.args.name,
-                    symbol: log.args.symbol,
-                    initialSupply: log.args.initialSupply,
-                    agentWallet: log.args.agentWallet,
-                    salesManager: log.args.salesManager,
-                    taxPercent: log.args.taxPercent,
-                    agentSplit: log.args.agentSplit,
-                    metadataURI: log.args.metadataURI
-                },
-                blockNumber: log.blockNumber,
-                transactionHash: log.transactionHash,
-                logIndex: log.logIndex,
-                address: log.address
-            };
+            // Get the event name from the log
+            const eventName = log.eventName;
+            console.log(`Processing event: ${eventName}`);
 
-            console.log('Parsed event:', JSON.stringify(event, null, 2));
-
-            // Get the callback for this event
-            const callback = eventCallbacks.get('ModulsTokenCreated');
+            // Check if we have a callback for this event
+            const callback = eventCallbacks.get(eventName);
             if (callback) {
+                // Create standardized event object
+                const event = {
+                    args: log.args,
+                    blockNumber: log.blockNumber,
+                    transactionHash: log.transactionHash,
+                    logIndex: log.logIndex,
+                    address: log.address,
+                    eventName: eventName
+                };
+
+                console.log('Parsed event:', serializeWithBigInt(event));
                 await callback(event);
             } else {
-                console.warn('No callback registered for ModulsTokenCreated event');
+                console.log(`⚠️ No callback registered for event: ${eventName} - skipping`);
             }
         } catch (error) {
             console.error('Error processing event log:', error);

@@ -3,14 +3,8 @@ import { Progress } from "@/components/ui/progress";
 import AgentAboutTab from "@/components/agent-about-tab";
 import AgentTradeTab from "@/components/agent-trade-tab";
 import AgentHoldersTab from "@/components/agent-holders-tab";
-import {
-  BadgeDollarSign,
-  Bot,
-  Copy,
-  Info,
-  UserRound,
-  Play,
-} from "lucide-react";
+import CountdownTimer from "@/components/countdown-timer";
+import { BadgeDollarSign, Bot, Copy, Info, UserRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { ellipsizeAddress, formatISODate, writeToClipboard } from "@/lib/utils";
@@ -52,12 +46,11 @@ const Agent = () => {
     error: contractError,
     isTokenRegistered,
     isTradingEnabled,
-    isWritePending,
+    timeUntilTrading,
     buyTokenStatus,
     sellTokenStatus,
     buyToken,
     sellToken,
-    registerToken,
   } = useModulsSalesManager(
     agentData?.agent?.tokenAddress &&
       agentData.agent.tokenAddress !==
@@ -66,23 +59,14 @@ const Agent = () => {
       : undefined,
   );
 
-  // Handle opening trading (registering token)
-  const handleOpenTrading = async () => {
-    if (!agentData?.agent?.tokenAddress || !connectedAddress) {
-      toast.error("Missing token address or wallet connection");
-      return;
-    }
+  // Calculate target timestamp for countdown
+  const targetTimestamp =
+    timeUntilTrading > 0 ? Math.floor(Date.now() / 1000) + timeUntilTrading : 0;
 
-    try {
-      // Register token with the sales manager
-
-      await registerToken();
-
-      // toast.success("Token registered for trading!");
-    } catch (error) {
-      console.error("Error registering token:", error);
-      toast.error("Failed to register token for trading");
-    }
+  // Handle countdown completion
+  const handleCountdownComplete = () => {
+    // Refetch contract data when countdown completes
+    window.location.reload();
   };
 
   // Handle buy token
@@ -123,7 +107,7 @@ const Agent = () => {
     }
   };
 
-  const [chartData, _setChartData] = useState([
+  const [chartData] = useState([
     {
       time: "2018-12-22",
       open: 75.16,
@@ -197,148 +181,6 @@ const Agent = () => {
   ]);
   // Removed hardcoded holders data - now using real data from API
   const [activeTradeTab, setActiveTradeTab] = useState("buy");
-  const [transactions, _setTransactions] = useState([
-    {
-      date: "2025-07-20T10:00:00Z",
-      type: "buy",
-      tokenAmount: 150.75,
-      seiAmount: 300.5,
-      account: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
-    },
-    {
-      date: "2025-07-20T10:05:30Z",
-      type: "sell",
-      tokenAmount: 50.0,
-      seiAmount: 101.2,
-      account: "0xdeadbeef1234567890abcdef1234567890abcdef",
-    },
-    {
-      date: "2025-07-20T10:15:45Z",
-      type: "buy",
-      tokenAmount: 200.0,
-      seiAmount: 405.0,
-      account: "0x742d35Cc6634C05329C3aAbb04cFeB53e606Ce",
-    },
-    {
-      date: "2025-07-20T10:22:10Z",
-      type: "sell",
-      tokenAmount: 75.5,
-      seiAmount: 152.75,
-      account: "0xAb5801a7D398351b8bE11C439e05C5B3259AeC9B",
-    },
-    {
-      date: "2025-07-20T10:30:00Z",
-      type: "buy",
-      tokenAmount: 1000.0,
-      seiAmount: 2000.0,
-      account: "0x5A0b54D5dc17e0AadC383d2db43B0a0d3E0B2c0e",
-    },
-    {
-      date: "2025-07-20T10:35:05Z",
-      type: "sell",
-      tokenAmount: 120.0,
-      seiAmount: 242.4,
-      account: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-    },
-    {
-      date: "2025-07-20T10:40:20Z",
-      type: "buy",
-      tokenAmount: 30.25,
-      seiAmount: 60.8,
-      account: "0x82fF41e3D4EbA3C1c5B7F8eB4C5A03C12b1875eA",
-    },
-    {
-      date: "2025-07-20T10:48:55Z",
-      type: "sell",
-      tokenAmount: 25.0,
-      seiAmount: 50.0,
-      account: "0x1dBB943b1D2C9E4C2A3C4B5E6D7E8F9A0B1C2D3E",
-    },
-    {
-      date: "2025-07-20T10:55:00Z",
-      type: "buy",
-      tokenAmount: 500.0,
-      seiAmount: 1010.0,
-      account: "0x0A9F9B0000000000000000000000000000000000",
-    },
-    {
-      date: "2025-07-20T11:02:15Z",
-      type: "sell",
-      tokenAmount: 10.0,
-      seiAmount: 20.05,
-      account: "0x2eCa6d4D3B000000000000000000000000000000",
-    },
-    {
-      date: "2025-07-20T11:10:30Z",
-      type: "buy",
-      tokenAmount: 75.0,
-      seiAmount: 150.1,
-      account: "0x3f5CE5F1EDf14d80D1bE4A99979b977755555555",
-    },
-    {
-      date: "2025-07-20T11:18:00Z",
-      type: "sell",
-      tokenAmount: 200.0,
-      seiAmount: 400.0,
-      account: "0x4feC95B5B3000000000000000000000000000000",
-    },
-    {
-      date: "2025-07-20T11:25:40Z",
-      type: "buy",
-      tokenAmount: 18.5,
-      seiAmount: 37.0,
-      account: "0x5E6D7E8F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D",
-    },
-    {
-      date: "2025-07-20T11:33:10Z",
-      type: "sell",
-      tokenAmount: 300.0,
-      seiAmount: 600.0,
-      account: "0x6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B",
-    },
-    {
-      date: "2025-07-20T11:40:00Z",
-      type: "buy",
-      tokenAmount: 90.0,
-      seiAmount: 180.0,
-      account: "0x7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C",
-    },
-    {
-      date: "2025-07-20T11:47:25Z",
-      type: "sell",
-      tokenAmount: 5.0,
-      seiAmount: 10.0,
-      account: "0x8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D",
-    },
-    {
-      date: "2025-07-20T11:55:10Z",
-      type: "buy",
-      tokenAmount: 60.0,
-      seiAmount: 120.0,
-      account: "0x9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8E",
-    },
-    {
-      date: "2025-07-20T12:02:00Z",
-      type: "sell",
-      tokenAmount: 15.0,
-      seiAmount: 30.0,
-      account: "0xA0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9",
-    },
-    {
-      date: "2025-07-20T12:09:30Z",
-      type: "buy",
-      tokenAmount: 250.0,
-      seiAmount: 500.0,
-      account: "0xB0C1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9",
-    },
-    {
-      date: "2025-07-20T12:15:45Z",
-      type: "sell",
-      tokenAmount: 40.0,
-      seiAmount: 80.0,
-      account: "0xC1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0",
-    },
-  ]);
 
   // Handle loading state
   if (isLoading || contractLoading) {
@@ -439,6 +281,7 @@ const Agent = () => {
     isRegistered: isTokenRegistered,
     isTradingEnabled: isTradingEnabled,
     isAddressValid: isTokenAddressValid,
+    status: agent?.status,
   };
 
   return (
@@ -468,24 +311,15 @@ const Agent = () => {
                       : "Pending Confirmation"}
                   </div>
                 )}
-                {!isTradingEnabled &&
-                  connectedAddress &&
-                  agent?.creator?.walletAddress &&
-                  connectedAddress.toLowerCase() ===
-                    agent.creator.walletAddress.toLowerCase() && (
-                    <button
-                      onClick={handleOpenTrading}
-                      disabled={isWritePending || !token.isAddressValid}
-                      className="px-3 py-1 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-1 text-xs font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Play className="size-3" />
-                      {isWritePending
-                        ? "Registering..."
-                        : !token.isAddressValid
-                          ? "No Token Address"
-                          : "Open Trading"}
-                    </button>
-                  )}
+                {!isTradingEnabled && timeUntilTrading > 0 && (
+                  <div className="px-3 py-1 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-lg text-xs font-medium whitespace-nowrap">
+                    Trading opens in:{" "}
+                    <CountdownTimer
+                      targetTimestamp={targetTimestamp}
+                      onComplete={handleCountdownComplete}
+                    />
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -547,10 +381,24 @@ const Agent = () => {
                   className={`px-2 py-1 rounded-full text-xs font-medium ${
                     token.isTradingEnabled
                       ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                      : "bg-red-500/20 text-red-600 dark:text-red-400"
+                      : timeUntilTrading > 0
+                        ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                        : "bg-red-500/20 text-red-600 dark:text-red-400"
                   }`}
                 >
-                  {token.isTradingEnabled ? "Active" : "Paused"}
+                  {token.isTradingEnabled ? (
+                    "Active"
+                  ) : timeUntilTrading > 0 ? (
+                    <>
+                      Opens in{" "}
+                      <CountdownTimer
+                        targetTimestamp={targetTimestamp}
+                        onComplete={handleCountdownComplete}
+                      />
+                    </>
+                  ) : (
+                    "Scheduled"
+                  )}
                 </span>
               </div>
               {token.currentPrice && (
@@ -639,6 +487,9 @@ const Agent = () => {
               token={token}
               agent={agent}
               isTradingEnabled={isTradingEnabled}
+              timeUntilTrading={timeUntilTrading}
+              targetTimestamp={targetTimestamp}
+              onCountdownComplete={handleCountdownComplete}
               chartData={chartData}
             />
           </TabsContent>
@@ -659,6 +510,9 @@ const Agent = () => {
             <AgentHoldersTab
               tokenAddress={token?.contractAddress}
               isTradingEnabled={isTradingEnabled}
+              timeUntilTrading={timeUntilTrading}
+              targetTimestamp={targetTimestamp}
+              onCountdownComplete={handleCountdownComplete}
             />
           </TabsContent>
         </Tabs>

@@ -3,11 +3,14 @@ import { readContract } from "wagmi/actions";
 import { useState } from "react";
 import { formatEther, parseEther } from "viem";
 import ModulsSalesManagerABI from "@/lib/abi/ModulsSalesManager.json";
+import ModulsTokenABI from "@/lib/abi/ModulsToken.json";
 import config from "../config";
 import { wagmiConfig } from "../../wagmi";
 import { toast } from "sonner";
 
 export const useModulsSalesManager = (tokenAddress) => {
+
+
     const { address: connectedAddress } = useAccount();
     const chainId = useChainId();
 
@@ -22,6 +25,8 @@ export const useModulsSalesManager = (tokenAddress) => {
     };
 
     const contractAddress = getContractAddress();
+
+
 
     // Contract configuration
     const contract = {
@@ -71,6 +76,12 @@ export const useModulsSalesManager = (tokenAddress) => {
             ...contract,
             functionName: "paused",
         },
+        // Read launch date from the token contract
+        {
+            address: tokenAddress,
+            abi: ModulsTokenABI,
+            functionName: "launchDate",
+        },
     ];
 
     // Fetch all contract data
@@ -105,11 +116,16 @@ export const useModulsSalesManager = (tokenAddress) => {
         try {
             const parsed = JSON.parse(error.message);
             if (parsed?.message) return parsed.message;
-        } catch { }
+        } catch (error) {
+            console.log(error)
+
+        }
 
         try {
             return JSON.stringify(error, Object.getOwnPropertyNames(error)).slice(0, 300);
-        } catch { }
+        } catch (error) {
+            console.log(error)
+        }
 
         return 'Unknown error';
     }
@@ -134,7 +150,7 @@ export const useModulsSalesManager = (tokenAddress) => {
             },
             onError: (error) => {
                 // Extract a plain error message from the error object (Metamask and others)
-                let plainMessage = extractErrorMessage(error);
+                const plainMessage = extractErrorMessage(error);
 
                 if (currentOperation === "buy") {
                     toast.error('Buy transaction failed: ' + plainMessage);
@@ -164,7 +180,11 @@ export const useModulsSalesManager = (tokenAddress) => {
             priceSlope,
             cooldownTime,
             isPaused,
+            launchDate,
         ] = contractData;
+
+
+
 
 
 
@@ -204,13 +224,46 @@ export const useModulsSalesManager = (tokenAddress) => {
             priceSlope: priceSlope.result ? formatEther(priceSlope.result) : "0",
             cooldownTime: cooldownTime.result ? Number(cooldownTime.result) : 0,
             isPaused: isPaused.result || false,
+
+            // Launch date from token contract
+            launchDate: launchDate.result !== undefined ? Number(launchDate.result) : null,
         };
     };
 
     // Computed values
     const data = parseContractData();
     const isTokenRegistered = data?.marketConfig?.exists || false;
-    const isTradingEnabled = isTokenRegistered && !data?.isPaused;
+
+    // Check if trading is enabled based on launch date
+    const checkTradingEnabled = () => {
+        if (!isTokenRegistered || data?.isPaused) return false;
+
+        const launchDate = data?.launchDate;
+        if (launchDate === null || launchDate === undefined) return false;
+
+        // If launch date is 0, trading is immediately enabled
+        if (launchDate === 0 || launchDate === '0') return true;
+
+        // Check if current time >= launch date (launch date is in seconds, Date.now() is in milliseconds)
+        const currentTime = Math.floor(Date.now() / 1000);
+        return currentTime >= Number(launchDate);
+    };
+
+    const isTradingEnabled = checkTradingEnabled();
+
+    // Calculate time remaining until trading starts (in seconds)
+    const getTimeUntilTrading = () => {
+        if (!isTokenRegistered || isTradingEnabled) return 0;
+
+        const launchDate = data?.launchDate;
+        if (!launchDate || launchDate === 0 || launchDate === '0') return 0;
+
+        const currentTime = Math.floor(Date.now() / 1000);
+        const timeRemaining = Number(launchDate) - currentTime;
+        return Math.max(0, timeRemaining);
+    };
+
+    const timeUntilTrading = getTimeUntilTrading();
 
 
 
@@ -375,6 +428,8 @@ export const useModulsSalesManager = (tokenAddress) => {
         error,
         isTokenRegistered,
         isTradingEnabled,
+        timeUntilTrading,
+        launchDate: data?.launchDate,
         isWritePending,
 
         // Status flags for specific operations

@@ -1,9 +1,4 @@
-import {
-  ArrowLeftRight,
-  ArrowUpDown,
-  BadgeDollarSign,
-  Wallet,
-} from "lucide-react";
+import { ArrowUpDown, BadgeDollarSign } from "lucide-react";
 import { Input } from "./ui/input";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -641,16 +636,55 @@ const AgentTradeTab = ({
     <div className="w-full">
       {!token.isAddressValid ? (
         <div className="pt-4 text-center">
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div
+            className={`p-4 border rounded-lg ${
+              token.status === "PENDING"
+                ? "bg-yellow-500/10 border-yellow-500/20"
+                : token.status === "INACTIVE"
+                  ? "bg-red-500/10 border-red-500/20"
+                  : "bg-gray-500/10 border-gray-500/20"
+            }`}
+          >
             <div className="flex items-center gap-2 mb-2 justify-center">
-              <BadgeDollarSign className="size-4 text-red-600 dark:text-red-400" />
-              <h3 className="font-medium text-red-600 dark:text-red-400">
-                No Token Contract
+              <BadgeDollarSign
+                className={`size-4 ${
+                  token.status === "PENDING"
+                    ? "text-yellow-600 dark:text-yellow-400"
+                    : token.status === "INACTIVE"
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-gray-600 dark:text-gray-400"
+                }`}
+              />
+              <h3
+                className={`font-medium ${
+                  token.status === "PENDING"
+                    ? "text-yellow-600 dark:text-yellow-400"
+                    : token.status === "INACTIVE"
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-gray-600 dark:text-gray-400"
+                }`}
+              >
+                {token.status === "PENDING"
+                  ? "Token Deployment in Progress"
+                  : token.status === "INACTIVE"
+                    ? "Agent Deactivated"
+                    : "No Token Contract"}
               </h3>
             </div>
-            <p className="text-sm text-red-600/80 dark:text-red-400/80">
-              This agent doesn't have a valid token contract address. Trading
-              functionality is not available.
+            <p
+              className={`text-sm ${
+                token.status === "PENDING"
+                  ? "text-yellow-600/80 dark:text-yellow-400/80"
+                  : token.status === "INACTIVE"
+                    ? "text-red-600/80 dark:text-red-400/80"
+                    : "text-gray-600/80 dark:text-gray-400/80"
+              }`}
+            >
+              {token.status === "PENDING"
+                ? "Your agent token is being deployed to the blockchain. This usually takes a few minutes. Trading will be available once the deployment is confirmed."
+                : token.status === "INACTIVE"
+                  ? "This agent has been deactivated by administrators. The token contract exists but trading has been disabled. Contact support if you believe this is an error."
+                  : "This agent doesn't have a valid token contract address. Trading functionality is not available."}
             </p>
           </div>
         </div>
@@ -664,8 +698,8 @@ const AgentTradeTab = ({
               </h3>
             </div>
             <p className="text-sm text-yellow-600/80 dark:text-yellow-400/80">
-              This token is not yet registered for trading on the
-              ModulsSalesManager contract.
+              This token is not yet registered for trading on the sales manager
+              contract.
             </p>
           </div>
         </div>
