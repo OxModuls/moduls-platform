@@ -33,6 +33,17 @@
 		"type": "error"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			}
+		],
+		"name": "SafeERC20FailedOperation",
+		"type": "error"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -100,6 +111,12 @@
 				"internalType": "address",
 				"name": "creator",
 				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "launchDate",
+				"type": "uint256"
 			}
 		],
 		"name": "ModulsTokenCreated",
@@ -187,13 +204,13 @@
 			},
 			{
 				"internalType": "uint256",
-				"name": "preBuyEthAmount",
+				"name": "launchDate",
 				"type": "uint256"
 			},
 			{
-				"internalType": "bool",
-				"name": "autoRegister",
-				"type": "bool"
+				"internalType": "uint256",
+				"name": "preBuyEthAmount",
+				"type": "uint256"
 			}
 		],
 		"name": "deployToken",
@@ -394,5 +411,9 @@
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
 	}
 ]

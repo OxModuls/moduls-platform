@@ -3,6 +3,9 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./ModulsSalesManager.sol";
 
@@ -16,6 +19,7 @@ contract ModulsToken is ERC20, Ownable, Pausable {
     uint8 public agentSplit; // Percent of tax sent to agent
     uint256 public intentId;
     string public metadataURI;
+    uint256 public launchDate; // Timestamp when trading opens (0 = immediate)
 
     mapping(address => bool) private _isAdmin;
 
@@ -50,6 +54,7 @@ contract ModulsToken is ERC20, Ownable, Pausable {
         uint8 agentSplit_,
         uint256 intentId_,
         string memory metadataURI_,
+        uint256 launchDate_,
         address platformAdmin_
     ) ERC20(name_, symbol_) Ownable(platformAdmin_) {
         require(taxPercent_ <= 10, "Max tax is 10%");
@@ -63,6 +68,7 @@ contract ModulsToken is ERC20, Ownable, Pausable {
         intentId = intentId_;
         metadataURI = metadataURI_;
         platformAdmin = platformAdmin_;
+        launchDate = launchDate_;
 
         _isAdmin[platformAdmin] = true;
 
@@ -127,7 +133,8 @@ contract ModulsDeployer is Ownable {
         uint8 agentSplit,
         uint256 indexed intentId,
         string metadataURI,
-        address indexed creator
+        address indexed creator,
+        uint256 launchDate
     );
 
     function deployToken(
@@ -139,8 +146,8 @@ contract ModulsDeployer is Ownable {
         uint8 agentSplit,
         uint256 intentId,
         string memory metadataURI,
-        uint256 preBuyEthAmount,
-        bool autoRegister
+        uint256 launchDate,
+        uint256 preBuyEthAmount
     ) external payable returns (address) {
         // Ensure intentId is unique
         require(!usedIntentIds[intentId], "IntentId already exists");
@@ -162,22 +169,20 @@ contract ModulsDeployer is Ownable {
             agentSplit,
             intentId,
             metadataURI,
+            launchDate,
             owner()
         );
 
         deployedTokens.push(address(token));
         tokenCreators[address(token)] = msg.sender;
 
-        // Conditionally register the token with the SalesManager
-        if (autoRegister) {
-            ModulsSalesManager(payable(salesManager)).registerTokenFromDeployer(
-                    address(token)
-                );
-        }
+        // Always register the token with the SalesManager
+        ModulsSalesManager(payable(salesManager)).registerTokenFromDeployer(
+            address(token)
+        );
 
         // Handle pre-buy if specified (must happen after registration)
         if (preBuyEthAmount > 0) {
-            require(autoRegister, "Pre-buy requires auto-registration");
             uint256 remainingValue = msg.value - deploymentFee;
             require(
                 remainingValue >= preBuyEthAmount,
@@ -201,27 +206,59 @@ contract ModulsDeployer is Ownable {
 
             require(maxTotalCost > 0, "Invalid token pricing");
 
-            uint256 actualEthToSpend = preBuyEthAmount;
             uint256 actualTokenAmount;
+            uint256 actualEthToSpend;
+            uint256 totalCostWithTax;
 
             // If the pre-buy amount would exceed 99% of supply, cap it at 99%
             if (preBuyEthAmount > maxTotalCost) {
-                actualEthToSpend = maxTotalCost;
                 actualTokenAmount = maxBuyAmount;
+                actualEthToSpend = maxTotalCost;
+                totalCostWithTax = maxTotalCost; // maxTotalCost already includes tax
             } else {
-                // Use the proper function to calculate token amount for the ETH
-                (actualTokenAmount, , , ) = salesManagerContract
-                    .getTokenAmountForEther(address(token), preBuyEthAmount);
+                // Calculate pre-tax amount: preBuyEthAmount / (1 + tax%)
+                // If preBuyEthAmount = 105 ETH and tax = 5%, then preTaxAmount = 105 / 1.05 = 100 ETH
+                uint256 preTaxAmount = (preBuyEthAmount * 100) /
+                    (100 + taxPercent);
+
+                // Use the pre-tax amount to calculate token amount
+                (actualTokenAmount, , , totalCostWithTax) = salesManagerContract
+                    .getTokenAmountForEther(address(token), preTaxAmount);
                 // Convert from wei back to natural units for the buy function
                 actualTokenAmount = actualTokenAmount / (10 ** 18);
+                actualEthToSpend = totalCostWithTax; // Use total cost including tax
             }
 
             // Execute the buy
             require(actualTokenAmount > 0, "Token amount too small");
+            require(
+                actualEthToSpend <= remainingValue,
+                "Insufficient ETH for total cost including tax"
+            );
+
             salesManagerContract.buyToken{value: actualEthToSpend}(
                 address(token),
                 actualTokenAmount * 10 ** 18,
-                actualEthToSpend
+                actualEthToSpend // Set maxCost equal to the amount we're sending
+            );
+
+            // Verify we have enough tokens to transfer (safeguard against SalesManager bugs)
+            uint256 contractBalance = IERC20(address(token)).balanceOf(
+                address(this)
+            );
+            uint256 tokenDecimals = IERC20Metadata(address(token)).decimals();
+            uint256 tokensToTransfer = actualTokenAmount *
+                (10 ** tokenDecimals);
+            require(
+                contractBalance >= tokensToTransfer,
+                "Insufficient tokens received from purchase"
+            );
+
+            // Transfer only the exact amount this user is entitled to
+            SafeERC20.safeTransfer(
+                IERC20(address(token)),
+                msg.sender,
+                tokensToTransfer
             );
 
             // Refund excess ETH
@@ -243,7 +280,8 @@ contract ModulsDeployer is Ownable {
             agentSplit,
             intentId,
             metadataURI,
-            msg.sender
+            msg.sender,
+            launchDate
         );
 
         return address(token);
@@ -299,7 +337,7 @@ contract ModulsDeployer is Ownable {
     }
 
     /**
-     * @dev Withdraw accumulated deployment fees. Only callable by the contract owner.
+     * @dev Withdraw accumulated deployment fees and any refunded ETH. Only callable by the contract owner.
      */
     function withdrawDeploymentFees() external onlyOwner {
         uint256 balance = address(this).balance;
@@ -308,4 +346,9 @@ contract ModulsDeployer is Ownable {
         (bool sent, ) = payable(owner()).call{value: balance}("");
         require(sent, "Failed to withdraw fees");
     }
+
+    /**
+     * @dev Allow the contract to receive ETH (needed for refunds from SalesManager)
+     */
+    receive() external payable {}
 }

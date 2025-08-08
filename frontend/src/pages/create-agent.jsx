@@ -233,8 +233,10 @@ const CreateAgent = () => {
       return;
     }
 
-    // Determine auto-register based on launch date
-    const autoRegister = !!args.launchDate;
+    // Convert launch date to timestamp (0 if not set)
+    const launchTimestamp = args.launchDate
+      ? Math.floor(new Date(args.launchDate).getTime() / 1000)
+      : 0;
 
     writeContract({
       address: config.contractAddresses[config.chainMode].modulsDeployer,
@@ -249,8 +251,8 @@ const CreateAgent = () => {
         args.agentSplit,
         args.intentId,
         args.metadataURI,
-        preBuyAmount, // preBuyEthAmount
-        autoRegister, // autoRegister - true if launch date is set
+        launchTimestamp, // launchDate
+        preBuyAmount, // preBuyEthAmount (now last parameter)
       ],
       value: totalValue,
     });
@@ -830,20 +832,12 @@ const CreateAgent = () => {
                     <div className="mt-4 ml-1">
                       <h3 className="text-lg font-semibold">Pre-buy Token</h3>
                       <p className="text-muted-foreground">
-                        Purchasing a small amount of your token is optional but
-                        can help protect your coin from snipers.
+                        Purchase tokens immediately after deployment. This is
+                        optional but can help establish initial liquidity and
+                        protect against MEV attacks.
                       </p>
                     </div>
                     <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
-                      {values.prebuySettings.amountInEther > 0 &&
-                        !values.launchDate && (
-                          <div className="w-full p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                            <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                              ⚠️ Pre-buy requires trading to be enabled. Please
-                              set a launch date to enable pre-buy functionality.
-                            </p>
-                          </div>
-                        )}
                       <div className="w-full flex flex-col gap-1">
                         <label
                           htmlFor="slippage"
@@ -857,7 +851,6 @@ const CreateAgent = () => {
                           id="slippage"
                           name="prebuySettings.slippage"
                           className="py-2"
-                          disabled={!values.launchDate}
                         />
                         <ErrorMessage
                           name="prebuySettings.slippage"
@@ -879,7 +872,6 @@ const CreateAgent = () => {
                             id="amount"
                             name="prebuySettings.amountInEther"
                             className="py-2 pr-24 appearance-none"
-                            disabled={!values.launchDate}
                           />
                           <div className="absolute top-[50%] translate-y-[-50%] right-4 flex items-center gap-2 text-neutral-400">
                             <button
@@ -958,8 +950,7 @@ const CreateAgent = () => {
                           </div>
                           <span>
                             {deploymentFee &&
-                            values.launchDate &&
-                            values.prebuySettings.amountInEther
+                            values.prebuySettings.amountInEther > 0
                               ? (() => {
                                   const preBuyAmount = parseEther(
                                     (

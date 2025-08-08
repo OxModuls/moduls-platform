@@ -6,7 +6,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("ModulsDeployer", (m) => {
 
-  const modulsDeployer = m.contract("ModulsDeployer", ["0xab9e6EbEa548fB4E1ed493f066095971523DFD88"]);
+  const modulsDeployer = m.contract("ModulsDeployer", ["0x2288e87Cc3E81Fe6cBeCd7C025805Ee92F1781bF"]);
 
 
 
@@ -14,4 +14,5 @@ export default buildModule("ModulsDeployer", (m) => {
 });
 
 
-// 0xab9e6EbEa548fB4E1ed493f066095971523DFD88
+// 0x2288e87Cc3E81Fe6cBeCd7C025805Ee92F1781bF - sales manager
+// 0xfDD3d409A10F0a56c8ccB15fa3e3f51aC8059919 - deployer

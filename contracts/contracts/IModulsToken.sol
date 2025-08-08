@@ -11,4 +11,6 @@ interface IModulsToken {
     function agentSplit() external view returns (uint8);
 
     function salesManager() external view returns (address);
+
+    function launchDate() external view returns (uint256);
 }

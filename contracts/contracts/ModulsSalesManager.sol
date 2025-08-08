@@ -93,6 +93,38 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         platformAdmin = _platformAdmin;
     }
 
+    // === Modifiers ===
+
+    /**
+     * @dev Enforces launch date restrictions for token trading
+     * Allows trading if:
+     * - Launch date is 0 (immediate trading)
+     * - Current time >= launch date
+     * - Called by factory contract (for pre-buy during deployment)
+     */
+    modifier whenTradingAllowed(address token) {
+        uint256 tokenLaunchDate = IModulsToken(token).launchDate();
+
+        // Allow if launch date is 0 (immediate trading)
+        if (tokenLaunchDate == 0) {
+            _;
+            return;
+        }
+
+        // Allow if called by factory (ModulsDeployer) for pre-buy
+        if (msg.sender == factory) {
+            _;
+            return;
+        }
+
+        // Enforce launch date for regular users
+        require(
+            block.timestamp >= tokenLaunchDate,
+            "Trading not yet enabled for this token"
+        );
+        _;
+    }
+
     // === Core ===
 
     function registerToken(address token) external {
@@ -447,7 +479,7 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         address token,
         uint256 tokenAmount,
         uint256 maxCost
-    ) external payable nonReentrant {
+    ) external payable nonReentrant whenTradingAllowed(token) {
         require(tokenAmount > 0, "Amount must be greater than 0");
         require(
             marketConfigs[token].token != address(0),
@@ -569,7 +601,7 @@ contract ModulsSalesManager is Ownable, Pausable, ReentrancyGuard {
         address token,
         uint256 tokenAmount,
         uint256 minReturn
-    ) external whenNotPaused nonReentrant {
+    ) external whenNotPaused nonReentrant whenTradingAllowed(token) {
         require(supportedTokens.contains(token), "Unsupported token");
         require(tokenAmount > 0, "Amount must be greater than 0");
         require(

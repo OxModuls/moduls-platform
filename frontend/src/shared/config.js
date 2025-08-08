@@ -19,12 +19,12 @@ const config = {
     // Contract addresses
     contractAddresses: {
         testnet: {
-            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_TESTNET || '0x8dF8b2124F558E6214FD78032a1AEC1e18461a63',
-            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_TESTNET || '0xab9e6EbEa548fB4E1ed493f066095971523DFD88',
+            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_TESTNET || '0xfDD3d409A10F0a56c8ccB15fa3e3f51aC8059919',
+            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_TESTNET || '0x7725F80F6fE843222493546eF9BeAB8D87875B78',
         },
         mainnet: {
-            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_MAINNET || '0x8dF8b2124F558E6214FD78032a1AEC1e18461a63',
-            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_MAINNET || '0xab9e6EbEa548fB4E1ed493f066095971523DFD88',
+            modulsDeployer: import.meta.env.VITE_MODULS_DEPLOYER_ADDRESS_MAINNET || '0xfDD3d409A10F0a56c8ccB15fa3e3f51aC8059919',
+            modulsSalesManager: import.meta.env.VITE_MODULS_SALES_MANAGER_ADDRESS_MAINNET || '0x7725F80F6fE843222493546eF9BeAB8D87875B78',
         }
     },
 
