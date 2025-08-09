@@ -455,10 +455,16 @@ const Agent = () => {
           </TabsContent>
           <TabsContent value="analytics" asChild>
             <div className="space-y-6">
-              <TradingMetrics tokenAddress={token?.contractAddress} />
+              <TradingMetrics
+                tokenAddress={token?.contractAddress}
+                totalSupply={token?.supply}
+                agentData={agent}
+              />
+
               <TradingChart
                 tokenAddress={token?.contractAddress}
                 height={400}
+                totalSupply={token?.supply}
               />
               <TradingHistory tokenAddress={token?.contractAddress} />
             </div>

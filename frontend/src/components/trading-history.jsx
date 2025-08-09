@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import {
   useTradingHistory,
   formatTradingAmount,
-  formatVolumeETH,
+  formatTokenAmount,
+  formatVolumeSEI,
+  getChainExplorerParam,
 } from "../shared/hooks/useTrading";
 import {
   ArrowUpRight,
@@ -193,7 +195,7 @@ const TransactionRow = ({ transaction }) => {
               {transaction.type}
             </span>
             <span className="text-sm text-muted-foreground">
-              {formatTradingAmount(transaction.tokenAmount, 18)} tokens
+              {formatTokenAmount(transaction.tokenAmount, 18)} tokens
             </span>
           </div>
 
@@ -203,19 +205,19 @@ const TransactionRow = ({ transaction }) => {
           </div>
         </div>
 
-        {/* ETH amount */}
+        {/* SEI amount */}
         <div className="text-right">
           <div className="font-medium text-foreground">
-            {formatVolumeETH(transaction.ethAmount)}
+            {formatVolumeSEI(transaction.ethAmount)}
           </div>
           <div className="text-sm text-muted-foreground">
-            @ {formatTradingAmount(transaction.price, 18)} ETH
+            @ {formatTradingAmount(transaction.price, 18)} SEI
           </div>
         </div>
 
         {/* External link */}
         <a
-          href={`https://seitrace.com/tx/${transaction.transactionHash}`}
+          href={`https://seitrace.com/tx/${transaction.transactionHash}?chain=${getChainExplorerParam()}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-muted-foreground hover:text-foreground transition-colors"

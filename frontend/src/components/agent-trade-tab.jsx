@@ -11,6 +11,7 @@ import ModulsSalesManagerABI from "@/lib/abi/ModulsSalesManager.json";
 import config from "../shared/config";
 import { toast } from "sonner";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
+import { formatTokenAmount } from "@/shared/hooks/useTrading";
 import { wagmiConfig } from "../wagmi";
 
 const AgentTradeTab = ({
@@ -1063,9 +1064,7 @@ const AgentTradeTab = ({
               </div>
               <div className="text-center">
                 <div className="text-lg font-semibold">
-                  {parseFloat(
-                    token.tradeStats.totalVolumeToken,
-                  ).toLocaleString()}
+                  {formatTokenAmount(token.tradeStats.totalVolumeToken, 0)}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Tokens Traded

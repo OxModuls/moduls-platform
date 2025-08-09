@@ -1,4 +1,4 @@
-import { CandlestickSeries, ColorType, createChart } from "lightweight-charts";
+import { ColorType, createChart, CandlestickSeries } from "lightweight-charts";
 import { useEffect, useRef } from "react";
 import { useTradingChart } from "../shared/hooks/useTrading";
 

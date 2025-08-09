@@ -176,28 +176,97 @@ router.get('/chart/:tokenAddress', optionalSession, async (req, res) => {
         // Calculate time range
         const now = new Date();
         let timeAgo;
-        let intervalMs;
 
         switch (timeframe) {
             case '1h':
                 timeAgo = new Date(now.getTime() - 60 * 60 * 1000);
-                intervalMs = 5 * 60 * 1000; // 5 minutes
                 break;
             case '24h':
                 timeAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                intervalMs = 60 * 60 * 1000; // 1 hour
                 break;
             case '7d':
                 timeAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                intervalMs = 4 * 60 * 60 * 1000; // 4 hours
                 break;
             case '30d':
                 timeAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                intervalMs = 24 * 60 * 60 * 1000; // 1 day
                 break;
             default:
                 timeAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        }
+
+        // Calculate interval milliseconds based on actual interval parameter
+        let intervalMs;
+        switch (interval) {
+            case '5m':
+                intervalMs = 5 * 60 * 1000;
+                break;
+            case '10m':
+                intervalMs = 10 * 60 * 1000;
+                break;
+            case '15m':
+                intervalMs = 15 * 60 * 1000;
+                break;
+            case '30m':
+                intervalMs = 30 * 60 * 1000;
+                break;
+            case '1h':
                 intervalMs = 60 * 60 * 1000;
+                break;
+            case '4h':
+                intervalMs = 4 * 60 * 60 * 1000;
+                break;
+            case '6h':
+                intervalMs = 6 * 60 * 60 * 1000;
+                break;
+            case '12h':
+                intervalMs = 12 * 60 * 60 * 1000;
+                break;
+            case '1d':
+                intervalMs = 24 * 60 * 60 * 1000;
+                break;
+            default:
+                intervalMs = 60 * 60 * 1000;
+        }
+
+        // Create dynamic grouping based on interval
+        let grouping = {
+            year: { $year: '$blockTimestamp' },
+            month: { $month: '$blockTimestamp' },
+            day: { $dayOfMonth: '$blockTimestamp' }
+        };
+
+        // Add time components based on interval
+        switch (interval) {
+            case '5m':
+                grouping.hour = { $hour: '$blockTimestamp' };
+                grouping.minute = { $multiply: [{ $floor: { $divide: [{ $minute: '$blockTimestamp' }, 5] } }, 5] };
+                break;
+            case '10m':
+                grouping.hour = { $hour: '$blockTimestamp' };
+                grouping.minute = { $multiply: [{ $floor: { $divide: [{ $minute: '$blockTimestamp' }, 10] } }, 10] };
+                break;
+            case '15m':
+                grouping.hour = { $hour: '$blockTimestamp' };
+                grouping.minute = { $multiply: [{ $floor: { $divide: [{ $minute: '$blockTimestamp' }, 15] } }, 15] };
+                break;
+            case '30m':
+                grouping.hour = { $hour: '$blockTimestamp' };
+                grouping.minute = { $multiply: [{ $floor: { $divide: [{ $minute: '$blockTimestamp' }, 30] } }, 30] };
+                break;
+            case '1h':
+                grouping.hour = { $hour: '$blockTimestamp' };
+                break;
+            case '4h':
+            case '6h':
+            case '12h':
+                const hourInterval = parseInt(interval);
+                grouping.hour = { $multiply: [{ $floor: { $divide: [{ $hour: '$blockTimestamp' }, hourInterval] } }, hourInterval] };
+                break;
+            case '1d':
+                // Only group by day (already included in base grouping)
+                break;
+            default:
+                grouping.hour = { $hour: '$blockTimestamp' };
         }
 
         // Simple aggregation pipeline for chart data
@@ -213,12 +282,7 @@ router.get('/chart/:tokenAddress', optionalSession, async (req, res) => {
             },
             {
                 $group: {
-                    _id: {
-                        year: { $year: '$blockTimestamp' },
-                        month: { $month: '$blockTimestamp' },
-                        day: { $dayOfMonth: '$blockTimestamp' },
-                        hour: interval.includes('h') ? { $hour: '$blockTimestamp' } : null
-                    },
+                    _id: grouping,
                     open: { $first: '$price' },
                     high: { $max: '$price' },
                     low: { $min: '$price' },
@@ -235,16 +299,98 @@ router.get('/chart/:tokenAddress', optionalSession, async (req, res) => {
 
         const chartData = await TradingTransaction.aggregate(pipeline);
 
-        // Format chart data
-        const filledData = chartData.map(item => ({
-            timestamp: item.timestamp,
-            open: item.open,
-            high: item.high,
-            low: item.low,
-            close: item.close,
-            volume: item.volume.toString(),
-            trades: item.trades
-        }));
+
+
+        // Format and fill missing data points
+        let filledData = [];
+
+        if (chartData.length > 0) {
+            // Sort by timestamp to ensure correct order
+            chartData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            filledData = chartData.map(item => ({
+                timestamp: item.timestamp,
+                open: item.open,
+                high: item.high,
+                low: item.low,
+                close: item.close,
+                volume: item.volume.toString(),
+                trades: item.trades
+            }));
+
+            // If we have very few data points, add some mock intervals to show progression
+            if (filledData.length < 3) {
+                const now = new Date();
+                const startTime = timeAgo;
+                const intervals = [];
+
+                // Limit the number of intervals to prevent performance issues
+                const maxIntervals = timeframe === '30d' ? 30 : 50; // Limit 30d to 30 intervals
+                const adjustedIntervalMs = timeframe === '30d'
+                    ? Math.max(intervalMs, (now.getTime() - startTime.getTime()) / maxIntervals)
+                    : intervalMs;
+
+                // Generate time intervals based on the timeframe
+                let currentTime = new Date(startTime);
+                let intervalCount = 0;
+                while (currentTime <= now && intervalCount < maxIntervals) {
+                    intervals.push(new Date(currentTime));
+                    currentTime = new Date(currentTime.getTime() + adjustedIntervalMs);
+                    intervalCount++;
+                }
+
+                // If we have some data, use the last price for filling
+                const lastPrice = filledData.length > 0 ? filledData[filledData.length - 1].close : '0';
+
+                // Fill gaps with the last known price
+                const fullData = intervals.map(timestamp => {
+                    const existingData = filledData.find(d =>
+                        Math.abs(new Date(d.timestamp) - timestamp) < adjustedIntervalMs / 2
+                    );
+
+                    if (existingData) {
+                        return existingData;
+                    } else {
+                        return {
+                            timestamp: timestamp,
+                            open: lastPrice,
+                            high: lastPrice,
+                            low: lastPrice,
+                            close: lastPrice,
+                            volume: '0',
+                            trades: 0
+                        };
+                    }
+                });
+
+                filledData = fullData;
+            }
+        } else {
+            // No data available, create a simple progression
+            const now = new Date();
+            const startTime = timeAgo;
+
+            filledData = [
+                {
+                    timestamp: startTime,
+                    open: '0',
+                    high: '0',
+                    low: '0',
+                    close: '0',
+                    volume: '0',
+                    trades: 0
+                },
+                {
+                    timestamp: now,
+                    open: '0',
+                    high: '0',
+                    low: '0',
+                    close: '0',
+                    volume: '0',
+                    trades: 0
+                }
+            ];
+        }
 
         return res.status(200).json({
             success: true,

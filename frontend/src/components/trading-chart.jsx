@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { createChart, ColorType } from "lightweight-charts";
 import { useTradingChart } from "../shared/hooks/useTrading";
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
@@ -9,15 +9,37 @@ const TradingChart = ({
   height = 400,
   className = "",
   showControls = true,
+  totalSupply = null,
 }) => {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
   const seriesTypeRef = useRef(null);
-  const [chartError, setChartError] = useState(false);
+  const [chartError] = useState(false);
 
   const [timeframe, setTimeframe] = useState("24h");
   const [interval, setInterval] = useState("1h");
+  const [showMarketCap, setShowMarketCap] = useState(false);
+
+  const timeframeOptions = useMemo(
+    () => [
+      { value: "1h", label: "1H", intervals: ["5m", "10m", "15m"] },
+      { value: "24h", label: "24H", intervals: ["15m", "30m", "1h"] },
+      { value: "7d", label: "7D", intervals: ["1h", "4h", "6h"] },
+      { value: "30d", label: "30D", intervals: ["6h", "12h", "1d"] },
+    ],
+    [],
+  );
+
+  // Ensure interval matches timeframe on mount
+  useEffect(() => {
+    const currentOption = timeframeOptions.find(
+      (opt) => opt.value === timeframe,
+    );
+    if (currentOption && !currentOption.intervals.includes(interval)) {
+      setInterval(currentOption.intervals[0]);
+    }
+  }, [timeframe, interval, timeframeOptions]);
 
   const {
     data: chartData,
@@ -55,6 +77,7 @@ const TradingChart = ({
           },
           rightPriceScale: {
             borderColor: "#E5E7EB",
+            titleVisible: true,
           },
           timeScale: {
             borderColor: "#E5E7EB",
@@ -86,6 +109,10 @@ const TradingChart = ({
             wickDownColor: "#ef4444",
             borderUpColor: "#16a34a",
             borderDownColor: "#dc2626",
+            priceFormat: {
+              type: "custom",
+              formatter: (price) => `${price.toFixed(8)} SEI`,
+            },
           });
           seriesType = "candlestick";
         } catch (candlestickError) {
@@ -96,6 +123,10 @@ const TradingChart = ({
           series = chart.addLineSeries({
             color: "#3b82f6",
             lineWidth: 3,
+            priceFormat: {
+              type: "custom",
+              formatter: (price) => `${price.toFixed(8)} SEI`,
+            },
           });
           seriesType = "line";
         }
@@ -126,7 +157,7 @@ const TradingChart = ({
         };
       } catch (error) {
         console.error("Error initializing chart:", error);
-        setChartError(true);
+        // setChartError(true);
       }
     }, 100); // 100ms delay
 
@@ -151,6 +182,10 @@ const TradingChart = ({
 
       let formattedData;
 
+      // Calculate multiplier for market cap if needed
+      const supplyMultiplier =
+        showMarketCap && totalSupply ? parseFloat(totalSupply) : 1;
+
       if (hasOHLCData && seriesTypeRef.current === "candlestick") {
         // Format as candlestick data
         formattedData = rawData
@@ -162,10 +197,10 @@ const TradingChart = ({
             }
             return {
               time: Math.floor(timestamp.getTime() / 1000),
-              open: parseFloat(item.open) / 1e18,
-              high: parseFloat(item.high) / 1e18,
-              low: parseFloat(item.low) / 1e18,
-              close: parseFloat(item.close) / 1e18,
+              open: (parseFloat(item.open) / 1e18) * supplyMultiplier,
+              high: (parseFloat(item.high) / 1e18) * supplyMultiplier,
+              low: (parseFloat(item.low) / 1e18) * supplyMultiplier,
+              close: (parseFloat(item.close) / 1e18) * supplyMultiplier,
             };
           })
           .filter(
@@ -187,7 +222,7 @@ const TradingChart = ({
             }
             return {
               time: Math.floor(timestamp.getTime() / 1000),
-              value: parseFloat(item.close) / 1e18,
+              value: parseFloat(item.close) * supplyMultiplier,
             };
           })
           .filter((item) => item && item.value > 0);
@@ -201,7 +236,7 @@ const TradingChart = ({
     } catch (error) {
       console.error("Error updating chart data:", error);
     }
-  }, [chartData]);
+  }, [chartData, showMarketCap, totalSupply]);
 
   // Get current price trend
   const getCurrentTrend = () => {
@@ -227,19 +262,21 @@ const TradingChart = ({
 
   const trend = getCurrentTrend();
 
-  const timeframeOptions = [
-    { value: "1h", label: "1H", interval: "5m" },
-    { value: "24h", label: "24H", interval: "1h" },
-    { value: "7d", label: "7D", interval: "4h" },
-    { value: "30d", label: "30D", interval: "1d" },
-  ];
-
   const handleTimeframeChange = (newTimeframe) => {
     const option = timeframeOptions.find((opt) => opt.value === newTimeframe);
     if (option) {
       setTimeframe(newTimeframe);
-      setInterval(option.interval);
+      setInterval(option.intervals[0]); // Default to first interval
     }
+  };
+
+  const handleIntervalChange = (newInterval) => {
+    setInterval(newInterval);
+  };
+
+  // Get available intervals for current timeframe
+  const getCurrentTimeframeOption = () => {
+    return timeframeOptions.find((opt) => opt.value === timeframe);
   };
 
   if (error) {
@@ -253,17 +290,55 @@ const TradingChart = ({
     );
   }
 
-  // Use simple chart as fallback if advanced chart fails or no data
-  if (
+  // Determine if we should use simple chart (but don't early return to maintain hook order)
+  const shouldUseSimpleChart =
     chartError ||
     !chartData?.data?.chartData ||
-    chartData.data.chartData.length === 0
-  ) {
-    return (
-      <div className={`border border-border rounded-lg ${className}`}>
-        {showControls && (
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Price Chart</h3>
+    chartData.data.chartData.length === 0;
+
+  return (
+    <div className={`border border-border rounded-lg ${className}`}>
+      {showControls && (
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <h3 className="font-semibold text-foreground">
+                {showMarketCap ? "Market Cap" : "Price"} Chart
+              </h3>
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  shouldUseSimpleChart ? "bg-red-500" : "bg-green-500"
+                }`}
+                title={
+                  shouldUseSimpleChart
+                    ? "Simple chart (fallback)"
+                    : "Advanced chart"
+                }
+              ></div>
+              {totalSupply && (
+                <button
+                  onClick={() => setShowMarketCap(!showMarketCap)}
+                  className="text-xs px-2 py-1 bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded transition-colors whitespace-nowrap cursor-pointer"
+                >
+                  {showMarketCap ? "Price" : "Market Cap"}
+                </button>
+              )}
+              {!shouldUseSimpleChart && trend.direction !== "neutral" && (
+                <div
+                  className={`flex items-center gap-1 text-sm ${
+                    trend.direction === "up" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {trend.direction === "up" ? (
+                    <TrendingUp className="h-4 w-4" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4" />
+                  )}
+                  <span>{trend.change.toFixed(2)}%</span>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-1">
               {timeframeOptions.map((option) => (
                 <button
@@ -280,52 +355,25 @@ const TradingChart = ({
               ))}
             </div>
           </div>
-        )}
-        <SimplePriceChart
-          data={chartData?.data?.chartData || []}
-          height={height - (showControls ? 60 : 0)}
-          className=""
-        />
-      </div>
-    );
-  }
 
-  return (
-    <div className={`border border-border rounded-lg ${className}`}>
-      {showControls && (
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <h3 className="font-semibold text-foreground">Price Chart</h3>
-            {trend.direction !== "neutral" && (
-              <div
-                className={`flex items-center gap-1 text-sm ${
-                  trend.direction === "up" ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {trend.direction === "up" ? (
-                  <TrendingUp className="h-4 w-4" />
-                ) : (
-                  <TrendingDown className="h-4 w-4" />
-                )}
-                <span>{trend.change.toFixed(2)}%</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1">
-            {timeframeOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleTimeframeChange(option.value)}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  timeframe === option.value
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+          {/* Interval controls */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Interval:</span>
+            <div className="flex items-center gap-1">
+              {getCurrentTimeframeOption()?.intervals.map((intervalOption) => (
+                <button
+                  key={intervalOption}
+                  onClick={() => handleIntervalChange(intervalOption)}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    interval === intervalOption
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  }`}
+                >
+                  {intervalOption}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -342,19 +390,27 @@ const TradingChart = ({
           </div>
         )}
 
-        <div
-          ref={chartContainerRef}
-          style={{
-            height: `${height}px`,
-            minHeight: `${height}px`,
-            width: "100%",
-            minWidth: "300px",
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-          }}
-          className="w-full"
-        />
+        {shouldUseSimpleChart ? (
+          <SimplePriceChart
+            data={chartData?.data?.chartData || []}
+            height={height - (showControls ? 100 : 0)}
+            className=""
+          />
+        ) : (
+          <div
+            ref={chartContainerRef}
+            style={{
+              height: `${height}px`,
+              minHeight: `${height}px`,
+              width: "100%",
+              minWidth: "300px",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+            }}
+            className="w-full"
+          />
+        )}
       </div>
     </div>
   );

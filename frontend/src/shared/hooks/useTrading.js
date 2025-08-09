@@ -189,6 +189,38 @@ export const formatTradingAmount = (amount, decimals = 18) => {
 };
 
 /**
+ * Utility function to format token amounts with K/M/B notation
+ */
+export const formatTokenAmount = (amount, decimals = 18) => {
+    if (!amount || amount === '0') return '0';
+
+    const formattedAmount = formatTradingAmount(amount, decimals);
+    const num = parseFloat(formattedAmount);
+
+    if (num >= 1000000000) {
+        return `${(num / 1000000000).toFixed(2)}B`;
+    } else if (num >= 1000000) {
+        return `${(num / 1000000).toFixed(2)}M`;
+    } else if (num >= 1000) {
+        return `${(num / 1000).toFixed(2)}K`;
+    } else if (num >= 1) {
+        return num.toLocaleString();
+    } else {
+        return num.toFixed(8);
+    }
+};
+
+/**
+ * Utility function to determine chain parameter for explorer links
+ */
+export const getChainExplorerParam = () => {
+    // Check if we're on testnet (1328) or mainnet (1329)
+    // You can also read this from config or environment
+    const chainId = window.ethereum?.chainId || '0x530'; // Default to 1328 (testnet)
+    return chainId === '0x531' ? 'pacific-1' : 'atlantic-2'; // 1329 = pacific-1 (mainnet), 1328 = atlantic-2 (testnet)
+};
+
+/**
  * Utility function to format price changes
  */
 export const formatPriceChange = (change) => {
@@ -199,7 +231,27 @@ export const formatPriceChange = (change) => {
 };
 
 /**
- * Utility function to format volume in ETH
+ * Utility function to format volume in SEI
+ */
+export const formatVolumeSEI = (volume) => {
+    if (!volume || volume === '0') return '0 SEI';
+
+    const sei = formatTradingAmount(volume, 18);
+    const seiNum = parseFloat(sei);
+
+    if (seiNum >= 1000000) {
+        return `${(seiNum / 1000000).toFixed(2)}M SEI`;
+    } else if (seiNum >= 1000) {
+        return `${(seiNum / 1000).toFixed(2)}K SEI`;
+    } else if (seiNum >= 1) {
+        return `${seiNum.toFixed(4)} SEI`;
+    } else {
+        return `${seiNum.toFixed(8)} SEI`;
+    }
+};
+
+/**
+ * Utility function to format volume in ETH (kept for backward compatibility)
  */
 export const formatVolumeETH = (volume) => {
     if (!volume || volume === '0') return '0 ETH';
