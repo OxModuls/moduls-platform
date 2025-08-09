@@ -463,12 +463,6 @@ const Agent = () => {
                 totalSupply={token?.supply}
                 agentData={agent}
               />
-
-              <TradingChart
-                tokenAddress={token?.contractAddress}
-                height={400}
-                totalSupply={token?.supply}
-              />
               <TradingHistory tokenAddress={token?.contractAddress} />
             </div>
           </TabsContent>

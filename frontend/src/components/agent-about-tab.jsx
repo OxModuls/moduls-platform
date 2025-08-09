@@ -12,7 +12,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
-import TradingCandlestickChart from "./trading-candlestick-chart";
+import TradingChart from "./trading-chart";
 import CountdownTimer from "./countdown-timer";
 import { ellipsizeAddress, formatISODate, writeToClipboard } from "@/lib/utils";
 
@@ -111,8 +111,12 @@ const AgentAboutTab = ({
             <ChartCandlestick className="size-4" />
             <h2 className="text-lg font-semibold">Chart</h2>
           </div>
-          <div className="mt-2 px-2 py-4 bg-primary-foreground rounded-lg">
-            <TradingCandlestickChart tokenAddress={token?.contractAddress} />
+          <div className="mt-2">
+            <TradingChart
+              tokenAddress={token?.contractAddress}
+              height={400}
+              totalSupply={token?.supply}
+            />
           </div>
         </div>
       )}

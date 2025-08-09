@@ -1,12 +1,4 @@
-import {
-  Copy,
-  Users,
-  TrendingUp,
-  Clock,
-  RefreshCw,
-  Database,
-  BarChart3,
-} from "lucide-react";
+import { Copy, Users, RefreshCw, Database, BarChart3 } from "lucide-react";
 import { writeToClipboard } from "@/lib/utils";
 import {
   useTokenHolders,
@@ -28,7 +20,6 @@ const AgentHoldersTab = ({
   targetTimestamp,
   onCountdownComplete,
 }) => {
-  const [sortBy, setSortBy] = useState("balance");
   const [currentPage, setCurrentPage] = useState(0);
   const limit = 20;
 
@@ -41,7 +32,6 @@ const AgentHoldersTab = ({
   } = useTokenHolders(tokenAddress, {
     limit,
     offset: currentPage * limit,
-    sort: sortBy,
     enabled: isTradingEnabled && !!tokenAddress,
   });
 
@@ -58,11 +48,6 @@ const AgentHoldersTab = ({
   const holders = holdersData?.data?.holders || [];
   const stats = statsData?.data;
   const pagination = holdersData?.data?.pagination;
-
-  const handleSortChange = (newSort) => {
-    setSortBy(newSort);
-    setCurrentPage(0); // Reset to first page when sorting changes
-  };
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -169,30 +154,11 @@ const AgentHoldersTab = ({
 
       {/* Controls */}
       <div className="mb-5">
-        <div className="ml-2 flex items-center gap-2">
-          <Users className="size-4" />
-          <h2 className="text-lg font-semibold">Token Holders</h2>
-        </div>
-        <div className="mt-2 flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center">
-          <div className="flex gap-2">
-            <Button
-              variant={sortBy === "balance" ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleSortChange("balance")}
-            >
-              <TrendingUp className="h-4 w-4 mr-1" />
-              Balance
-            </Button>
-            <Button
-              variant={sortBy === "recent" ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleSortChange("recent")}
-            >
-              <Clock className="h-4 w-4 mr-1" />
-              Recent
-            </Button>
+        <div className="ml-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="size-4" />
+            <h2 className="text-lg font-semibold">Token Holders</h2>
           </div>
-
           <Button
             variant="outline"
             size="sm"
