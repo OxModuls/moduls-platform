@@ -1,43 +1,47 @@
-import { FaTelegram, FaXTwitter } from "react-icons/fa6";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
 import modulsLogo from "../assets/moduls-logo.svg";
 
 import ConnectWalletButton from "./connect-wallet-button";
 import SearchBar from "./search-bar";
+import { Menu } from "lucide-react";
+import { useState } from "react";
+import MenuSheet from "./menu-sheet";
 
 const Header = () => {
   const pathname = useLocation().pathname;
+  const [menuSheetOpen, setMenuSheetOpen] = useState(false);
 
   return (
-    <header className="px-4 pb-4 w-full">
-      <div className="py-4 flex justify-between items-center">
-        <div className="flex gap-2 items-center">
-          <Link to="/" className="flex gap-2 items-center">
-            <img src={modulsLogo} alt="Moduls Logo" className="h-10" />
-          </Link>
-          <div className="ml-2 flex gap-2 items-center">
-            <a href="" target="_blank">
-              <FaTelegram className="size-5" />
-            </a>
-            <a href="" target="_blank">
-              <FaXTwitter className="size-5" />
-            </a>
+    <>
+      <header className="w-full px-4 pb-4">
+        <div className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
+              <img src={modulsLogo} alt="Moduls Logo" className="h-10" />
+            </Link>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden w-80 md:block">
+              <SearchBar placeholder="Search agents, tokens..." />
+            </div>
+            <ConnectWalletButton />
+            <button
+              onClick={() => setMenuSheetOpen((prev) => !prev)}
+              className="cursor-pointer"
+            >
+              <Menu className="size-7" />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden md:block w-80">
+        {pathname === "/" && (
+          <div className="px-2 md:hidden">
             <SearchBar placeholder="Search agents, tokens..." />
           </div>
-          <ConnectWalletButton />
-        </div>
-      </div>
-      {pathname === "/" && (
-        <div className="px-2 md:hidden">
-          <SearchBar placeholder="Search agents, tokens..." />
-        </div>
-      )}
-    </header>
+        )}
+      </header>
+      <MenuSheet open={menuSheetOpen} onOpenChange={setMenuSheetOpen} />
+    </>
   );
 };
 
