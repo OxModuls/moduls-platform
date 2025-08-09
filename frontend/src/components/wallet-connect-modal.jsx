@@ -16,7 +16,7 @@ import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 import { useWalletModalStore } from "../shared/store";
 import { useAuth } from "../shared/hooks/useAuth";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import AuthStatusIndicator from "./auth-status-indicator";
 
 // map connector icons
@@ -30,21 +30,32 @@ const WalletConnectModal = () => {
   const { address, isConnected, connector: activeConnector } = useAccount();
   const { disconnect } = useDisconnect();
   const { isWalletModalOpen, closeWalletModal } = useWalletModalStore();
-  const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
-  const wasConnected = useRef(isConnected);
+  const { isAuthenticated, isLoading, logout, authenticate } = useAuth();
 
-  // Effect: Handle wallet connection/disconnection
+  // Auto-authenticate when wallet connects
   useEffect(() => {
-    if (!wasConnected.current && isConnected && address && !isAuthenticated) {
-      // Wallet just connected, authentication will be handled automatically by useAuth hook
-      toast.success("Authenticating...");
-    } else if (wasConnected.current && !isConnected) {
-      // Wallet just disconnected, clear all auth data
+    if (isConnected && address && !isAuthenticated) {
+      console.log("🔐 Triggering auto-authentication for:", address);
+      // Small delay to ensure wallet connection is fully established
+      const timer = setTimeout(() => {
+        authenticate().catch((error) => {
+          if (error.message !== "USER_REJECTED") {
+            console.error("Auto-authentication failed:", error);
+          }
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, address, isAuthenticated, authenticate]);
+
+  // Handle wallet disconnection
+  useEffect(() => {
+    if (!isConnected && isAuthenticated) {
       logout();
       toast.info("Authentication cleared");
     }
-    wasConnected.current = isConnected;
-  }, [isConnected, address, isAuthenticated, logout]);
+  }, [isConnected, isAuthenticated, logout]);
 
   const connectWallet = async (connector) => {
     try {
@@ -121,7 +132,7 @@ const WalletConnectModal = () => {
                   <Power className="size-5" />
                 </button>
               </div>
-              {isAuthLoading && (
+              {isLoading && (
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <span className="animate-spin rounded-full border-2 border-accent border-t-transparent h-5 w-5" />
                   <span className="text-sm text-accent-foreground font-medium tracking-wide">

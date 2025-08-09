@@ -1,11 +1,10 @@
 import { FaTelegram, FaXTwitter } from "react-icons/fa6";
-import { Input } from "./ui/input";
-import { Search } from "lucide-react";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
 import modulsLogo from "../assets/moduls-logo.svg";
 
 import ConnectWalletButton from "./connect-wallet-button";
+import SearchBar from "./search-bar";
 
 const Header = () => {
   const pathname = useLocation().pathname;
@@ -27,25 +26,19 @@ const Header = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden px-2 relative md:block">
-            <Input
-              type="search"
-              placeholder="Search token..."
-              className="pl-8"
-            />
-            <Search className="size-4 absolute top-[50%] translate-y-[-50%] left-4" />
+          <div className="hidden md:block w-80">
+            <SearchBar placeholder="Search agents, tokens..." />
           </div>
           <ConnectWalletButton />
         </div>
       </div>
       {pathname === "/" && (
-        <div className="px-2 relative md:hidden">
-          <Input type="search" placeholder="Search token..." className="pl-8" />
-          <Search className="size-4 absolute top-[50%] translate-y-[-50%] left-4" />
+        <div className="px-2 md:hidden">
+          <SearchBar placeholder="Search agents, tokens..." />
         </div>
       )}
     </header>
   );
 };
 
-export default Header; 
+export default Header;

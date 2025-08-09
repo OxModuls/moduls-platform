@@ -99,7 +99,7 @@ const initialValues = {
 const CreateAgent = () => {
   const { address } = useAccount();
   const navigate = useNavigate();
-  const { getAccessToken } = useAuth();
+  const { isAuthenticated } = useAuth();
   const agentUniqueIdRef = useRef(null);
   const taxSettingsDivRef = useRef(null);
   const prebuyDivRef = useRef(null);
@@ -261,8 +261,7 @@ const CreateAgent = () => {
   // Create agent mutation
   const createAgentMutation = useMutation({
     mutationFn: async (formData) => {
-      const token = await getAccessToken();
-      if (!token) {
+      if (!isAuthenticated) {
         throw new Error("Please authenticate first");
       }
 
@@ -271,7 +270,7 @@ const CreateAgent = () => {
         url: config.endpoints.createAgent,
         method: "POST",
         body: formData,
-        auth: { accessToken: token },
+        credentials: "include",
         formEncoded: true,
       })();
       return response;

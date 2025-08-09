@@ -1,67 +1,35 @@
 import { useState, useCallback } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { signMessage } from "wagmi/actions";
-import { toast } from 'sonner';
 import { wagmiConfig } from '../../wagmi';
-
-const signatureCache = new Map();
-
-const getVerificationMessage = (address) =>
-    `Hello there! We would like to verify your wallet ownership for address ${address} to provide you with a seamless experience on Moduls. This signature helps us ensure you're the rightful owner of this wallet address.`;
+import { createSIWEMessage } from '../../lib/siwe';
 
 export const useWalletSignature = () => {
     const { address, isConnected } = useAccount();
+    const chainId = useChainId();
     const [isSigning, setIsSigning] = useState(false);
 
-    const getSignature = useCallback(async (message) => {
-        if (!isConnected || !address) {
-            throw new Error('Wallet not connected');
+    const getSIWESignature = useCallback(async (nonce) => {
+        if (!isConnected || !address || !nonce) {
+            throw new Error('Wallet not connected or nonce missing');
         }
-        const msg = message || getVerificationMessage(address);
-        const cacheKey = `${address}-${msg}`;
-        if (signatureCache.has(cacheKey)) {
-            return signatureCache.get(cacheKey);
-        }
+
+        const message = createSIWEMessage(address, nonce, chainId);
+
         try {
             setIsSigning(true);
             const signature = await signMessage(wagmiConfig, {
-                message: msg,
+                message,
                 account: address,
             });
-            signatureCache.set(cacheKey, signature);
-            toast.success('Wallet verified successfully');
-            return signature;
-        } catch (err) {
-            toast.error('Failed to verify wallet');
-            throw err;
+            return { signature, message };
         } finally {
             setIsSigning(false);
         }
-    }, [address, isConnected]);
-
-    const clearSignature = useCallback((message) => {
-        if (address) {
-            const msg = message || getVerificationMessage(address);
-            const cacheKey = `${address}-${msg}`;
-            signatureCache.delete(cacheKey);
-        }
-    }, [address]);
-
-    const clearAllSignatures = useCallback(() => {
-        signatureCache.clear();
-    }, []);
+    }, [address, isConnected, chainId]);
 
     return {
-        getSignature,
-        clearSignature,
-        clearAllSignatures,
+        getSIWESignature,
         isSigning,
-        hasSignature: (message) => {
-            if (!address) return false;
-            const msg = message || getVerificationMessage(address);
-            const cacheKey = `${address}-${msg}`;
-            return signatureCache.has(cacheKey);
-        },
-        getVerificationMessage,
     };
 }; 

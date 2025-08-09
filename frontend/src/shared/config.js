@@ -30,15 +30,16 @@ const config = {
 
     // API endpoints
     endpoints: {
-        // User endpoints
-        walletLogin: '/api/auth/wallet-login',
+        // Auth endpoints
+        getNonce: '/api/auth/nonce',
+        verifySignature: '/api/auth/verify',
+        logout: '/api/auth/logout',
         getAuthUser: '/api/auth/user',
-        login: '/api/login',
-        register: '/api/register',
-        profile: '/api/profile',
-        refreshToken: '/api/refresh-token',
+
+        // User endpoints
         getStats: '/api/stats',
         getMyAgents: '/api/agents/mine',
+        search: '/api/search',
 
         // Agent endpoints
         agents: '/api/agents',

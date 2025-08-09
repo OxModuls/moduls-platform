@@ -1,12 +1,4 @@
-const { isHex, isAddress } = require('viem');
 const { z } = require('zod');
-
-
-const walletLoginSchema = z.object({
-    walletAddress: z.string().refine(isAddress, { message: 'Invalid wallet address' }),
-    signature: z.string().refine(isHex, { message: 'Invalid signature' }),
-    message: z.string().min(10).max(1024),
-});
 
 
 const agentSchema = z.object({
@@ -106,4 +98,4 @@ const agentResponseSchema = z.object({
     launchDate: z.date().optional(),
 });
 
-module.exports = { walletLoginSchema, agentSchema, agentCreateSchema, agentResponseSchema };
+module.exports = { agentSchema, agentCreateSchema, agentResponseSchema };

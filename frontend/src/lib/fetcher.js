@@ -12,11 +12,12 @@ export async function fetchUtil({
     formEncoded = false,
     auth = null,
     headers = {},
+    credentials = "omit",
     opts = {},
 }) {
     const options = {
         method,
-        credentials: "omit",
+        credentials,
         ...opts,
         headers: { ...headers }, // Start with provided headers
     };
@@ -81,6 +82,7 @@ export function createFetcher({
     surfix = "",
     auth = null,
     formEncoded = false,
+    credentials = "omit",
 }) {
     return async (params = null) => {
 
@@ -92,6 +94,7 @@ export function createFetcher({
             surfix,
             auth,
             formEncoded,
+            credentials,
         });
 
         if (response.success) {
@@ -103,7 +106,12 @@ export function createFetcher({
         const errorMessage = extractErrorMessage(response);
         const action = response.headers?.get?.("X-ACTION") || null;
 
-        throw { message: errorMessage, action };
+        throw {
+            message: errorMessage,
+            action,
+            status: response.status,
+            error: response.error
+        };
     };
 }
 

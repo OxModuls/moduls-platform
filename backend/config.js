@@ -16,11 +16,13 @@ const config = {
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '1234567890',
     agentWalletSecret: process.env.AGENT_WALLET_SECRET || 'moduls-agent-wallet-secret',
     chainMode: process.env.CHAIN_MODE || 'testnet',
-    allowedOrigins: [
-        'http://localhost:5173',
-        "https://moduls-one.vercel.app",
-        "http://moduls-one.vercel.app",
-    ],
+    allowedOrigins: process.env.ALLOWED_ORIGINS ?
+        process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()) : [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            "https://moduls-one.vercel.app",
+            "http://moduls-one.vercel.app",
+        ],
 
     // Webhook configuration
     webhookUrl: process.env.WEBHOOK_URL || 'https://tunnel.timmypelumy.xyz/api/webhooks',

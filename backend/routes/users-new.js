@@ -134,7 +134,7 @@ router.post("/auth/verify", async (req, res) => {
             walletAddress: getAddress(address),
             expiresAt,
             userAgent: req.headers['user-agent'],
-            ipAddress: req.ip || req.socket.remoteAddress,
+            ipAddress: req.ip || req.connection.remoteAddress,
         });
 
         await session.save();
@@ -142,10 +142,9 @@ router.post("/auth/verify", async (req, res) => {
         res.cookie('session', sessionId, {
             httpOnly: true,
             secure: config.env === 'production',
-            sameSite: config.env === 'production' ? 'none' : 'lax',
+            sameSite: 'strict',
             maxAge: 24 * 60 * 60 * 1000,
-            path: '/',
-            domain: config.env === 'production' ? undefined : undefined
+            path: '/'
         });
 
         return res.status(200).json({
@@ -178,57 +177,6 @@ router.get("/auth/user", verifySession, async (req, res) => {
 
 router.post("/auth/logout", verifySession, async (req, res) => {
     return await logout(req, res);
-});
-
-router.get("/search", async (req, res) => {
-    try {
-        const { q, limit = 20 } = req.query;
-
-        if (!q || q.trim().length < 2) {
-            return res.status(400).json({
-                message: 'Search query must be at least 2 characters',
-                error: 'Invalid search query'
-            });
-        }
-
-        const searchQuery = q.trim();
-        const searchLimit = Math.min(parseInt(limit) || 20, 50);
-
-        const searchConditions = {
-            $and: [
-                { status: 'ACTIVE' },
-                {
-                    $or: [
-                        { name: { $regex: searchQuery, $options: 'i' } },
-                        { tokenSymbol: { $regex: searchQuery, $options: 'i' } },
-                        { tokenAddress: { $regex: searchQuery, $options: 'i' } },
-                        { description: { $regex: searchQuery, $options: 'i' } }
-                    ]
-                }
-            ]
-        };
-
-        const agents = await Agent.find(searchConditions)
-            .select('uniqueId name description tokenSymbol tokenAddress launchDate image logoUrl')
-            .limit(searchLimit)
-            .sort({ createdAt: -1 })
-            .lean()
-            .exec();
-
-        return res.status(200).json({
-            success: true,
-            query: searchQuery,
-            count: agents.length,
-            results: agents
-        });
-
-    } catch (error) {
-        console.error('Error searching agents:', error);
-        return res.status(500).json({
-            message: 'Search failed',
-            error: 'Internal server error'
-        });
-    }
 });
 
 module.exports = router;

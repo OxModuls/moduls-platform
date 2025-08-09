@@ -3,7 +3,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Agent = require("../core/models/agents");
-const { verifyToken } = require('../core/middlewares/jwt');
+const { verifySession } = require('../core/middlewares/session');
 const { agentCreateSchema, agentResponseSchema } = require('../core/schemas');
 const config = require('../config');
 const { createEncryptedWalletAccount } = require('../core/utils');
@@ -42,7 +42,7 @@ const upload = multer({
     },
 });
 
-router.get("/agents/mine", verifyToken, async (req, res) => {
+router.get("/agents/mine", verifySession, async (req, res) => {
     try {
         const { _id: userId } = req.user;
         const agents = await Agent.find({ creator: userId }).populate('creator').lean()
@@ -142,7 +142,7 @@ router.get("/agents/:uniqueId", async (req, res) => {
     }
 });
 
-router.post("/agents", verifyToken, upload.single('image'), async (req, res) => {
+router.post("/agents", verifySession, upload.single('image'), async (req, res) => {
     try {
         const { _id: userId } = req.user;
 

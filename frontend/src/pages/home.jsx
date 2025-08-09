@@ -70,7 +70,7 @@ function AgentCard({ agent }) {
 }
 
 const Home = () => {
-  const { isAuthenticated, accessToken, isAuthChecked } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
 
@@ -90,10 +90,10 @@ const Home = () => {
         queryFn: createFetcher({
           url: config.endpoints.getMyAgents,
           method: "GET",
-          auth: { accessToken },
+          credentials: "include",
         }),
         placeholderData: keepPreviousData,
-        enabled: isAuthenticated && isAuthChecked,
+        enabled: isAuthenticated,
         refetchInterval: 1000 * 60,
       },
     ],

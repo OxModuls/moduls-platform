@@ -34,6 +34,17 @@ const userSchema = new mongoose.Schema({
         required: false
     },
 
+    // SIWE nonce tracking
+    nonce: {
+        type: String,
+        default: null,
+    },
+
+    nonceExpiresAt: {
+        type: Date,
+        default: null,
+    },
+
 
 }, {
     timestamps: true
