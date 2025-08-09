@@ -49,15 +49,15 @@ export const useAuth = () => {
     const isAuthenticated = !!user;
 
     // Debug logging
-    useEffect(() => {
-        console.log("🔍 Auth state:", {
-            isConnected,
-            address: address?.slice(0, 6) + "...",
-            isAuthenticated,
-            isLoading,
-            user: !!user
-        });
-    }, [isConnected, address, isAuthenticated, isLoading, user]);
+    // useEffect(() => {
+    //     console.log("🔍 Auth state:", {
+    //         isConnected,
+    //         address: address?.slice(0, 6) + "...",
+    //         isAuthenticated,
+    //         isLoading,
+    //         user: !!user
+    //     });
+    // }, [isConnected, address, isAuthenticated, isLoading, user]);
 
     // Authenticate user
     const authenticate = useCallback(async () => {

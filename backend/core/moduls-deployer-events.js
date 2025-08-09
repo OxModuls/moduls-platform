@@ -17,11 +17,10 @@ try {
     client = createPublicClient({
         chain,
         transport: webSocket(config.rpcUrls[config.chainMode].webSocket)
-        // transport: http(config.rpcUrls[config.chainMode].http)
     });
-    console.log('✅ Using WebSocket transport for real-time events');
+    console.log(`🎧 Events: WebSocket connected (${chain.name})`);
 } catch (error) {
-    console.warn('⚠️ WebSocket transport failed, falling back to HTTP');
+    console.log('⚠️ Events: WebSocket failed, using HTTP transport');
     const { http } = require('viem');
     client = createPublicClient({
         chain,
@@ -37,81 +36,43 @@ const eventCallbacks = new Map();
 // Register ModulsTokenCreated event callback
 eventCallbacks.set('ModulsTokenCreated', async (event) => {
     try {
-        console.log('Processing ModulsTokenCreated event:', event);
-
-        const {
-            tokenAddress,
-            name,
-            symbol,
-            initialSupply,
-            agentWallet,
-            salesManager,
-            taxPercent,
-            agentSplit,
-            intentId,
-            metadataURI,
-            creator,
-            launchDate
-        } = event.args;
-
+        const { tokenAddress, name, symbol, intentId, launchDate } = event.args;
         const { blockNumber, transactionHash } = event;
-
-        // Debug log the received values
-        console.log(`🔍 Debug values received:`);
-        console.log(`  blockNumber: ${blockNumber} (type: ${typeof blockNumber})`);
-        console.log(`  transactionHash: ${transactionHash}`);
-        console.log(`  intentId: ${intentId} (type: ${typeof intentId})`);
 
         // Find the corresponding agent by intentId
         const agent = await Agent.findOne({ intentId: Number(intentId) });
 
         if (!agent) {
-            console.log(`Agent not found for intentId: ${intentId}`);
+            console.log(`⚠️ Token deployed but no agent found for intentId: ${intentId}`);
             return;
         }
 
         if (agent.status === 'ACTIVE') {
-            console.log(`Agent ${agent.uniqueId} is already active`);
+            console.log(`⚠️ Agent ${agent.uniqueId} already active`);
             return;
         }
 
         // Update agent with token deployment data
         agent.status = 'ACTIVE';
         agent.tokenAddress = getAddress(tokenAddress);
+        agent.tokenSymbol = symbol;
 
         // Safely convert blockNumber to number
         const deploymentBlockNumber = blockNumber ? Number(blockNumber) : 0;
         if (isNaN(deploymentBlockNumber)) {
-            console.warn(`⚠️ Invalid blockNumber received: ${blockNumber}, using 0 as fallback`);
+            console.warn(`⚠️ Invalid blockNumber: ${blockNumber}, using 0`);
             agent.deploymentBlock = 0;
         } else {
             agent.deploymentBlock = deploymentBlockNumber;
         }
 
-        agent.tokenSymbol = symbol;
-
-        // Store additional data in a metadata field or log it
-        console.log(`Token deployment details:`);
-        console.log(`  Name: ${name}`);
-        console.log(`  Initial Supply: ${initialSupply}`);
-        console.log(`  Agent Wallet: ${agentWallet}`);
-        console.log(`  Sales Manager: ${salesManager}`);
-        console.log(`  Tax Percent: ${taxPercent}`);
-        console.log(`  Agent Split: ${agentSplit}`);
-        console.log(`  Metadata URI: ${metadataURI}`);
-        console.log(`  Creator: ${creator}`);
-        console.log(`  Launch Date: ${launchDate} (${launchDate === 0n || launchDate === '0' ? 'Immediate' : new Date(Number(launchDate) * 1000).toISOString()})`);
-
         await agent.save();
 
-        console.log(`✅ Agent ${agent.uniqueId} activated with token ${tokenAddress}`);
-        console.log(`   Token: ${name} (${symbol})`);
-        console.log(`   Initial Supply: ${initialSupply}`);
-        console.log(`   Block: ${blockNumber}`);
-        console.log(`   Transaction: ${transactionHash}`);
+        const launchStatus = launchDate === 0n ? 'immediate' : new Date(Number(launchDate) * 1000).toISOString();
+        console.log(`✅ Agent activated: ${agent.uniqueId} | Token: ${name} (${symbol}) | Launch: ${launchStatus}`);
 
     } catch (error) {
-        console.error('Error processing ModulsTokenCreated event:', error);
+        console.error('❌ ModulsTokenCreated error:', error.message);
     }
 });
 
@@ -122,12 +83,7 @@ eventCallbacks.set('ModulsTokenCreated', async (event) => {
  */
 async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'latest') {
     try {
-        console.log(`🎧 Starting event listener for ModulsDeployer at ${contractAddress}`);
-        console.log(`   Chain: ${chain.name} (${chain.id})`);
-        console.log(`   From block: ${fromBlock}`);
-        console.log(`   Registered events: ${Array.from(eventCallbacks.keys()).join(', ')}`);
-
-
+        console.log(`🎧 Events: Listening to ${contractAddress} on ${chain.name}`);
 
         // First, try to get any recent events that might have been missed
         try {
@@ -135,7 +91,6 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
             const currentBlock = await client.getBlockNumber();
 
             if (fromBlock === 'latest') {
-                // Get current block and scan from last 1500 blocks
                 scanFromBlock = currentBlock - 2000n;
                 console.log(`📡 Scanning last 2000 blocks (from ${scanFromBlock} to ${currentBlock})`);
             } else {
@@ -153,8 +108,6 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
                     ? currentBlock
                     : currentFromBlock + chunkSize - 1n;
 
-                console.log(`📡 Scanning chunk: blocks ${currentFromBlock} to ${currentToBlock}`);
-
                 try {
                     const chunkLogs = await client.getLogs({
                         address: getAddress(contractAddress),
@@ -164,22 +117,19 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
                     });
 
                     allLogs.push(...chunkLogs);
-                    console.log(`   Found ${chunkLogs.length} events in this chunk`);
                 } catch (chunkError) {
-                    console.warn(`⚠️ Failed to fetch chunk ${currentFromBlock} to ${currentToBlock}:`, chunkError.message);
+                    console.warn(`⚠️ Events: Chunk scan failed (${currentFromBlock}-${currentToBlock}):`, chunkError.message);
                 }
 
                 currentFromBlock = currentToBlock + 1n;
             }
 
             if (allLogs.length > 0) {
-                console.log(`📡 Found ${allLogs.length} total recent event(s) from contract`);
+                console.log(`📡 Events: Processing ${allLogs.length} recent events`);
                 await processLogs(allLogs);
-            } else {
-                console.log('⚠️ No recent events found from contract');
             }
         } catch (error) {
-            console.warn('⚠️ Could not fetch recent logs:', error.message);
+            console.warn('⚠️ Events: Recent scan failed:', error.message);
         }
 
         // Watch for new events from the contract
@@ -189,16 +139,17 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
                 address: getAddress(contractAddress),
                 events: contractEvents,
                 onLogs: async (logs) => {
-                    console.log(`📡 Received ${logs.length} new event(s) from contract`);
-                    await processLogs(logs);
+                    if (logs.length > 0) {
+                        console.log(`📡 Events: Received ${logs.length} new event(s)`);
+                        await processLogs(logs);
+                    }
                 },
                 onError: (error) => {
-                    console.error('❌ Event listener error:', error);
+                    console.error('❌ Events: Watch error:', error.message);
                 }
             });
         } catch (error) {
-            console.error('❌ Failed to start watchEvent:', error);
-            console.log('⚠️ Falling back to polling mode...');
+            console.log('⚠️ Events: WebSocket watch failed, using polling');
 
             // Fallback to polling if watchEvent fails
             let lastBlock = await client.getBlockNumber();
@@ -214,43 +165,28 @@ async function listenAndProcessOnchainEvents(contractAddress, fromBlock = 'lates
                         });
 
                         if (logs.length > 0) {
-                            console.log(`📡 Found ${logs.length} new event(s) via polling`);
+                            console.log(`📡 Events: Polled ${logs.length} new event(s)`);
                             await processLogs(logs);
                         }
                         lastBlock = currentBlock;
                     }
                 } catch (error) {
-                    console.error('❌ Polling error:', error);
+                    console.error('❌ Events: Poll error:', error.message);
                 }
-            }, 5000); // Poll every 5 seconds
+            }, 5000);
 
             unwatch = () => clearInterval(pollInterval);
         }
 
-        console.log('✅ Event listener started successfully');
-
-        // Return the unwatch function for cleanup
+        console.log('✅ Events: Listener active');
         return unwatch;
 
     } catch (error) {
-        console.error('❌ Failed to start event listener:', error);
+        console.error('❌ Events: Failed to start listener:', error.message);
         throw error;
     }
 }
 
-/**
- * Helper function to serialize objects with BigInt values
- * @param {*} value - Value to serialize
- * @returns {string} - JSON string with BigInt converted to string
- */
-function serializeWithBigInt(value) {
-    return JSON.stringify(value, (key, val) => {
-        if (typeof val === 'bigint') {
-            return val.toString();
-        }
-        return val;
-    }, 2);
-}
 
 /**
  * Process event logs
@@ -259,16 +195,10 @@ function serializeWithBigInt(value) {
 async function processLogs(logs) {
     for (const log of logs) {
         try {
-            console.log('Raw log:', serializeWithBigInt(log));
-
-            // Get the event name from the log
             const eventName = log.eventName;
-            console.log(`Processing event: ${eventName}`);
-
-            // Check if we have a callback for this event
             const callback = eventCallbacks.get(eventName);
+
             if (callback) {
-                // Create standardized event object
                 const event = {
                     args: log.args,
                     blockNumber: log.blockNumber,
@@ -278,13 +208,12 @@ async function processLogs(logs) {
                     eventName: eventName
                 };
 
-                console.log('Parsed event:', serializeWithBigInt(event));
                 await callback(event);
             } else {
-                console.log(`⚠️ No callback registered for event: ${eventName} - skipping`);
+                console.log(`⚠️ Events: No handler for ${eventName}`);
             }
         } catch (error) {
-            console.error('Error processing event log:', error);
+            console.error('❌ Events: Processing error:', error.message);
         }
     }
 }
@@ -300,7 +229,7 @@ function registerEventCallback(eventName, callback) {
     }
 
     eventCallbacks.set(eventName, callback);
-    console.log(`✅ Registered callback for event: ${eventName}`);
+    console.log(`✅ Events: Registered ${eventName} handler`);
 }
 
 /**
@@ -310,9 +239,9 @@ function registerEventCallback(eventName, callback) {
 function removeEventCallback(eventName) {
     const removed = eventCallbacks.delete(eventName);
     if (removed) {
-        console.log(`🗑️ Removed callback for event: ${eventName}`);
+        console.log(`🗑️ Events: Removed ${eventName} handler`);
     } else {
-        console.log(`⚠️ No callback found for event: ${eventName}`);
+        console.log(`⚠️ Events: No handler found for ${eventName}`);
     }
 }
 
@@ -332,10 +261,10 @@ async function stopEventListening(unwatch) {
     try {
         if (typeof unwatch === 'function') {
             unwatch();
-            console.log('🛑 Event listener stopped');
+            console.log('🛑 Events: Listener stopped');
         }
     } catch (error) {
-        console.error('❌ Error stopping event listener:', error);
+        console.error('❌ Events: Stop error:', error.message);
     }
 }
 

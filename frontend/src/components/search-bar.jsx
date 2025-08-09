@@ -8,7 +8,7 @@ const SearchResultItem = ({ result, onClick }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(`/agent/${result.uniqueId}`);
+    navigate(`/agents/${result.uniqueId}`);
     onClick?.();
   };
 

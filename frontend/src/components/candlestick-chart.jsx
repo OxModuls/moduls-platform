@@ -1,12 +1,7 @@
 import { CandlestickSeries, ColorType, createChart } from "lightweight-charts";
 import { useEffect, useRef } from "react";
 
-const CandlestickChart = ({
-  data,
-  colors = {},
-  width,
-  height,
-}) => {
+const CandlestickChart = ({ data, colors = {}, width, height }) => {
   const {
     backgroundColor = "#171717",
     textColor = "#e5e5e5",
@@ -55,4 +50,4 @@ const CandlestickChart = ({
   return <div ref={chartContainerRef} />;
 };
 
-export default CandlestickChart; 
+export default CandlestickChart;

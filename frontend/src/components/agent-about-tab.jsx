@@ -12,7 +12,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
-import CandlestickChart from "./candlestick-chart";
+import TradingCandlestickChart from "./trading-candlestick-chart";
 import CountdownTimer from "./countdown-timer";
 import { ellipsizeAddress, formatISODate, writeToClipboard } from "@/lib/utils";
 
@@ -23,7 +23,6 @@ const AgentAboutTab = ({
   timeUntilTrading,
   targetTimestamp,
   onCountdownComplete,
-  chartData,
 }) => {
   return (
     <div className="mt-3">
@@ -113,7 +112,7 @@ const AgentAboutTab = ({
             <h2 className="text-lg font-semibold">Chart</h2>
           </div>
           <div className="mt-2 px-2 py-4 bg-primary-foreground rounded-lg">
-            <CandlestickChart data={chartData} />
+            <TradingCandlestickChart tokenAddress={token?.contractAddress} />
           </div>
         </div>
       )}

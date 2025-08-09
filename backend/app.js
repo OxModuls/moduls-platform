@@ -8,6 +8,7 @@ const cors = require('cors');
 const connectDB = require('./core/db');
 const usersRouter = require('./routes/users');
 const agentsRouter = require('./routes/agents');
+const tradingRouter = require('./routes/trading');
 const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
@@ -18,8 +19,9 @@ const config = require('./config');
 const webhookRoutes = require('./core/webhooks/routes');
 const WebhookHandler = require('./core/webhooks/webhook-handler');
 
-// Import event listening system
-const { listenAndProcessOnchainEvents, stopEventListening } = require('./core/events');
+// Import event listening systems
+const { listenAndProcessOnchainEvents, stopEventListening } = require('./core/moduls-deployer-events');
+const { listenAndProcessTradingEvents, stopTradingEventListening } = require('./core/moduls-sales-events');
 
 const app = express();
 
@@ -63,13 +65,15 @@ app.use(cors({
 // WEBHOOK HANDLER
 let webhookHandler;
 
-// EVENT LISTENER
+// EVENT LISTENERS
 let eventUnwatch;
+let tradingEventUnwatch;
 
 // ROUTES
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
 app.use('/api', usersRouter);
 app.use('/api', agentsRouter);
+app.use('/api/trading', tradingRouter);
 
 // New webhook routes
 app.use('/api/webhooks', webhookRoutes);
@@ -101,12 +105,18 @@ app.listen(app.get("port"), async () => {
     //     console.error('Failed to initialize webhook handler:', error);
     // }
 
-    // Initialize event listener
+    // Initialize event listeners
     try {
         const modulsDeployerAddress = config.contractAddresses[config.chainMode].modulsDeployer;
+        const modulsSalesManagerAddress = config.contractAddresses[config.chainMode].modulsSalesManager;
+
+        // Start deployer events listener
         eventUnwatch = await listenAndProcessOnchainEvents(modulsDeployerAddress);
+
+        // Start trading events listener
+        tradingEventUnwatch = await listenAndProcessTradingEvents(modulsSalesManagerAddress);
     } catch (error) {
-        console.error('Failed to initialize event listener:', error);
+        console.error('Failed to initialize event listeners:', error);
     }
 
     console.log(`${config.appName} is running on port ${app.get("port")}`);
@@ -117,6 +127,9 @@ process.on('SIGINT', async () => {
     if (eventUnwatch) {
         await stopEventListening(eventUnwatch);
     }
+    if (tradingEventUnwatch) {
+        await stopTradingEventListening(tradingEventUnwatch);
+    }
     process.exit(0);
 });
 
@@ -124,6 +137,9 @@ process.on('SIGTERM', async () => {
     console.log("SIGTERM signal received, stopping services");
     if (eventUnwatch) {
         await stopEventListening(eventUnwatch);
+    }
+    if (tradingEventUnwatch) {
+        await stopTradingEventListening(tradingEventUnwatch);
     }
     process.exit(0);
 });

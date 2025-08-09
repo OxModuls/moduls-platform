@@ -4,7 +4,17 @@ import AgentAboutTab from "@/components/agent-about-tab";
 import AgentTradeTab from "@/components/agent-trade-tab";
 import AgentHoldersTab from "@/components/agent-holders-tab";
 import CountdownTimer from "@/components/countdown-timer";
-import { BadgeDollarSign, Bot, Copy, Info, UserRound } from "lucide-react";
+import TradingChart from "@/components/trading-chart";
+import TradingMetrics from "@/components/trading-metrics";
+import TradingHistory from "@/components/trading-history";
+import {
+  BadgeDollarSign,
+  Bot,
+  Copy,
+  Info,
+  UserRound,
+  TrendingUp,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { ellipsizeAddress, formatISODate, writeToClipboard } from "@/lib/utils";
@@ -107,78 +117,6 @@ const Agent = () => {
     }
   };
 
-  const [chartData] = useState([
-    {
-      time: "2018-12-22",
-      open: 75.16,
-      high: 82.84,
-      low: 36.16,
-      close: 45.72,
-    },
-    {
-      time: "2018-12-23",
-      open: 45.12,
-      high: 53.9,
-      low: 45.12,
-      close: 48.09,
-    },
-    {
-      time: "2018-12-24",
-      open: 60.71,
-      high: 60.71,
-      low: 53.39,
-      close: 59.29,
-    },
-    {
-      time: "2018-12-25",
-      open: 68.26,
-      high: 68.26,
-      low: 59.04,
-      close: 60.5,
-    },
-    {
-      time: "2018-12-26",
-      open: 67.71,
-      high: 105.85,
-      low: 66.67,
-      close: 91.04,
-    },
-    {
-      time: "2018-12-27",
-      open: 91.04,
-      high: 121.4,
-      low: 82.7,
-      close: 111.4,
-    },
-    {
-      time: "2018-12-28",
-      open: 111.51,
-      high: 142.83,
-      low: 103.34,
-      close: 131.25,
-    },
-    {
-      time: "2018-12-29",
-      open: 131.33,
-      high: 151.17,
-      low: 77.68,
-      close: 96.43,
-    },
-    {
-      time: "2018-12-30",
-      open: 106.33,
-      high: 110.2,
-      low: 90.39,
-      close: 98.1,
-    },
-    {
-      time: "2018-12-31",
-      open: 109.87,
-      high: 114.69,
-      low: 85.66,
-      close: 111.26,
-    },
-  ]);
   // Removed hardcoded holders data - now using real data from API
   const [activeTradeTab, setActiveTradeTab] = useState("buy");
 
@@ -472,6 +410,16 @@ const Agent = () => {
               <h2 className="text-base font-semibold">Buy/Sell</h2>
             </TabsTrigger>
             <TabsTrigger
+              value="analytics"
+              disabled={!isTradingEnabled}
+              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <TrendingUp className="size-5" />
+              <h2 className="text-base font-semibold">Analytics</h2>
+            </TabsTrigger>
+            <TabsTrigger
               value="holders"
               disabled={!isTradingEnabled}
               className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
@@ -490,7 +438,6 @@ const Agent = () => {
               timeUntilTrading={timeUntilTrading}
               targetTimestamp={targetTimestamp}
               onCountdownComplete={handleCountdownComplete}
-              chartData={chartData}
             />
           </TabsContent>
           <TabsContent value="trade" asChild>
@@ -505,6 +452,16 @@ const Agent = () => {
               sellTokenStatus={sellTokenStatus}
               connectedAddress={connectedAddress}
             />
+          </TabsContent>
+          <TabsContent value="analytics" asChild>
+            <div className="space-y-6">
+              <TradingMetrics tokenAddress={token?.contractAddress} />
+              <TradingChart
+                tokenAddress={token?.contractAddress}
+                height={400}
+              />
+              <TradingHistory tokenAddress={token?.contractAddress} />
+            </div>
           </TabsContent>
           <TabsContent value="holders" asChild>
             <AgentHoldersTab

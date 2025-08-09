@@ -52,6 +52,13 @@ const config = {
         webhookStatus: '/api/webhooks/status',
         holders: '/api/webhooks/holders',
         holderStats: '/api/webhooks/holders',
+
+        // Trading endpoints
+        tradingMetrics: '/api/trading/metrics',
+        tradingHistory: '/api/trading/history',
+        tradingChart: '/api/trading/chart',
+        userTradingHistory: '/api/trading/user',
+        tradingOverview: '/api/trading/overview',
     }
 };
 
