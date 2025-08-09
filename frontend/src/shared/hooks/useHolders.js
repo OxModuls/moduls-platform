@@ -167,11 +167,38 @@ export const formatHolderPercentage = (percentage) => {
  * Utility function to get holder category based on percentage
  */
 export const getHolderCategory = (percentage) => {
-    if (percentage >= 10) return { name: 'Whale', color: 'text-purple-600' };
-    if (percentage >= 1) return { name: 'Large', color: 'text-blue-600' };
-    if (percentage >= 0.1) return { name: 'Medium', color: 'text-green-600' };
-    if (percentage >= 0.01) return { name: 'Small', color: 'text-yellow-600' };
-    return { name: 'Micro', color: 'text-gray-600' };
+    if (percentage >= 10) return { name: '🐋', color: 'text-purple-600', tooltip: 'Whale (≥10%)' };
+    if (percentage >= 1) return { name: '🦈', color: 'text-blue-600', tooltip: 'Large (≥1%)' };
+    if (percentage >= 0.1) return { name: '🐟', color: 'text-green-600', tooltip: 'Medium (≥0.1%)' };
+    if (percentage >= 0.01) return { name: '🐠', color: 'text-yellow-600', tooltip: 'Small (≥0.01%)' };
+    return { name: '🦐', color: 'text-gray-600', tooltip: 'Micro (<0.01%)' };
+};
+
+/**
+ * Utility function to check if address is the Liquidity Pool (ModulsSalesManager)
+ */
+export const isLiquidityPool = (address) => {
+    if (!address) return false;
+
+    // Get ModulsSalesManager addresses from config
+    const testnetLP = config.contractAddresses?.testnet?.modulsSalesManager;
+    const mainnetLP = config.contractAddresses?.mainnet?.modulsSalesManager;
+
+    const addressLower = address.toLowerCase();
+    return (
+        (testnetLP && addressLower === testnetLP.toLowerCase()) ||
+        (mainnetLP && addressLower === mainnetLP.toLowerCase())
+    );
+};
+
+/**
+ * Utility function to get special holder type (LP, etc.)
+ */
+export const getSpecialHolderType = (address) => {
+    if (isLiquidityPool(address)) {
+        return { name: '🏦 LP', color: 'text-blue-600', tooltip: 'Liquidity Pool (ModulsSalesManager)' };
+    }
+    return null;
 };
 
 /**

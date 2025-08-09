@@ -14,6 +14,7 @@ import {
   formatHolderBalance,
   formatHolderPercentage,
   getHolderCategory,
+  getSpecialHolderType,
   shortenAddress,
 } from "@/shared/hooks/useHolders";
 import { useState } from "react";
@@ -246,12 +247,22 @@ const AgentHoldersTab = ({
                         <Copy className="h-4 w-4" />
                       </button>
                     </div>
-                    <div className="flex items-center">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full bg-muted ${getHolderCategory(holder.percentage).color}`}
-                      >
-                        {getHolderCategory(holder.percentage).name}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      {getSpecialHolderType(holder.address) ? (
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full bg-blue-100 border border-blue-200 ${getSpecialHolderType(holder.address).color} font-medium`}
+                          title={getSpecialHolderType(holder.address).tooltip}
+                        >
+                          {getSpecialHolderType(holder.address).name}
+                        </span>
+                      ) : (
+                        <span
+                          className={`text-lg ${getHolderCategory(holder.percentage).color}`}
+                          title={getHolderCategory(holder.percentage).tooltip}
+                        >
+                          {getHolderCategory(holder.percentage).name}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-right">

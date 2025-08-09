@@ -168,20 +168,39 @@ async function startWatchingToken(tokenAddress) {
         // First, scan recent events to initialize state
         try {
             const currentBlock = await client.getBlockNumber();
-            const scanFromBlock = currentBlock - 1000n; // Last 1000 blocks
+            const scanFromBlock = currentBlock - 5000n; // Last 5000 blocks
 
-            console.log(`📡 Token Events: Scanning last 1000 blocks for ${tokenAddress}`);
+            console.log(`📡 Token Events: Scanning last 5000 blocks for ${tokenAddress}`);
 
-            const logs = await client.getLogs({
-                address: getAddress(tokenAddress),
-                event: transferEvent,
-                fromBlock: scanFromBlock,
-                toBlock: currentBlock
-            });
+            // Split into chunks of 500 blocks to respect RPC limits
+            const chunkSize = 500n;
+            const allLogs = [];
+            let currentFromBlock = scanFromBlock;
 
-            if (logs.length > 0) {
-                console.log(`📡 Token Events: Processing ${logs.length} recent Transfer events for ${tokenAddress}`);
-                await processTokenLogs(logs, tokenAddress);
+            while (currentFromBlock <= currentBlock) {
+                const currentToBlock = currentFromBlock + chunkSize - 1n > currentBlock
+                    ? currentBlock
+                    : currentFromBlock + chunkSize - 1n;
+
+                try {
+                    const chunkLogs = await client.getLogs({
+                        address: getAddress(tokenAddress),
+                        event: transferEvent,
+                        fromBlock: currentFromBlock,
+                        toBlock: currentToBlock
+                    });
+
+                    allLogs.push(...chunkLogs);
+                } catch (chunkError) {
+                    console.warn(`⚠️ Token Events: Chunk scan failed for ${tokenAddress} (${currentFromBlock}-${currentToBlock}):`, chunkError.message);
+                }
+
+                currentFromBlock = currentToBlock + 1n;
+            }
+
+            if (allLogs.length > 0) {
+                console.log(`📡 Token Events: Processing ${allLogs.length} recent Transfer events for ${tokenAddress}`);
+                await processTokenLogs(allLogs, tokenAddress);
             }
         } catch (error) {
             console.warn(`⚠️ Token Events: Recent scan failed for ${tokenAddress}:`, error.message);
@@ -290,14 +309,14 @@ async function listenAndProcessTokenEvents() {
         // Get all active agents
         const activeAgents = await Agent.find({
             status: 'ACTIVE'
-        }).select('token.contractAddress uniqueId').lean();
+        }).select('tokenAddress uniqueId').lean();
 
         console.log(`📊 Token Events: Found ${activeAgents.length} active agents to monitor`);
 
         // Start watching each active token
         for (const agent of activeAgents) {
-            if (agent.token?.contractAddress) {
-                await startWatchingToken(agent.token.contractAddress);
+            if (agent.tokenAddress) {
+                await startWatchingToken(agent.tokenAddress);
                 // Add small delay to avoid overwhelming the RPC
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
@@ -326,12 +345,12 @@ async function listenAndProcessTokenEvents() {
 async function refreshActiveTokenWatchers() {
     try {
         const activeAgents = await Agent.find({
-            'token.status': 'active'
-        }).select('token.contractAddress').lean();
+            status: 'ACTIVE'
+        }).select('tokenAddress').lean();
 
         const currentActiveTokens = new Set(
             activeAgents
-                .map(agent => agent.token?.contractAddress?.toLowerCase())
+                .map(agent => agent.tokenAddress?.toLowerCase())
                 .filter(Boolean)
         );
 
