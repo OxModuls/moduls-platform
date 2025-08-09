@@ -36,6 +36,11 @@ const AdvancedChart = ({
       topColor: "#2962FF",
       bottomColor: "rgba(41, 98, 255, 0.28)",
       lineWidth: 2,
+      priceFormat: {
+        type: "price",
+        precision: 8,
+        minMove: 0.00000001,
+      },
     });
     areaSeries.priceScale().applyOptions({
       scaleMargins: {
@@ -72,11 +77,16 @@ const AdvancedChart = ({
         const supplyMultiplier =
           showMarketCap && totalSupply ? parseFloat(totalSupply) / 1e18 : 1;
 
+        // Debug: Log raw data to see what we're getting
+        console.log("Chart raw data sample:", rawData.slice(0, 3));
+        console.log("Supply multiplier:", supplyMultiplier);
+
         // Process price data - backend returns values in wei format as strings
         const priceData = rawData
           .map((item) => {
             const timestamp = new Date(item.timestamp);
             if (isNaN(timestamp.getTime())) {
+              console.warn("Invalid timestamp:", item.timestamp);
               return null;
             }
             // Use UNIX timestamp for intraday data (better for 5m, 15m, 1h intervals)
@@ -86,12 +96,18 @@ const AdvancedChart = ({
             const priceInEther = parseFloat(item.close) / 1e18;
             const displayValue = priceInEther * supplyMultiplier;
 
+            console.log(
+              `Price conversion - close: ${item.close}, priceInEther: ${priceInEther}, displayValue: ${displayValue}`,
+            );
+
             return {
               time: timeValue,
               value: displayValue,
             };
           })
           .filter((item) => item && item.value > 0);
+
+        console.log("Processed price data sample:", priceData.slice(0, 3));
 
         // Process volume data - backend returns values in wei format as strings
         const volumeData = rawData
@@ -126,9 +142,30 @@ const AdvancedChart = ({
           })
           .filter((item) => item && item.value >= 0); // Allow 0 volume
 
-        areaSeries.setData(priceData);
-        volumeSeries.setData(volumeData);
+        if (priceData.length > 0) {
+          areaSeries.setData(priceData);
+          console.log("Area series data set with", priceData.length, "points");
+        } else {
+          console.warn("No valid price data to set");
+        }
+
+        if (volumeData.length > 0) {
+          volumeSeries.setData(volumeData);
+          console.log(
+            "Volume series data set with",
+            volumeData.length,
+            "points",
+          );
+        } else {
+          console.warn("No valid volume data to set");
+        }
+
         chart.timeScale().fitContent();
+
+        // Auto-fit the price scale
+        setTimeout(() => {
+          chart.timeScale().fitContent();
+        }, 100);
       } catch (error) {
         console.error("Error processing chart data:", error);
       }
