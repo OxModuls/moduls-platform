@@ -11,6 +11,7 @@ import {
   BadgeDollarSign,
   Bot,
   Copy,
+  Globe,
   Info,
   UserRound,
   TrendingUp,
