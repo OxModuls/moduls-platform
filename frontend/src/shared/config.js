@@ -50,8 +50,12 @@ const config = {
 
         // Webhook endpoints (new system)
         webhookStatus: '/api/webhooks/status',
-        holders: '/api/webhooks/holders',
-        holderStats: '/api/webhooks/holders',
+
+        // Holder endpoints
+        holders: '/api/holders',
+        holderStats: '/api/holders',
+        userHoldings: '/api/user',
+        holderOverview: '/api/holders/overview',
 
         // Trading endpoints
         tradingMetrics: '/api/trading/metrics',

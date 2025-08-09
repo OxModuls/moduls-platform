@@ -7,11 +7,15 @@ import {
   Database,
   BarChart3,
 } from "lucide-react";
-import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
+import { writeToClipboard } from "@/lib/utils";
 import {
   useTokenHolders,
   useTokenHolderStats,
-} from "@/shared/hooks/useTokenHolders";
+  formatHolderBalance,
+  formatHolderPercentage,
+  getHolderCategory,
+  shortenAddress,
+} from "@/shared/hooks/useHolders";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import CountdownTimer from "./countdown-timer";
@@ -147,16 +151,16 @@ const AgentHoldersTab = ({
               <span className="font-medium">Total Holders</span>
             </div>
             <span className="font-semibold text-accent">
-              {stats.holderCount || 0}
+              {stats.totalHolders || 0}
             </span>
           </div>
           <div className="mt-2 px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
             <div className="flex items-center gap-2">
               <Database className="size-5" />
-              <span className="font-medium">Total Supply</span>
+              <span className="font-medium">Average Balance</span>
             </div>
             <span className="font-semibold text-accent">
-              {parseFloat(stats.totalSupplyFormatted || "0").toLocaleString()}
+              {formatHolderBalance(stats.avgBalance || "0")}
             </span>
           </div>
         </div>
@@ -220,64 +224,19 @@ const AgentHoldersTab = ({
           </div>
         ) : (
           <>
-            {/* Sales Manager Pool Balance */}
-            {stats?.salesManagerBalance && (
-              <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                    Liquidity Pool
-                  </span>
-                </div>
-                <div className="px-4 py-3 bg-background rounded-lg border flex justify-between items-center text-red-600 dark:text-red-400">
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-muted-foreground min-w-[2rem]">
-                      #0
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm">
-                        {ellipsizeAddress(stats.salesManagerBalance.address)}
-                      </span>
-                      <button
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() =>
-                          writeToClipboard(stats.salesManagerBalance.address)
-                        }
-                        title="Copy address"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-right">
-                    <div>
-                      <div className="font-mono text-sm font-semibold">
-                        {parseFloat(
-                          stats.salesManagerBalance.balanceFormatted,
-                        ).toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {stats.salesManagerBalance.percentage}% of supply
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
-              {holders.map((holder, idx) => (
+              {holders.map((holder) => (
                 <div
                   key={holder.address}
-                  className="px-4 py-3 bg-background rounded-lg border flex justify-between items-center hover:bg-muted/30 transition-colors text-red-600 dark:text-red-400"
+                  className="px-4 py-3 bg-background rounded-lg border flex justify-between items-center hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-medium text-muted-foreground min-w-[2rem]">
-                      #{currentPage * limit + idx + 1}
+                      #{holder.rank}
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm">
-                        {ellipsizeAddress(holder.address)}
+                        {shortenAddress(holder.address)}
                       </span>
                       <button
                         className="text-muted-foreground hover:text-foreground transition-colors"
@@ -287,14 +246,21 @@ const AgentHoldersTab = ({
                         <Copy className="h-4 w-4" />
                       </button>
                     </div>
+                    <div className="flex items-center">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full bg-muted ${getHolderCategory(holder.percentage).color}`}
+                      >
+                        {getHolderCategory(holder.percentage).name}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 text-right">
                     <div>
                       <div className="font-mono text-sm font-semibold">
-                        {parseFloat(holder.balanceFormatted).toLocaleString()}
+                        {formatHolderBalance(holder.balance)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {holder.percentage}% of supply
+                        {formatHolderPercentage(holder.percentage)} of supply
                       </div>
                     </div>
                   </div>

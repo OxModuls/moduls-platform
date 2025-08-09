@@ -9,6 +9,7 @@ const connectDB = require('./core/db');
 const usersRouter = require('./routes/users');
 const agentsRouter = require('./routes/agents');
 const tradingRouter = require('./routes/trading');
+const holdersRouter = require('./routes/holders');
 const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
@@ -22,6 +23,7 @@ const WebhookHandler = require('./core/webhooks/webhook-handler');
 // Import event listening systems
 const { listenAndProcessOnchainEvents, stopEventListening } = require('./core/moduls-deployer-events');
 const { listenAndProcessTradingEvents, stopTradingEventListening } = require('./core/moduls-sales-events');
+const { listenAndProcessTokenEvents, stopAllTokenWatchers } = require('./core/agent-token-events');
 
 const app = express();
 
@@ -68,12 +70,14 @@ let webhookHandler;
 // EVENT LISTENERS
 let eventUnwatch;
 let tradingEventUnwatch;
+let tokenEventUnwatch;
 
 // ROUTES
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
 app.use('/api', usersRouter);
 app.use('/api', agentsRouter);
 app.use('/api/trading', tradingRouter);
+app.use('/api', holdersRouter);
 
 // New webhook routes
 app.use('/api/webhooks', webhookRoutes);
@@ -115,6 +119,9 @@ app.listen(app.get("port"), async () => {
 
         // Start trading events listener
         tradingEventUnwatch = await listenAndProcessTradingEvents(modulsSalesManagerAddress);
+
+        // Start token events listener for all active agent tokens
+        tokenEventUnwatch = await listenAndProcessTokenEvents();
     } catch (error) {
         console.error('Failed to initialize event listeners:', error);
     }
@@ -130,6 +137,9 @@ process.on('SIGINT', async () => {
     if (tradingEventUnwatch) {
         await stopTradingEventListening(tradingEventUnwatch);
     }
+    if (tokenEventUnwatch) {
+        await stopAllTokenWatchers();
+    }
     process.exit(0);
 });
 
@@ -140,6 +150,9 @@ process.on('SIGTERM', async () => {
     }
     if (tradingEventUnwatch) {
         await stopTradingEventListening(tradingEventUnwatch);
+    }
+    if (tokenEventUnwatch) {
+        await stopAllTokenWatchers();
     }
     process.exit(0);
 });
