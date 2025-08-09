@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
-import { createChart, ColorType } from "lightweight-charts";
+import React, { useEffect, useState, useMemo } from "react";
 import { useTradingChart } from "../shared/hooks/useTrading";
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import SimplePriceChart from "./simple-price-chart";
+import AdvancedChart from "./advanced-chart";
 
 const TradingChart = ({
   tokenAddress,
@@ -11,15 +11,12 @@ const TradingChart = ({
   showControls = true,
   totalSupply = null,
 }) => {
-  const chartContainerRef = useRef(null);
-  const chartRef = useRef(null);
-  const seriesRef = useRef(null);
-  const seriesTypeRef = useRef(null);
   const [chartError] = useState(false);
 
   const [timeframe, setTimeframe] = useState("24h");
   const [interval, setInterval] = useState("1h");
   const [showMarketCap, setShowMarketCap] = useState(false);
+  const [forceChartMode, setForceChartMode] = useState(null); // null = auto, 'simple' = force simple, 'advanced' = force advanced
 
   const timeframeOptions = useMemo(
     () => [
@@ -50,193 +47,6 @@ const TradingChart = ({
     interval,
     enabled: !!tokenAddress,
   });
-
-  // Initialize chart
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-
-    // Small delay to ensure container is properly rendered
-    const timeoutId = setTimeout(() => {
-      if (!chartContainerRef.current) return;
-
-      try {
-        const containerWidth = chartContainerRef.current.clientWidth;
-        const containerHeight = height;
-
-        const chart = createChart(chartContainerRef.current, {
-          layout: {
-            background: { type: ColorType.Solid, color: "#ffffff" },
-            textColor: "#374151",
-          },
-          grid: {
-            vertLines: { color: "#E5E7EB" },
-            horzLines: { color: "#E5E7EB" },
-          },
-          crosshair: {
-            mode: 0,
-          },
-          rightPriceScale: {
-            borderColor: "#E5E7EB",
-            titleVisible: true,
-          },
-          timeScale: {
-            borderColor: "#E5E7EB",
-            timeVisible: true,
-            secondsVisible: false,
-          },
-          handleScroll: {
-            mouseWheel: true,
-            pressedMouseMove: true,
-          },
-          handleScale: {
-            axisPressedMouseMove: true,
-            mouseWheel: true,
-            pinch: true,
-          },
-          width: Math.max(containerWidth, 300),
-          height: Math.max(containerHeight, 200),
-        });
-
-        // Try to add candlestick series first, fallback to line series if needed
-        let series;
-        let seriesType;
-        try {
-          series = chart.addCandlestickSeries({
-            upColor: "#22c55e",
-            downColor: "#ef4444",
-            borderVisible: true,
-            wickUpColor: "#22c55e",
-            wickDownColor: "#ef4444",
-            borderUpColor: "#16a34a",
-            borderDownColor: "#dc2626",
-            priceFormat: {
-              type: "custom",
-              formatter: (price) => `${price.toFixed(8)} SEI`,
-            },
-          });
-          seriesType = "candlestick";
-        } catch (candlestickError) {
-          console.warn(
-            "Candlestick series failed, falling back to line series:",
-            candlestickError,
-          );
-          series = chart.addLineSeries({
-            color: "#3b82f6",
-            lineWidth: 3,
-            priceFormat: {
-              type: "custom",
-              formatter: (price) => `${price.toFixed(8)} SEI`,
-            },
-          });
-          seriesType = "line";
-        }
-
-        chartRef.current = chart;
-        seriesRef.current = series;
-        seriesTypeRef.current = seriesType;
-
-        // Handle resize
-        const handleResize = () => {
-          if (chartContainerRef.current && chartRef.current) {
-            chartRef.current.applyOptions({
-              width: chartContainerRef.current.clientWidth,
-            });
-          }
-        };
-
-        window.addEventListener("resize", handleResize);
-
-        return () => {
-          window.removeEventListener("resize", handleResize);
-          if (chartRef.current) {
-            chartRef.current.remove();
-            chartRef.current = null;
-            seriesRef.current = null;
-            seriesTypeRef.current = null;
-          }
-        };
-      } catch (error) {
-        console.error("Error initializing chart:", error);
-        // setChartError(true);
-      }
-    }, 100); // 100ms delay
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [height]);
-
-  // Update chart data
-  useEffect(() => {
-    if (!chartData?.data?.chartData || !seriesRef.current) return;
-
-    try {
-      const rawData = chartData.data.chartData;
-
-      // Check if we have OHLC data and what series type we're using
-      const hasOHLCData =
-        rawData.length > 0 &&
-        rawData[0].open !== undefined &&
-        rawData[0].high !== undefined &&
-        rawData[0].low !== undefined;
-
-      let formattedData;
-
-      // Calculate multiplier for market cap if needed
-      const supplyMultiplier =
-        showMarketCap && totalSupply ? parseFloat(totalSupply) : 1;
-
-      if (hasOHLCData && seriesTypeRef.current === "candlestick") {
-        // Format as candlestick data
-        formattedData = rawData
-          .map((item) => {
-            const timestamp = new Date(item.timestamp);
-            if (isNaN(timestamp.getTime())) {
-              console.warn("Invalid timestamp:", item.timestamp);
-              return null;
-            }
-            return {
-              time: Math.floor(timestamp.getTime() / 1000),
-              open: (parseFloat(item.open) / 1e18) * supplyMultiplier,
-              high: (parseFloat(item.high) / 1e18) * supplyMultiplier,
-              low: (parseFloat(item.low) / 1e18) * supplyMultiplier,
-              close: (parseFloat(item.close) / 1e18) * supplyMultiplier,
-            };
-          })
-          .filter(
-            (item) =>
-              item &&
-              item.open > 0 &&
-              item.high > 0 &&
-              item.low > 0 &&
-              item.close > 0,
-          );
-      } else {
-        // Format as line data using close price
-        formattedData = rawData
-          .map((item) => {
-            const timestamp = new Date(item.timestamp);
-            if (isNaN(timestamp.getTime())) {
-              console.warn("Invalid timestamp:", item.timestamp);
-              return null;
-            }
-            return {
-              time: Math.floor(timestamp.getTime() / 1000),
-              value: parseFloat(item.close) * supplyMultiplier,
-            };
-          })
-          .filter((item) => item && item.value > 0);
-      }
-
-      if (formattedData.length > 0) {
-        seriesRef.current.setData(formattedData);
-        // Fit chart to data
-        chartRef.current?.timeScale().fitContent();
-      }
-    } catch (error) {
-      console.error("Error updating chart data:", error);
-    }
-  }, [chartData, showMarketCap, totalSupply]);
 
   // Get current price trend
   const getCurrentTrend = () => {
@@ -291,60 +101,85 @@ const TradingChart = ({
   }
 
   // Determine if we should use simple chart (but don't early return to maintain hook order)
-  const shouldUseSimpleChart =
+  const autoShouldUseSimpleChart =
     chartError ||
     !chartData?.data?.chartData ||
     chartData.data.chartData.length === 0;
+
+  const shouldUseSimpleChart =
+    forceChartMode === "simple"
+      ? true
+      : forceChartMode === "advanced"
+        ? false
+        : autoShouldUseSimpleChart; // auto mode
 
   return (
     <div className={`border border-border rounded-lg ${className}`}>
       {showControls && (
         <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <h3 className="font-semibold text-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h3 className="font-semibold text-foreground text-sm sm:text-base">
                 {showMarketCap ? "Market Cap" : "Price"} Chart
               </h3>
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  shouldUseSimpleChart ? "bg-red-500" : "bg-green-500"
-                }`}
-                title={
+              <button
+                onClick={() => {
+                  if (forceChartMode === null) {
+                    // If auto mode, toggle to opposite of current auto state
+                    setForceChartMode(
+                      autoShouldUseSimpleChart ? "advanced" : "simple",
+                    );
+                  } else if (forceChartMode === "simple") {
+                    setForceChartMode("advanced");
+                  } else if (forceChartMode === "advanced") {
+                    setForceChartMode("simple");
+                  }
+                }}
+                onDoubleClick={() => {
+                  // Double-click to reset to auto mode
+                  setForceChartMode(null);
+                }}
+                className={`w-2 h-2 rounded-full transition-all hover:scale-110 cursor-pointer flex-shrink-0 ${
                   shouldUseSimpleChart
-                    ? "Simple chart (fallback)"
-                    : "Advanced chart"
-                }
-              ></div>
+                    ? "bg-red-500 hover:bg-red-400"
+                    : "bg-green-500 hover:bg-green-400"
+                } ${
+                  forceChartMode !== null
+                    ? "ring-2 ring-offset-1 ring-gray-400"
+                    : ""
+                }`}
+                title={`${shouldUseSimpleChart ? "Simple chart" : "Advanced chart"}${forceChartMode !== null ? ` (manual)` : ` (auto)`} - click to toggle, double-click for auto`}
+              ></button>
               {totalSupply && (
                 <button
                   onClick={() => setShowMarketCap(!showMarketCap)}
-                  className="text-xs px-2 py-1 bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded transition-colors whitespace-nowrap cursor-pointer"
+                  className="text-xs px-2 py-1 bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded transition-colors whitespace-nowrap cursor-pointer flex-shrink-0"
                 >
                   {showMarketCap ? "Price" : "Market Cap"}
                 </button>
               )}
               {!shouldUseSimpleChart && trend.direction !== "neutral" && (
                 <div
-                  className={`flex items-center gap-1 text-sm ${
+                  className={`flex items-center gap-1 text-xs sm:text-sm flex-shrink-0 ${
                     trend.direction === "up" ? "text-green-600" : "text-red-600"
                   }`}
                 >
                   {trend.direction === "up" ? (
-                    <TrendingUp className="h-4 w-4" />
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                   ) : (
-                    <TrendingDown className="h-4 w-4" />
+                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4" />
                   )}
                   <span>{trend.change.toFixed(2)}%</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
               {timeframeOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleTimeframeChange(option.value)}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                  className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors whitespace-nowrap flex-shrink-0 ${
                     timeframe === option.value
                       ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -357,14 +192,16 @@ const TradingChart = ({
           </div>
 
           {/* Interval controls */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Interval:</span>
-            <div className="flex items-center gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span className="text-xs text-muted-foreground flex-shrink-0">
+              Interval:
+            </span>
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
               {getCurrentTimeframeOption()?.intervals.map((intervalOption) => (
                 <button
                   key={intervalOption}
                   onClick={() => handleIntervalChange(intervalOption)}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                  className={`px-2 py-1 text-xs rounded transition-colors whitespace-nowrap flex-shrink-0 ${
                     interval === intervalOption
                       ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -397,18 +234,11 @@ const TradingChart = ({
             className=""
           />
         ) : (
-          <div
-            ref={chartContainerRef}
-            style={{
-              height: `${height}px`,
-              minHeight: `${height}px`,
-              width: "100%",
-              minWidth: "300px",
-              backgroundColor: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-            }}
-            className="w-full"
+          <AdvancedChart
+            chartData={chartData}
+            height={height - (showControls ? 100 : 0)}
+            showMarketCap={showMarketCap}
+            totalSupply={totalSupply}
           />
         )}
       </div>

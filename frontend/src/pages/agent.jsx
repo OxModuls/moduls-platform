@@ -391,10 +391,13 @@ const Agent = () => {
           )}
         </div>
         <Tabs defaultValue="about" className="mt-5">
-          <TabsList className="w-full py-5">
+          <TabsList
+            className="w-full py-5 overflow-x-auto scrollbar-hide flex-nowrap justify-start md:justify-center"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
             <TabsTrigger
               value="about"
-              className="flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent"
+              className="flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit"
             >
               <Info className="size-5" />
               <h2 className="text-base font-semibold">About</h2>
@@ -402,7 +405,7 @@ const Agent = () => {
             <TabsTrigger
               value="trade"
               disabled={!isTradingEnabled}
-              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit ${
                 !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
@@ -412,7 +415,7 @@ const Agent = () => {
             <TabsTrigger
               value="analytics"
               disabled={!isTradingEnabled}
-              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit ${
                 !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
@@ -422,7 +425,7 @@ const Agent = () => {
             <TabsTrigger
               value="holders"
               disabled={!isTradingEnabled}
-              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit ${
                 !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >

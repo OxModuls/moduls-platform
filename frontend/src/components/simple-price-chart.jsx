@@ -21,7 +21,7 @@ const SimplePriceChart = ({ data, height = 400, className = "" }) => {
   }
 
   // Calculate chart dimensions
-  const padding = 40;
+  const padding = 20;
   const chartWidth = 800 - padding * 2;
   const chartHeight = height - padding * 2;
 
@@ -49,7 +49,7 @@ const SimplePriceChart = ({ data, height = 400, className = "" }) => {
 
   return (
     <div className={`border border-border rounded-lg ${className}`}>
-      <div className="p-4 border-b border-border">
+      <div className="p-2 border-b border-border">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-foreground">Price Chart</h3>
           <div
@@ -67,7 +67,7 @@ const SimplePriceChart = ({ data, height = 400, className = "" }) => {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-2">
         <svg width="100%" height={height} viewBox={`0 0 800 ${height}`}>
           {/* Grid lines */}
           <defs>
@@ -115,21 +115,21 @@ const SimplePriceChart = ({ data, height = 400, className = "" }) => {
           })}
 
           {/* Price labels */}
-          <text x={padding} y={padding - 10} fontSize="12" fill="#6B7280">
-            {maxPrice.toFixed(6)} ETH
+          <text x={padding} y={padding - 10} fontSize="20" fill="#6B7280">
+            {maxPrice.toFixed(6)} SEI
           </text>
-          <text x={padding} y={height - 10} fontSize="12" fill="#6B7280">
-            {minPrice.toFixed(6)} ETH
+          <text x={padding} y={height - 10} fontSize="20" fill="#6B7280">
+            {minPrice.toFixed(6)} SEI
           </text>
 
           {/* Time labels */}
-          <text x={padding} y={height - 10} fontSize="12" fill="#6B7280">
+          <text x={padding} y={height - 10} fontSize="20" fill="#6B7280">
             {new Date(data[0].timestamp).toLocaleDateString()}
           </text>
           <text
             x={padding + chartWidth}
             y={height - 10}
-            fontSize="12"
+            fontSize="20"
             fill="#6B7280"
             textAnchor="end"
           >
