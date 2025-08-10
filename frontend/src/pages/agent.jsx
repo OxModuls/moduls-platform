@@ -4,7 +4,6 @@ import AgentAboutTab from "@/components/agent-about-tab";
 import AgentTradeTab from "@/components/agent-trade-tab";
 import AgentHoldersTab from "@/components/agent-holders-tab";
 import CountdownTimer from "@/components/countdown-timer";
-import TradingChart from "@/components/trading-chart";
 import TradingMetrics from "@/components/trading-metrics";
 import TradingHistory from "@/components/trading-history";
 import {
