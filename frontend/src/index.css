@@ -139,4 +139,10 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .bg-icon-gradient {
+    @apply bg-gradient-to-r from-accent/20 to-[#FF0000]/20;
+  }
+  .bg-button-gradient {
+    @apply bg-gradient-to-br from-accent to-[#FF0000];
+  }
 }
