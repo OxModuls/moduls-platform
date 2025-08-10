@@ -1,3 +1,6 @@
+import { ArrowUpRight } from "lucide-react";
+import { Link } from "react-router";
+
 function AgentCard({ agent }) {
   const isPending = agent.status === "PENDING";
   const isInactive = agent.status === "INACTIVE";
