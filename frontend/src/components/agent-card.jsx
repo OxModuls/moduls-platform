@@ -1,7 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { Link } from "react-router";
 
-function AgentCard({ agent }) {
+function AgentCard({ agent, onLinkClick }) {
   const isPending = agent.status === "PENDING";
   const isInactive = agent.status === "INACTIVE";
   const isActive = agent.status === "ACTIVE";
@@ -50,6 +50,7 @@ function AgentCard({ agent }) {
         <Link
           to={`/agents/${agent.uniqueId}`}
           className="flex items-center gap-0.5 text-xs transition-colors duration-500 hover:text-accent"
+          onClick={onLinkClick}
         >
           View
           <ArrowUpRight className="size-3" />
