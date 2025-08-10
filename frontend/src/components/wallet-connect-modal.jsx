@@ -1,4 +1,4 @@
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useBalance, useConnect, useDisconnect } from "wagmi";
 import {
   Drawer,
   DrawerClose,
@@ -7,8 +7,16 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-} from "@/components/ui/drawer";
-import { Copy, Power } from "lucide-react";
+} from "./ui/drawer";
+import { Popover, PopoverContent, PopoverAnchor } from "./ui/popover";
+import {
+  BriefcaseBusiness,
+  CircleCheck,
+  Copy,
+  LoaderCircle,
+  Power,
+  User,
+} from "lucide-react";
 import metamaskIcon from "../assets/icons/metamask.svg";
 import trustwalletIcon from "../assets/icons/trustwallet.svg";
 import avatarImage from "../assets/avatar.svg";
@@ -16,8 +24,11 @@ import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 import { useWalletModalStore } from "../shared/store";
 import { useAuth } from "../shared/hooks/useAuth";
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 import AuthStatusIndicator from "./auth-status-indicator";
+import { formatBigIntToUnits } from "../lib/utils";
+import { Separator } from "./ui/separator";
+import { useIsMobile } from "../hooks/use-mobile";
 
 // map connector icons
 const connectorIcons = new Map([
@@ -26,11 +37,13 @@ const connectorIcons = new Map([
 ]);
 
 const WalletConnectModal = () => {
-  const { connect, connectors } = useConnect();
-  const { address, isConnected, connector: activeConnector } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { isWalletModalOpen, closeWalletModal } = useWalletModalStore();
-  const { isAuthenticated, isLoading, logout, authenticate } = useAuth();
+  const { address, isConnected } = useAccount();
+  const { isWalletModalOpen, setWalletModal } = useWalletModalStore();
+  const { isAuthenticated, logout, authenticate } = useAuth();
+  const isMobile = useIsMobile();
+
+  const drawerOpen = isMobile && isWalletModalOpen;
+  const popoverOpen = !isMobile && isWalletModalOpen;
 
   // Auto-authenticate when wallet connects
   useEffect(() => {
@@ -57,6 +70,175 @@ const WalletConnectModal = () => {
     }
   }, [isConnected, isAuthenticated, logout]);
 
+  return (
+    <>
+      {/* use drawer on mobile*/}
+      <Drawer open={drawerOpen} onOpenChange={setWalletModal}>
+        <DrawerContent className="md:hidden">
+          {isConnected ? (
+            <>
+              <DrawerHeader>
+                <DrawerTitle className="sr-only">Connected Wallet</DrawerTitle>
+                <DrawerDescription className="sr-only">
+                  Connected Wallet Details
+                </DrawerDescription>
+              </DrawerHeader>
+              <ConnectedContent />
+            </>
+          ) : (
+            <>
+              <DrawerHeader>
+                <DrawerTitle>Connect a wallet</DrawerTitle>
+                <DrawerDescription className="sr-only">
+                  Choose a wallet to connect
+                </DrawerDescription>
+              </DrawerHeader>
+              <DisconnectedContent />
+            </>
+          )}
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <button className="bg-button-gradient rounded-lg py-2">
+                Close
+              </button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* use popover on desktop */}
+      <Popover open={popoverOpen} onOpenChange={setWalletModal}>
+        <PopoverAnchor asChild>
+          <div className="absolute top-16 right-8" />
+        </PopoverAnchor>
+        <div className={`fixed inset-0 bg-black/50`} hidden={!popoverOpen} />
+        <PopoverContent className="mt-1 hidden w-sm rounded-lg border bg-background py-4 shadow-lg md:block">
+          {isConnected ? <ConnectedContent /> : <DisconnectedContent />}
+        </PopoverContent>
+      </Popover>
+    </>
+  );
+};
+
+const ConnectedContent = () => {
+  const { address, connector: activeConnector } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { closeWalletModal } = useWalletModalStore();
+  const { isAuthenticated, isLoading } = useAuth();
+  const { data: walletBalance } = useBalance({ address });
+  const formattedWalletBalance = !!walletBalance
+    ? formatBigIntToUnits(walletBalance.value, walletBalance.decimals)
+    : "0";
+
+  const disconnectWallet = () => {
+    disconnect(
+      {},
+      {
+        onSuccess: () => {
+          toast.success("Disconnected wallet");
+          closeWalletModal();
+        },
+      },
+    );
+  };
+
+  const menuItems = [
+    {
+      title: "Profile",
+      icon: User,
+      // onClick: () => setProfileDialogOpen((prev) => !prev),
+    },
+    {
+      title: "Portfolio",
+      icon: BriefcaseBusiness,
+      // onClick: () => setPortfolioDialogOpen((prev) => !prev),
+    },
+    {
+      title: "Disconnect",
+      icon: Power,
+      onClick: disconnectWallet,
+    },
+  ];
+
+  return (
+    <div className="px-4 md:px-0">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <img
+              src={avatarImage}
+              alt=""
+              className="size-12 rounded-full border-2 border-accent"
+            />
+            <img
+              src={
+                activeConnector?.icon || connectorIcons.get(activeConnector?.id)
+              }
+              alt={activeConnector?.name + "logo"}
+              className="absolute right-0 bottom-0 size-6 rounded-full"
+            />
+            <AuthStatusIndicator size="md" />
+          </div>
+          <div className="flex flex-col items-start">
+            <div className="flex px-1 items-center gap-2">
+              <span className="font-medium">
+                {ellipsizeAddress(address, 7, 7)}
+              </span>
+              <button
+                className="cursor-pointer"
+                onClick={() => writeToClipboard(address)}
+              >
+                <Copy className="size-5" />
+              </button>
+            </div>
+            <div className="rounded-lg bg-neutral-800 px-2 py-0.5 font-medium">
+              <span>{formattedWalletBalance}</span> <span>SEI</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {isLoading && (
+        <div className="mt-4 flex items-center justify-start gap-2">
+          <LoaderCircle className="size-6 animate-spin text-accent" />
+          <span className="text-sm font-medium tracking-wide text-accent-foreground">
+            Authenticating...
+          </span>
+        </div>
+      )}
+      {isAuthenticated && (
+        <div className="mt-4 flex items-center justify-start gap-2">
+          <CircleCheck className="size-6 text-green-600" />
+          <span className="text-sm font-semibold tracking-wide text-green-600">
+            Authenticated
+          </span>
+        </div>
+      )}
+
+      <Separator className="mt-4" />
+
+      <div className="flex flex-col gap-1 py-2">
+        {menuItems.map((item, idx, items) => (
+          <Fragment key={idx}>
+            <button
+              key={idx}
+              className="flex w-full cursor-pointer items-center gap-4 rounded-lg px-2 py-2 hover:bg-neutral-800"
+              onClick={item.onClick}
+            >
+              <item.icon className="size-6" />
+              <span className="">{item.title}</span>
+            </button>
+            {idx + 1 < items.length && <Separator className="" />}
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const DisconnectedContent = () => {
+  const { connect, connectors } = useConnect();
+  const { closeWalletModal } = useWalletModalStore();
+
   const connectWallet = async (connector) => {
     try {
       connect(
@@ -74,127 +256,25 @@ const WalletConnectModal = () => {
     }
   };
 
-  const disconnectWallet = () => {
-    disconnect(
-      {},
-      {
-        onSuccess: () => {
-          toast.success("Disconnected wallet");
-          closeWalletModal();
-        },
-      },
-    );
-  };
-
   return (
-    <Drawer open={isWalletModalOpen} onOpenChange={closeWalletModal}>
-      <DrawerContent className="max-w-xl w-full mx-auto">
-        {isConnected ? (
-          <>
-            <DrawerHeader>
-              <DrawerTitle className="sr-only">Connected Wallet</DrawerTitle>
-              <DrawerDescription className="sr-only">
-                Connected Wallet Details
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="px-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <img
-                      src={avatarImage}
-                      alt=""
-                      className="size-12 rounded-full border-2 border-accent"
-                    />
-                    <img
-                      src={
-                        activeConnector?.icon ||
-                        connectorIcons.get(activeConnector?.id)
-                      }
-                      alt={activeConnector?.name + "logo"}
-                      className="size-6 rounded-full absolute bottom-0 right-0"
-                    />
-                    <AuthStatusIndicator size="md" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className=" font-medium">
-                      {ellipsizeAddress(address, 7, 7)}
-                    </span>
-                    <button
-                      className="cursor-pointer"
-                      onClick={() => writeToClipboard(address)}
-                    >
-                      <Copy className="size-5" />
-                    </button>
-                  </div>
-                </div>
-                <button className="cursor-pointer" onClick={disconnectWallet}>
-                  <Power className="size-5" />
-                </button>
-              </div>
-              {isLoading && (
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <span className="animate-spin rounded-full border-2 border-accent border-t-transparent h-5 w-5" />
-                  <span className="text-sm text-accent-foreground font-medium tracking-wide">
-                    Authenticating...
-                  </span>
-                </div>
-              )}
-              {isAuthenticated && (
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <span className="inline-flex items-center justify-center rounded-full bg-green-600/10 text-green-600 h-5 w-5">
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M6 10.5l3 3 5-6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  <span className="text-sm font-semibold text-green-600 tracking-wide">
-                    Authenticated
-                  </span>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <DrawerHeader>
-              <DrawerTitle>Connect a wallet</DrawerTitle>
-              <DrawerDescription className="sr-only">
-                Choose a wallet to connect
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="px-4">
-              <div className="flex flex-col gap-2">
-                {connectors.map((connector) => (
-                  <button
-                    key={connector.uid}
-                    onClick={() => connectWallet(connector)}
-                    className="w-full h-16 py-3 pl-4 border rounded-lg bg-primary-foreground cursor-pointer flex items-center gap-4 hover:border-accent hover:bg-red-950 transition-all duration-200"
-                  >
-                    <img
-                      src={connector.icon || connectorIcons.get(connector.id)}
-                      alt={`${connector.name} icon`}
-                      className="size-10"
-                    />
-                    <span>{connector.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-        <DrawerFooter>
-          <DrawerClose asChild>
-            <button className="py-2 rounded-lg bg-accent">Close</button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+    <div className="px-4" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="flex flex-col gap-2">
+        {connectors.map((connector) => (
+          <button
+            key={connector.uid}
+            onClick={() => connectWallet(connector)}
+            className="flex h-16 w-full cursor-pointer items-center gap-4 rounded-lg border bg-primary-foreground py-3 pl-4 transition-all duration-200 hover:border-accent hover:bg-red-950"
+          >
+            <img
+              src={connector.icon || connectorIcons.get(connector.id)}
+              alt={`${connector.name} icon`}
+              className="size-10"
+            />
+            <span>{connector.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 };
 
