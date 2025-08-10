@@ -24,11 +24,13 @@ import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 import { useWalletModalStore } from "../shared/store";
 import { useAuth } from "../shared/hooks/useAuth";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import AuthStatusIndicator from "./auth-status-indicator";
 import { formatBigIntToUnits } from "../lib/utils";
 import { Separator } from "./ui/separator";
 import { useIsMobile } from "../hooks/use-mobile";
+import PortfolioDialog from "./portfolio-dialog";
+import ProfileDialog from "./profile-dialog";
 
 // map connector icons
 const connectorIcons = new Map([
@@ -41,9 +43,6 @@ const WalletConnectModal = () => {
   const { isWalletModalOpen, setWalletModal } = useWalletModalStore();
   const { isAuthenticated, logout, authenticate } = useAuth();
   const isMobile = useIsMobile();
-
-  const drawerOpen = isMobile && isWalletModalOpen;
-  const popoverOpen = !isMobile && isWalletModalOpen;
 
   // Auto-authenticate when wallet connects
   useEffect(() => {
@@ -70,10 +69,9 @@ const WalletConnectModal = () => {
     }
   }, [isConnected, isAuthenticated, logout]);
 
-  return (
-    <>
-      {/* use drawer on mobile*/}
-      <Drawer open={drawerOpen} onOpenChange={setWalletModal}>
+  if (isMobile) {
+    return (
+      <Drawer open={isWalletModalOpen} onOpenChange={setWalletModal}>
         <DrawerContent className="md:hidden">
           {isConnected ? (
             <>
@@ -105,18 +103,22 @@ const WalletConnectModal = () => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+    );
+  }
 
-      {/* use popover on desktop */}
-      <Popover open={popoverOpen} onOpenChange={setWalletModal}>
-        <PopoverAnchor asChild>
-          <div className="absolute top-16 right-8" />
-        </PopoverAnchor>
-        <div className={`fixed inset-0 bg-black/50`} hidden={!popoverOpen} />
-        <PopoverContent className="mt-1 hidden w-sm rounded-lg border bg-background py-4 shadow-lg md:block">
-          {isConnected ? <ConnectedContent /> : <DisconnectedContent />}
-        </PopoverContent>
-      </Popover>
-    </>
+  return (
+    <Popover open={isWalletModalOpen} onOpenChange={setWalletModal}>
+      <PopoverAnchor asChild>
+        <div className="absolute top-16 right-8" />
+      </PopoverAnchor>
+      <div
+        className={`fixed inset-0 bg-black/50`}
+        hidden={!isWalletModalOpen}
+      />
+      <PopoverContent className="mt-1 hidden w-sm rounded-lg border bg-background py-4 shadow-lg md:block">
+        {isConnected ? <ConnectedContent /> : <DisconnectedContent />}
+      </PopoverContent>
+    </Popover>
   );
 };
 
@@ -129,6 +131,8 @@ const ConnectedContent = () => {
   const formattedWalletBalance = !!walletBalance
     ? formatBigIntToUnits(walletBalance.value, walletBalance.decimals)
     : "0";
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   const disconnectWallet = () => {
     disconnect(
@@ -146,12 +150,12 @@ const ConnectedContent = () => {
     {
       title: "Profile",
       icon: User,
-      // onClick: () => setProfileDialogOpen((prev) => !prev),
+      onClick: () => setProfileDialogOpen((prev) => !prev),
     },
     {
       title: "Portfolio",
       icon: BriefcaseBusiness,
-      // onClick: () => setPortfolioDialogOpen((prev) => !prev),
+      onClick: () => setPortfolioDialogOpen((prev) => !prev),
     },
     {
       title: "Disconnect",
@@ -180,7 +184,7 @@ const ConnectedContent = () => {
             <AuthStatusIndicator size="md" />
           </div>
           <div className="flex flex-col items-start">
-            <div className="flex px-1 items-center gap-2">
+            <div className="flex items-center gap-2 px-1">
               <span className="font-medium">
                 {ellipsizeAddress(address, 7, 7)}
               </span>
@@ -216,7 +220,7 @@ const ConnectedContent = () => {
 
       <Separator className="mt-4" />
 
-      <div className="flex flex-col gap-1 py-2">
+      <div className="flex flex-col gap-1 pt-2">
         {menuItems.map((item, idx, items) => (
           <Fragment key={idx}>
             <button
@@ -231,6 +235,14 @@ const ConnectedContent = () => {
           </Fragment>
         ))}
       </div>
+      <PortfolioDialog
+        open={portfolioDialogOpen}
+        onOpenChange={setPortfolioDialogOpen}
+      />
+      <ProfileDialog
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
+      />
     </div>
   );
 };
@@ -257,7 +269,10 @@ const DisconnectedContent = () => {
   };
 
   return (
-    <div className="px-4" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="px-4 md:px-0 pt-2" onPointerDown={(e) => e.stopPropagation()}>
+      <h2 className="hidden md:block mb-4 text-center font-semibold text-foreground">
+        Connect a wallet
+      </h2>
       <div className="flex flex-col gap-2">
         {connectors.map((connector) => (
           <button
