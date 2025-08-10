@@ -10,7 +10,7 @@ import {
 } from "./ui/drawer";
 import { Popover, PopoverContent, PopoverAnchor } from "./ui/popover";
 import {
-  BriefcaseBusiness,
+    Bot,
   CircleCheck,
   Copy,
   LoaderCircle,
@@ -29,7 +29,7 @@ import AuthStatusIndicator from "./auth-status-indicator";
 import { formatBigIntToUnits } from "../lib/utils";
 import { Separator } from "./ui/separator";
 import { useIsMobile } from "../hooks/use-mobile";
-import PortfolioDialog from "./portfolio-dialog";
+import MyAgentsDialog from "./my-agents-dialog";
 import ProfileDialog from "./profile-dialog";
 
 // map connector icons
@@ -131,7 +131,7 @@ const ConnectedContent = () => {
   const formattedWalletBalance = !!walletBalance
     ? formatBigIntToUnits(walletBalance.value, walletBalance.decimals)
     : "0";
-  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [myAgentsDialogOpen, setMyAgentsDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   const disconnectWallet = () => {
@@ -153,9 +153,9 @@ const ConnectedContent = () => {
       onClick: () => setProfileDialogOpen((prev) => !prev),
     },
     {
-      title: "Portfolio",
-      icon: BriefcaseBusiness,
-      onClick: () => setPortfolioDialogOpen((prev) => !prev),
+      title: "My Agents",
+      icon: Bot,
+      onClick: () => setMyAgentsDialogOpen((prev) => !prev),
     },
     {
       title: "Disconnect",
@@ -235,9 +235,9 @@ const ConnectedContent = () => {
           </Fragment>
         ))}
       </div>
-      <PortfolioDialog
-        open={portfolioDialogOpen}
-        onOpenChange={setPortfolioDialogOpen}
+      <MyAgentsDialog
+        open={myAgentsDialogOpen}
+        onOpenChange={setMyAgentsDialogOpen}
       />
       <ProfileDialog
         open={profileDialogOpen}
