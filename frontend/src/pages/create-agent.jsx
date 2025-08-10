@@ -368,7 +368,7 @@ const CreateAgent = () => {
   return (
     <AuthWrapper pageLevel={true}>
       {() => (
-        <div className="px-6 pt-4 pb-12 flex flex-col">
+        <div className="px-6 pt-4 flex flex-col">
           <div className="max-w-lg mx-auto">
             <div className="ml-1">
               <h1 className="text-2xl font-bold">Launch Your Agent</h1>

@@ -13,32 +13,37 @@ const connectorIcons = new Map([
 
 const ConnectWalletButton = () => {
   const { isConnected, connector: activeConnector } = useAccount();
-  const { openWalletModal } = useWalletModalStore();
+  const { isWalletModalOpen, setWalletModal } = useWalletModalStore();
 
   return (
     <>
       {isConnected ? (
-        <button className="cursor-pointer" onClick={openWalletModal}>
+        <button
+          className="cursor-pointer"
+          onClick={() => setWalletModal(!isWalletModalOpen)}
+          autoFocus={!isWalletModalOpen}
+        >
           <div className="relative">
             <img
               src={avatarImage}
               alt=""
-              className="size-8 rounded-full border-2 border-accent"
+              className="size-11 rounded-full border-2 border-accent"
             />
             <img
               src={
                 activeConnector?.icon || connectorIcons.get(activeConnector?.id)
               }
               alt={activeConnector?.name + "logo"}
-              className="size-5 rounded-full absolute bottom-0 right-0"
+              className="absolute right-0 bottom-0 size-6 rounded-full"
             />
-            <AuthStatusIndicator size="sm" />
+            <AuthStatusIndicator size="md" />
           </div>
         </button>
       ) : (
         <button
-          onClick={openWalletModal}
-          className="px-3 py-2 bg-accent rounded-xl font-bold transition-all duration-500 hover:scale-105 cursor-pointer"
+          onClick={() => setWalletModal(!isWalletModalOpen)}
+          className="bg-button-gradient cursor-pointer rounded-xl px-3 py-2 transition-all duration-500 hover:scale-105"
+          autoFocus={!isWalletModalOpen}
         >
           Connect
         </button>

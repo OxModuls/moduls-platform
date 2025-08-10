@@ -124,20 +124,20 @@ const Agent = () => {
   // Handle loading state
   if (isLoading || contractLoading) {
     return (
-      <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
-        <div className="w-full max-w-lg mx-auto">
+      <div className="flex w-full max-w-screen flex-col px-6 pt-4 pb-12">
+        <div className="mx-auto w-full max-w-lg">
           <div className="animate-pulse">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="size-24 bg-muted rounded-full"></div>
+            <div className="mb-5 flex items-center gap-3">
+              <div className="size-24 rounded-full bg-muted"></div>
               <div className="space-y-2">
-                <div className="h-6 bg-muted rounded w-32"></div>
-                <div className="h-4 bg-muted rounded w-48"></div>
+                <div className="h-6 w-32 rounded bg-muted"></div>
+                <div className="h-4 w-48 rounded bg-muted"></div>
               </div>
             </div>
             <div className="space-y-3">
-              <div className="h-12 bg-muted rounded"></div>
-              <div className="h-12 bg-muted rounded"></div>
-              <div className="h-12 bg-muted rounded"></div>
+              <div className="h-12 rounded bg-muted"></div>
+              <div className="h-12 rounded bg-muted"></div>
+              <div className="h-12 rounded bg-muted"></div>
             </div>
           </div>
         </div>
@@ -148,21 +148,21 @@ const Agent = () => {
   // Handle error state
   if (error || contractError) {
     return (
-      <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
-        <div className="w-full max-w-lg mx-auto text-center">
+      <div className="flex w-full max-w-screen flex-col px-6 pt-4 pb-12">
+        <div className="mx-auto w-full max-w-lg text-center">
           <div className="mb-4">
-            <Bot className="size-16 text-muted-foreground mx-auto" />
+            <Bot className="mx-auto size-16 text-muted-foreground" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">
+          <h2 className="mb-2 text-xl font-semibold">
             {error ? "Agent Not Found" : "Contract Error"}
           </h2>
-          <p className="text-muted-foreground mb-4">
+          <p className="mb-4 text-muted-foreground">
             {error
               ? "The agent you're looking for doesn't exist or has been removed."
               : "There was an error loading contract data. Please check your connection and try again."}
           </p>
           {contractError && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-left">
+            <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-left">
               <p className="text-sm text-red-600 dark:text-red-400">
                 Contract Error: {contractError.message}
               </p>
@@ -170,7 +170,7 @@ const Agent = () => {
           )}
           <button
             onClick={() => navigate("/")}
-            className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
+            className="rounded-lg bg-accent px-4 py-2 text-accent-foreground transition-colors hover:bg-accent/90"
           >
             Go Home
           </button>
@@ -224,22 +224,22 @@ const Agent = () => {
   };
 
   return (
-    <div className="w-full max-w-screen px-6 pt-4 pb-12 flex flex-col">
-      <div className="w-full max-w-lg mx-auto">
-        <div className="w-full flex items-center gap-3">
+    <div className="flex w-full max-w-screen flex-col px-6 pt-4">
+      <div className="mx-auto w-full max-w-lg">
+        <div className="flex w-full items-center gap-3">
           <Avatar className="size-24 border-3 border-accent">
             <AvatarImage src={token.image} />
             <AvatarFallback>
               {token.name?.charAt(0)?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-col items-start gap-2 mb-1">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex flex-col items-start gap-2">
               <h1 className="text-xl font-bold uppercase">{token.name}</h1>
               <div className="flex items-center gap-2">
                 {agent?.status && (
                   <div
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${
                       agent.status === "ACTIVE"
                         ? "bg-green-500/20 text-green-600 dark:text-green-400"
                         : "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
@@ -251,7 +251,7 @@ const Agent = () => {
                   </div>
                 )}
                 {!isTradingEnabled && timeUntilTrading > 0 && (
-                  <div className="px-3 py-1 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-lg text-xs font-medium whitespace-nowrap">
+                  <div className="rounded-lg bg-yellow-500/20 px-3 py-1 text-xs font-medium whitespace-nowrap text-yellow-600 dark:text-yellow-400">
                     Trading opens in:{" "}
                     <CountdownTimer
                       targetTimestamp={targetTimestamp}
@@ -279,7 +279,7 @@ const Agent = () => {
         </div>
         <div className="mt-5 flex flex-col items-start gap-3">
           <div className="flex flex-col gap-3 md:flex-row">
-            <div className="w-auto px-4 py-3 bg-primary-foreground rounded-lg border flex items-center gap-2">
+            <div className="flex w-auto items-center gap-2 rounded-lg border bg-primary-foreground px-4 py-3">
               <p>
                 Contract Address:{" "}
                 <span>{ellipsizeAddress(token.contractAddress, 4, 4)}</span>
@@ -296,7 +296,7 @@ const Agent = () => {
             </div>
           </div>
           <div className="flex gap-3">
-            <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex items-center justify-between gap-1">
+            <div className="flex items-center justify-between gap-1 rounded-lg border bg-primary-foreground px-4 py-3">
               <p>
                 Time Created: <span>{formatISODate(token.creationDate)}</span>
               </p>
@@ -306,18 +306,18 @@ const Agent = () => {
                 href={token.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-3 bg-primary-foreground border rounded-lg hover:bg-primary-foreground/80 transition-colors"
+                className="rounded-lg border bg-primary-foreground px-4 py-3 transition-colors hover:bg-primary-foreground/80"
               >
                 <Globe />
               </a>
             )}
           </div>
           {token.isRegistered && (
-            <div className="w-full px-4 py-3 bg-primary-foreground rounded-lg border flex flex-col gap-2">
+            <div className="flex w-full flex-col gap-2 rounded-lg border bg-primary-foreground px-4 py-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Trading Status:</span>
                 <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${
                     token.isTradingEnabled
                       ? "bg-green-500/20 text-green-600 dark:text-green-400"
                       : timeUntilTrading > 0
@@ -343,7 +343,7 @@ const Agent = () => {
               {token.currentPrice && (
                 <div className="flex items-center justify-between">
                   <span>Current Price:</span>
-                  <span className="text-accent font-medium">
+                  <span className="font-medium text-accent">
                     {parseFloat(token.currentPrice).toFixed(10)} SEI
                   </span>
                 </div>
@@ -351,14 +351,14 @@ const Agent = () => {
               {token.marketStats && (
                 <div className="flex items-center justify-between">
                   <span>Total Volume:</span>
-                  <span className="text-accent font-medium">
+                  <span className="font-medium text-accent">
                     {parseFloat(token.marketStats.ethCollected).toFixed(10)} SEI
                   </span>
                 </div>
               )}
               {/* Curve Progress */}
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <div className="w-full flex justify-between mb-2">
+              <div className="mt-3 border-t border-border/50 pt-3">
+                <div className="mb-2 flex w-full justify-between">
                   <span>Curve Progress:</span>
                   <span className="text-accent">
                     {(
@@ -375,7 +375,7 @@ const Agent = () => {
                   }
                   indicatorClassName="bg-green-500 dark:bg-green-600"
                 />
-                <div className="w-full flex justify-between mt-2 text-sm">
+                <div className="mt-2 flex w-full justify-between text-sm">
                   <span>
                     Current:{" "}
                     {parseFloat(token.marketStats?.ethCollected || "0").toFixed(
@@ -393,12 +393,12 @@ const Agent = () => {
         </div>
         <Tabs defaultValue="about" className="mt-5">
           <TabsList
-            className="w-full py-5 overflow-x-auto scrollbar-hide flex-nowrap justify-start md:justify-center"
+            className="scrollbar-hide w-full flex-nowrap justify-start overflow-x-auto py-5 md:justify-center"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <TabsTrigger
               value="about"
-              className="flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit"
+              className="flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent"
             >
               <Info className="size-5" />
               <h2 className="text-base font-semibold">About</h2>
@@ -406,8 +406,8 @@ const Agent = () => {
             <TabsTrigger
               value="trade"
               disabled={!isTradingEnabled}
-              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit ${
-                !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
+              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
               <BadgeDollarSign className="size-5" />
@@ -416,8 +416,8 @@ const Agent = () => {
             <TabsTrigger
               value="analytics"
               disabled={!isTradingEnabled}
-              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit ${
-                !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
+              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
               <TrendingUp className="size-5" />
@@ -426,8 +426,8 @@ const Agent = () => {
             <TabsTrigger
               value="holders"
               disabled={!isTradingEnabled}
-              className={`flex items-center gap-2 cursor-pointer data-[state=active]:text-accent dark:data-[state=active]:text-accent flex-shrink-0 min-w-fit ${
-                !isTradingEnabled ? "opacity-50 cursor-not-allowed" : ""
+              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
               <UserRound className="size-5" />

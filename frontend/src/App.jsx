@@ -9,7 +9,6 @@ import NotFound from "./pages/not-found";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "./wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import WalletConnectModal from "./components/wallet-connect-modal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,7 +37,6 @@ function App() {
             {/* Catch-all route for undefined routes */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <WalletConnectModal />
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>
