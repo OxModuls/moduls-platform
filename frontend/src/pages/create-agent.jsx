@@ -776,7 +776,7 @@ const CreateAgent = () => {
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 flex items-center gap-2"
+                        className="px-3 py-2 bg-button-gradient rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 flex items-center gap-2"
                         onClick={() =>
                           prebuyDivRef.current &&
                           prebuyDivRef.current.scrollIntoView({
@@ -983,7 +983,7 @@ const CreateAgent = () => {
                           !isValid ||
                           deployModulsTokenPending
                         }
-                        className="px-3 py-2 bg-accent rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="px-3 py-2 bg-button-gradient rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {(createAgentMutation.isPending ||
                           deployModulsTokenPending) && (
