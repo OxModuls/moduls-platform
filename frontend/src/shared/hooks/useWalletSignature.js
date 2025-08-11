@@ -1,35 +1,45 @@
-import { useState, useCallback } from 'react';
-import { useAccount, useChainId } from 'wagmi';
+import { useState, useCallback } from "react";
+import { useAccount, useChainId } from "wagmi";
 import { signMessage } from "wagmi/actions";
-import { wagmiConfig } from '../../wagmi';
-import { createSIWEMessage } from '../../lib/siwe';
+import { wagmiConfig } from "../../wagmi";
+import { createSIWEMessage } from "../../lib/siwe";
+import config from "../config";
 
 export const useWalletSignature = () => {
-    const { address, isConnected } = useAccount();
-    const chainId = useChainId();
-    const [isSigning, setIsSigning] = useState(false);
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const [isSigning, setIsSigning] = useState(false);
 
-    const getSIWESignature = useCallback(async (nonce) => {
-        if (!isConnected || !address || !nonce) {
-            throw new Error('Wallet not connected or nonce missing');
-        }
+  const getSIWESignature = useCallback(
+    async (nonce) => {
+      if (!isConnected || !address || !nonce) {
+        throw new Error("Wallet not connected or nonce missing");
+      }
 
-        const message = createSIWEMessage(address, nonce, chainId);
+      const message = createSIWEMessage(
+        address,
+        nonce,
+        chainId,
+        config.isDev ? "localhost:5173" : "moduls-one.vercel.app",
+      );
 
-        try {
-            setIsSigning(true);
-            const signature = await signMessage(wagmiConfig, {
-                message,
-                account: address,
-            });
-            return { signature, message };
-        } finally {
-            setIsSigning(false);
-        }
-    }, [address, isConnected, chainId]);
+      try {
+        setIsSigning(true);
+        const signature = await signMessage(wagmiConfig, {
+          message,
+          account: address,
+        });
+        return { signature, message };
+      } finally {
+        setIsSigning(false);
+      }
+    },
+    [address, isConnected, chainId],
+  );
 
-    return {
-        getSIWESignature,
-        isSigning,
-    };
-}; 
+  return {
+    getSIWESignature,
+    isSigning,
+  };
+};
+
