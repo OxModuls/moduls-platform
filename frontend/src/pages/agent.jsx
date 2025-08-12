@@ -26,11 +26,13 @@ import config from "../shared/config";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
+import ChatPopup from "@/components/chat-popup";
 
 const Agent = () => {
   const { uniqueId } = useParams();
   const navigate = useNavigate();
   const { address: connectedAddress } = useAccount();
+  const [agentChatOpen, setAgentChatOpen] = useState(false);
 
   // Fetch agent data
   const {
@@ -487,6 +489,14 @@ const Agent = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {agent && (
+        <ChatPopup
+          open={agentChatOpen}
+          onOpenChange={setAgentChatOpen}
+          agent={agent}
+        />
+      )}
     </div>
   );
 };
