@@ -53,9 +53,7 @@ const Home = () => {
             className="bg-button-gradient mt-3 flex w-fit cursor-pointer justify-center rounded-xl px-3 py-2 transition-all duration-500 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between gap-1">
-              <Bot className="size-5" />
               <span className="">Launch Agent</span>
-              <ArrowUpRight className="size-5" />
             </div>
           </button>
         </div>

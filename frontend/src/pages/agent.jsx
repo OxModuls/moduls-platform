@@ -13,7 +13,7 @@ import {
   Globe,
   Info,
   UserRound,
-  TrendingUp,
+  Activity,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
@@ -234,10 +234,16 @@ const Agent = () => {
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex flex-col items-start gap-2">
-              <h1 className="text-xl font-bold uppercase">{token.name}</h1>
+              <div className="flex gap-4">
+                <h1 className="text-xl font-bold uppercase">{token.name}</h1>
+                <span className="rounded-md bg-accent/20 px-2 py-1 text-sm text-accent">
+                  {agent.tags[0]}
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 {agent?.status && (
                   <div
+                    hidden
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
                       agent.status === "ACTIVE"
                         ? "bg-green-500/20 text-green-600 dark:text-green-400"
@@ -262,7 +268,8 @@ const Agent = () => {
             </div>
             <div className="flex items-center gap-2">
               <p>
-                Created by: <span>{ellipsizeAddress(token.createdBy)}</span>
+                Created by:{" "}
+                <span>{ellipsizeAddress(token.createdBy, 4, 4)}</span>
               </p>
               <button
                 className="cursor-pointer"
@@ -313,50 +320,53 @@ const Agent = () => {
           </div>
           {token.isRegistered && (
             <div className="flex w-full flex-col gap-2 rounded-lg border bg-primary-foreground px-4 py-3">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Trading Status:</span>
-                <span
-                  className={`rounded-full px-2 py-1 text-xs font-medium ${
-                    token.isTradingEnabled
-                      ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                      : timeUntilTrading > 0
-                        ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                        : "bg-red-500/20 text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {token.isTradingEnabled ? (
-                    "Active"
-                  ) : timeUntilTrading > 0 ? (
-                    <>
-                      Opens in{" "}
-                      <CountdownTimer
-                        targetTimestamp={targetTimestamp}
-                        onComplete={handleCountdownComplete}
-                      />
-                    </>
-                  ) : (
-                    "Scheduled"
-                  )}
-                </span>
+              <div hidden>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Trading Status:</span>
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                      token.isTradingEnabled
+                        ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                        : timeUntilTrading > 0
+                          ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                          : "bg-red-500/20 text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {token.isTradingEnabled ? (
+                      "Active"
+                    ) : timeUntilTrading > 0 ? (
+                      <>
+                        Opens in{" "}
+                        <CountdownTimer
+                          targetTimestamp={targetTimestamp}
+                          onComplete={handleCountdownComplete}
+                        />
+                      </>
+                    ) : (
+                      "Scheduled"
+                    )}
+                  </span>
+                </div>
+                {token.currentPrice && (
+                  <div className="flex items-center justify-between">
+                    <span>Current Price:</span>
+                    <span className="font-medium text-accent">
+                      {parseFloat(token.currentPrice).toFixed(10)} SEI
+                    </span>
+                  </div>
+                )}
+                {token.marketStats && (
+                  <div className="flex items-center justify-between">
+                    <span>Total Volume:</span>
+                    <span className="font-medium text-accent">
+                      {parseFloat(token.marketStats.ethCollected).toFixed(10)}{" "}
+                      SEI
+                    </span>
+                  </div>
+                )}
               </div>
-              {token.currentPrice && (
-                <div className="flex items-center justify-between">
-                  <span>Current Price:</span>
-                  <span className="font-medium text-accent">
-                    {parseFloat(token.currentPrice).toFixed(10)} SEI
-                  </span>
-                </div>
-              )}
-              {token.marketStats && (
-                <div className="flex items-center justify-between">
-                  <span>Total Volume:</span>
-                  <span className="font-medium text-accent">
-                    {parseFloat(token.marketStats.ethCollected).toFixed(10)} SEI
-                  </span>
-                </div>
-              )}
               {/* Curve Progress */}
-              <div className="mt-3 border-t border-border/50 pt-3">
+              <div className="">
                 <div className="mb-2 flex w-full justify-between">
                   <span>Curve Progress:</span>
                   <span className="text-accent">
@@ -392,7 +402,7 @@ const Agent = () => {
         </div>
         <Tabs defaultValue="about" className="mt-5">
           <TabsList
-            className="scrollbar-hide w-full flex-nowrap justify-start overflow-x-auto py-5 md:justify-center"
+            className="scrollbar-hide w-full flex-nowrap justify-start overflow-x-auto md:justify-center [&>*]:h-auto"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <TabsTrigger
@@ -413,14 +423,14 @@ const Agent = () => {
               <h2 className="text-base font-semibold">Buy/Sell</h2>
             </TabsTrigger>
             <TabsTrigger
-              value="analytics"
+              value="activity"
               disabled={!isTradingEnabled}
               className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
                 !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
-              <TrendingUp className="size-5" />
-              <h2 className="text-base font-semibold">Analytics</h2>
+              <Activity className="size-5" />
+              <h2 className="text-base font-semibold">Activity</h2>
             </TabsTrigger>
             <TabsTrigger
               value="holders"
@@ -456,7 +466,7 @@ const Agent = () => {
               connectedAddress={connectedAddress}
             />
           </TabsContent>
-          <TabsContent value="analytics" asChild>
+          <TabsContent value="activity" asChild>
             <div className="space-y-6">
               <TradingMetrics
                 tokenAddress={token?.contractAddress}
