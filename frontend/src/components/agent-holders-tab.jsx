@@ -68,8 +68,8 @@ const AgentHoldersTab = ({
 
   if (!isTradingEnabled) {
     return (
-      <div className="mt-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="mt-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
+        <div className="mb-2 flex items-center gap-2">
           <Users className="size-4 text-yellow-600 dark:text-yellow-400" />
           <h3 className="font-medium text-yellow-600 dark:text-yellow-400">
             {timeUntilTrading > 0 ? "Trading Opens Soon" : "Trading Scheduled"}
@@ -95,14 +95,14 @@ const AgentHoldersTab = ({
 
   if (holdersError || statsError) {
     return (
-      <div className="mt-3 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-4">
+        <div className="mb-2 flex items-center gap-2">
           <Users className="size-4 text-red-600 dark:text-red-400" />
           <h3 className="font-medium text-red-600 dark:text-red-400">
             Failed to Load Data
           </h3>
         </div>
-        <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-3">
+        <p className="mb-3 text-sm text-red-600/80 dark:text-red-400/80">
           Failed to load holder data. Please try again.
         </p>
         <Button
@@ -112,9 +112,9 @@ const AgentHoldersTab = ({
           disabled={isRetrying}
         >
           {isRetrying ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
           ) : (
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="mr-2 h-4 w-4" />
           )}
           {isRetrying ? "Retrying..." : "Retry"}
         </Button>
@@ -124,40 +124,14 @@ const AgentHoldersTab = ({
 
   return (
     <div className="mt-3">
-      {/* Statistics */}
-      {stats && (
-        <div className="mb-5">
-          <div className="ml-2 flex items-center gap-2">
-            <BarChart3 className="size-4" />
-            <h2 className="text-lg font-semibold">Holder Statistics</h2>
-          </div>
-          <div className="mt-2 px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="size-5" />
-              <span className="font-medium">Total Holders</span>
-            </div>
-            <span className="font-semibold text-accent">
-              {stats.totalHolders || 0}
-            </span>
-          </div>
-          <div className="mt-2 px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
-            <div className="flex items-center gap-2">
-              <Database className="size-5" />
-              <span className="font-medium">Average Balance</span>
-            </div>
-            <span className="font-semibold text-accent">
-              {formatHolderBalance(stats.avgBalance || "0")}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Controls */}
       <div className="mb-5">
         <div className="ml-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="size-4" />
-            <h2 className="text-lg font-semibold">Token Holders</h2>
+            <h2 className="text-lg font-semibold">
+              Token Holders {stats && <span>({stats.totalHolders || 0})</span>}
+            </h2>
           </div>
           <Button
             variant="outline"
@@ -166,9 +140,9 @@ const AgentHoldersTab = ({
             disabled={holdersLoading || statsLoading || isRetrying}
           >
             {holdersLoading || statsLoading || isRetrying ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></div>
+              <div className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
             ) : (
-              <RefreshCw className="h-4 w-4 mr-1" />
+              <RefreshCw className="mr-1 h-4 w-4" />
             )}
             {holdersLoading || statsLoading || isRetrying
               ? "Refreshing..."
@@ -178,15 +152,15 @@ const AgentHoldersTab = ({
       </div>
 
       {/* Holders Table */}
-      <div className="px-2 py-4 bg-primary-foreground rounded-lg border">
+      <div className="rounded-lg border bg-primary-foreground px-2 py-4">
         {holdersLoading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mr-3"></div>
+            <div className="mr-3 h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent"></div>
             <span className="text-muted-foreground">Loading holders...</span>
           </div>
         ) : holders.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="mx-auto h-8 w-8 mb-2 opacity-50" />
+          <div className="py-8 text-center text-muted-foreground">
+            <Users className="mx-auto mb-2 h-8 w-8 opacity-50" />
             <p>No holders found</p>
           </div>
         ) : (
@@ -195,10 +169,10 @@ const AgentHoldersTab = ({
               {holders.map((holder) => (
                 <div
                   key={holder.address}
-                  className="px-4 py-3 bg-background rounded-lg border flex justify-between items-center hover:bg-muted/30 transition-colors"
+                  className="flex items-center justify-between rounded-lg border bg-background px-4 py-3 transition-colors hover:bg-muted/30"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-medium text-muted-foreground min-w-[2rem]">
+                    <span className="min-w-[2rem] font-medium text-muted-foreground">
                       #{holder.rank}
                     </span>
                     <div className="flex items-center gap-2">
@@ -206,7 +180,7 @@ const AgentHoldersTab = ({
                         {shortenAddress(holder.address)}
                       </span>
                       <button
-                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-muted-foreground transition-colors hover:text-foreground"
                         onClick={() => writeToClipboard(holder.address)}
                         title="Copy address"
                       >
@@ -216,7 +190,7 @@ const AgentHoldersTab = ({
                     <div className="flex items-center gap-2">
                       {getSpecialHolderType(holder.address) ? (
                         <span
-                          className={`text-xs px-2 py-1 rounded-full bg-blue-100 border border-blue-200 ${getSpecialHolderType(holder.address).color} font-medium`}
+                          className={`rounded-full border border-blue-200 bg-blue-100 px-2 py-1 text-xs ${getSpecialHolderType(holder.address).color} font-medium`}
                           title={getSpecialHolderType(holder.address).tooltip}
                         >
                           {getSpecialHolderType(holder.address).name}
@@ -237,7 +211,7 @@ const AgentHoldersTab = ({
                         {formatHolderBalance(holder.balance)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {formatHolderPercentage(holder.percentage)} of supply
+                        {formatHolderPercentage(holder.percentage)}
                       </div>
                     </div>
                   </div>
@@ -247,7 +221,7 @@ const AgentHoldersTab = ({
 
             {/* Pagination */}
             {pagination && pagination.total > limit && (
-              <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row gap-3 justify-between items-center">
+              <div className="mt-4 flex flex-col items-center justify-between gap-3 border-t pt-4 sm:flex-row">
                 <div className="text-sm text-muted-foreground">
                   Showing {currentPage * limit + 1} -{" "}
                   {Math.min((currentPage + 1) * limit, pagination.total)} of{" "}

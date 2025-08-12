@@ -200,7 +200,7 @@ const TransactionRow = ({ transaction }) => {
           </div>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>User: {ellipsizeAddress(transaction.userAddress)}</span>
+            <span>User: {ellipsizeAddress(transaction.userAddress, 4, 4)}</span>
             <span>{formatTime(transaction.blockTimestamp)}</span>
           </div>
         </div>

@@ -26,12 +26,12 @@ const TradingMetrics = ({
 
   if (isLoading) {
     return (
-      <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${className}`}>
+      <div className={`grid grid-cols-2 gap-4 md:grid-cols-4 ${className}`}>
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="border border-border rounded-lg p-4">
+          <div key={i} className="rounded-lg border border-border p-4">
             <div className="animate-pulse">
-              <div className="h-4 bg-muted rounded w-16 mb-2"></div>
-              <div className="h-6 bg-muted rounded w-20"></div>
+              <div className="mb-2 h-4 w-16 rounded bg-muted"></div>
+              <div className="h-6 w-20 rounded bg-muted"></div>
             </div>
           </div>
         ))}
@@ -41,7 +41,7 @@ const TradingMetrics = ({
 
   if (error || !metrics?.data) {
     return (
-      <div className={`border border-border rounded-lg p-4 ${className}`}>
+      <div className={`rounded-lg border border-border p-4 ${className}`}>
         <div className="text-center text-muted-foreground">
           <p>Unable to load trading metrics</p>
         </div>
@@ -132,16 +132,16 @@ const TradingMetrics = ({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Current Price/Market Cap Toggle */}
-      <div className="border border-border rounded-lg p-4">
-        <div className="text-center">
+      <div className="rounded-lg border border-border p-4">
+        <div hidden className="debug text-center">
           <button
             onClick={() =>
               (totalSupply || agentData?.totalSupply || data.totalSupply) &&
               setShowMarketCap(!showMarketCap)
             }
-            className={`text-sm text-muted-foreground mb-1 transition-colors ${
+            className={`mb-1 text-sm text-muted-foreground transition-colors ${
               totalSupply || agentData?.totalSupply || data.totalSupply
-                ? "hover:text-foreground cursor-pointer"
+                ? "cursor-pointer hover:text-foreground"
                 : "cursor-default"
             }`}
           >
@@ -156,7 +156,26 @@ const TradingMetrics = ({
           </div>
           {data.priceChange24h !== 0 && (
             <div
-              className={`text-sm mt-1 ${getPriceChangeColor(data.priceChange24h)}`}
+              className={`mt-1 text-sm ${getPriceChangeColor(data.priceChange24h)}`}
+            >
+              {formatPriceChange(data.priceChange24h)} (24h)
+            </div>
+          )}
+        </div>
+        <div className="">
+          <div className="flex w-full justify-between">
+            <p>Price</p>
+            <span>{formatTradingAmount(data.currentPrice, 18)} SEI</span>
+          </div>
+          {(totalSupply || agentData?.totalSupply || data.totalSupply) && (
+            <div className="flex w-full justify-between">
+              <p>Market Cap</p>
+              <span>{calculateMarketCap()} SEI</span>
+            </div>
+          )}
+          {data.priceChange24h !== 0 && (
+            <div
+              className={`mt-1 text-center text-sm ${getPriceChangeColor(data.priceChange24h)}`}
             >
               {formatPriceChange(data.priceChange24h)} (24h)
             </div>
@@ -176,32 +195,26 @@ const TradingMetrics = ({
         (() => {
           const reducedRatio = getReducedRatio(data.totalBuys, data.totalSells);
           return (
-            <div className="border border-border rounded-lg p-4">
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                <span>Buy/Sell Ratio</span>
-                <span>
-                  {reducedRatio.buys}:{reducedRatio.sells}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm mb-2">
+            <div className="rounded-lg border border-border p-4">
+              <div className="mb-2 flex items-center justify-between text-sm">
                 <span className="text-green-600">Buys ({data.totalBuys})</span>
                 <span className="text-red-600">Sells ({data.totalSells})</span>
               </div>
-              <div className="w-full bg-muted rounded-full h-2 overflow-hidden flex">
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className="bg-green-600 h-full transition-all duration-300"
+                  className="h-full bg-green-600 transition-all duration-300"
                   style={{
                     width: `${(data.totalBuys / data.totalTrades) * 100}%`,
                   }}
                 />
                 <div
-                  className="bg-red-600 h-full transition-all duration-300"
+                  className="h-full bg-red-600 transition-all duration-300"
                   style={{
                     width: `${(data.totalSells / data.totalTrades) * 100}%`,
                   }}
                 />
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+              <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   {((data.totalBuys / data.totalTrades) * 100).toFixed(1)}%
                 </span>
@@ -218,15 +231,15 @@ const TradingMetrics = ({
 
 const MetricCard = ({ label, value, icon: Icon, color }) => {
   return (
-    <div className="border border-border/30 rounded-lg p-3 text-center bg-muted/20">
-      <div className="flex items-center justify-center gap-1 mb-2">
+    <div className="rounded-lg border border-border/30 bg-muted/20 p-3 text-center">
+      <div className="mb-2 flex items-center justify-center gap-1">
         <Icon className={`h-3 w-3 ${color} opacity-70`} />
-        <span className="text-xs text-muted-foreground font-medium">
+        <span className="text-xs font-medium text-muted-foreground">
           {label}
         </span>
       </div>
       <div
-        className="text-sm font-semibold text-foreground break-words"
+        className="text-sm font-semibold break-words text-foreground"
         title={value}
       >
         {value}

@@ -28,15 +28,15 @@ const AgentAboutTab = ({
     <div className="mt-3">
       {!token.isAddressValid && (
         <div
-          className={`mb-5 p-4 border rounded-lg ${
+          className={`mb-5 rounded-lg border p-4 ${
             token.status === "PENDING"
-              ? "bg-yellow-500/10 border-yellow-500/20"
+              ? "border-yellow-500/20 bg-yellow-500/10"
               : token.status === "INACTIVE"
-                ? "bg-red-500/10 border-red-500/20"
-                : "bg-gray-500/10 border-gray-500/20"
+                ? "border-red-500/20 bg-red-500/10"
+                : "border-gray-500/20 bg-gray-500/10"
           }`}
         >
-          <div className="flex items-center gap-2 mb-2">
+          <div className="mb-2 flex items-center gap-2">
             <BadgeDollarSign
               className={`size-4 ${
                 token.status === "PENDING"
@@ -80,8 +80,8 @@ const AgentAboutTab = ({
         </div>
       )}
       {!isTradingEnabled && token.isAddressValid && (
-        <div className="mb-5 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="mb-5 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
+          <div className="mb-2 flex items-center gap-2">
             <BadgeDollarSign className="size-4 text-yellow-600 dark:text-yellow-400" />
             <h3 className="font-medium text-yellow-600 dark:text-yellow-400">
               {timeUntilTrading > 0
@@ -134,21 +134,21 @@ const AgentAboutTab = ({
           <Info className="size-4" />
           <h2 className="text-lg font-semibold">Info</h2>
         </div>
-        <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
+        <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
           <div className="flex items-center gap-2">
             <Database className="size-5" />
             <span className="font-medium">Supply</span>
           </div>
           <span>{token.supply.toLocaleString()}</span>
         </div>
-        <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
+        <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
           <div className="flex items-center gap-2">
             <Calendar className="size-5" />
             <span className="font-medium">Created</span>
           </div>
           <span>{formatISODate(token.creationDate)}</span>
         </div>
-        <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
+        <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
           <div className="flex items-center gap-2">
             <Banknote className="size-5" />
             <span className="font-medium">Trade fees</span>
@@ -158,7 +158,7 @@ const AgentAboutTab = ({
             <CircleQuestionMark className="size-4 text-muted-foreground" />
           </div>
         </div>
-        <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
+        <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
           <div className="flex items-center gap-2">
             <Link className="size-5" />
             <span className="font-medium">Contract Address:</span>
@@ -176,7 +176,7 @@ const AgentAboutTab = ({
             </button>
           </div>
         </div>
-        <div className="px-4 py-3 bg-primary-foreground rounded-lg border flex justify-between">
+        <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
           <div className="flex items-center gap-2">
             <UserRound className="size-5" />
             <span className="font-medium">Developer Address:</span>
@@ -195,15 +195,15 @@ const AgentAboutTab = ({
           </div>
         </div>
         {agent?.tags && agent.tags.length > 0 && (
-          <div className="px-4 py-3 bg-primary-foreground rounded-lg border">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="rounded-lg border bg-primary-foreground px-4 py-3">
+            <div className="mb-2 flex items-center gap-2">
               <span className="font-medium">Tags:</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {agent.tags.map((tag, index) => (
                 <span
                   key={index}
-                  className="px-2 py-1 bg-accent/20 text-accent rounded-md text-sm"
+                  className=" rounded-md bg-accent/20 px-2 py-1 text-sm text-accent"
                 >
                   {tag}
                 </span>

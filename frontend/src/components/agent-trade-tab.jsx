@@ -1,4 +1,9 @@
-import { ArrowUpDown, BadgeDollarSign } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ArrowUpDown,
+  BadgeDollarSign,
+  Wallet,
+} from "lucide-react";
 import { Input } from "./ui/input";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -13,6 +18,7 @@ import { toast } from "sonner";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
 import { formatTokenAmount } from "@/shared/hooks/useTrading";
 import { wagmiConfig } from "../wagmi";
+import { formatBigIntToUnits } from "../lib/utils";
 
 const AgentTradeTab = ({
   token,
@@ -638,15 +644,15 @@ const AgentTradeTab = ({
       {!token.isAddressValid ? (
         <div className="pt-4 text-center">
           <div
-            className={`p-4 border rounded-lg ${
+            className={`rounded-lg border p-4 ${
               token.status === "PENDING"
-                ? "bg-yellow-500/10 border-yellow-500/20"
+                ? "border-yellow-500/20 bg-yellow-500/10"
                 : token.status === "INACTIVE"
-                  ? "bg-red-500/10 border-red-500/20"
-                  : "bg-gray-500/10 border-gray-500/20"
+                  ? "border-red-500/20 bg-red-500/10"
+                  : "border-gray-500/20 bg-gray-500/10"
             }`}
           >
-            <div className="flex items-center gap-2 mb-2 justify-center">
+            <div className="mb-2 flex items-center justify-center gap-2">
               <BadgeDollarSign
                 className={`size-4 ${
                   token.status === "PENDING"
@@ -691,8 +697,8 @@ const AgentTradeTab = ({
         </div>
       ) : !token.isRegistered ? (
         <div className="pt-4 text-center">
-          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <div className="flex items-center gap-2 mb-2 justify-center">
+          <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
+            <div className="mb-2 flex items-center justify-center gap-2">
               <BadgeDollarSign className="size-4 text-yellow-600 dark:text-yellow-400" />
               <h3 className="font-medium text-yellow-600 dark:text-yellow-400">
                 Token Not Registered
@@ -706,8 +712,8 @@ const AgentTradeTab = ({
         </div>
       ) : !token.isTradingEnabled ? (
         <div className="pt-4 text-center">
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <div className="flex items-center gap-2 mb-2 justify-center">
+          <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4">
+            <div className="mb-2 flex items-center justify-center gap-2">
               <BadgeDollarSign className="size-4 text-red-600 dark:text-red-400" />
               <h3 className="font-medium text-red-600 dark:text-red-400">
                 Trading Paused
@@ -720,17 +726,17 @@ const AgentTradeTab = ({
         </div>
       ) : (
         <div className="pt-4">
-          <div className="w-full flex gap-2 bg-primary-foreground">
+          <div className="flex w-full gap-2 bg-primary-foreground">
             <button
               data-active={activeTradeTab === "buy"}
-              className="py-2 flex-1 border-2 data-[active=true]:border-green-600 data-[active=true]:text-green-600 rounded-lg font-semibold cursor-pointer"
+              className="flex-1 cursor-pointer rounded-lg border-2 py-2 font-semibold data-[active=true]:border-green-600 data-[active=true]:text-green-600"
               onClick={() => handleSetActiveTradeTab("buy")}
             >
               Buy
             </button>
             <button
               data-active={activeTradeTab === "sell"}
-              className="py-2 flex-1 border-2 data-[active=true]:border-red-600 data-[active=true]:text-red-600 rounded-lg font-semibold cursor-pointer"
+              className="flex-1 cursor-pointer rounded-lg border-2 py-2 font-semibold data-[active=true]:border-red-600 data-[active=true]:text-red-600"
               onClick={() => handleSetActiveTradeTab("sell")}
             >
               Sell
@@ -744,8 +750,8 @@ const AgentTradeTab = ({
             enableReinitialize={false}
           >
             {({ values, setFieldValue, isValid, dirty }) => (
-              <Form className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
-                <div className="w-full flex flex-col gap-1">
+              <Form className="bg-neutral-850 mt-3 flex flex-col gap-4 rounded-lg border px-2 py-4">
+                <div className="flex w-full flex-col gap-1">
                   <label
                     htmlFor="slippage"
                     className="ml-1 text-sm font-semibold"
@@ -765,66 +771,27 @@ const AgentTradeTab = ({
                   <ErrorMessage
                     name="slippage"
                     component="div"
-                    className="text-red-500 text-xs mt-1"
+                    className="mt-1 text-xs text-red-500"
                   />
                 </div>
 
                 {/* Subtle Tax Information */}
                 {activeTradeTab === "buy" && token.tradeFees > 0 && (
-                  <div className="text-xs text-neutral-500 text-center">
+                  <div className="text-center text-xs text-neutral-500">
                     Includes {token.tradeFees}% tax
                   </div>
                 )}
 
-                <div className="w-full flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
+                <div className="flex w-full flex-col gap-1">
+                  <div className="flex items-center justify-between">
                     <label
                       htmlFor="amount"
                       className="ml-1 text-sm font-semibold"
                     >
                       Amount
                     </label>
-                    <span className="text-xs text-neutral-400">
-                      Balance:{" "}
-                      {activeTradeTab === "buy"
-                        ? `${balanceData ? formatEther(balanceData.value) : "0"} SEI`
-                        : amountType === "sei"
-                          ? `${balanceData ? formatEther(balanceData.value) : "0"} SEI`
-                          : `${tokenBalanceData ? formatEther(tokenBalanceData) : "0"} ${agent?.tokenSymbol?.toUpperCase() || token.name.toUpperCase()}`}
-                    </span>
                   </div>
 
-                  {/* Amount Type Toggle */}
-                  <div className="flex gap-2 mb-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleAmountTypeChange("sei", setFieldValue)
-                      }
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                        amountType === "sei"
-                          ? "bg-blue-600 text-white"
-                          : "bg-neutral-700 text-neutral-400 hover:text-neutral-300"
-                      }`}
-                    >
-                      SEI
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleAmountTypeChange("tokens", setFieldValue)
-                      }
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                        amountType === "tokens"
-                          ? "bg-blue-600 text-white"
-                          : "bg-neutral-700 text-neutral-400 hover:text-neutral-300"
-                      }`}
-                    >
-                      {agent?.tokenSymbol?.toUpperCase() ||
-                        token.name.toUpperCase()}
-                    </button>
-                  </div>
                   <div className="relative">
                     <Field
                       as={Input}
@@ -839,7 +806,7 @@ const AgentTradeTab = ({
                         handleAmountChange(e.target.value, setFieldValue)
                       }
                     />
-                    <div className="absolute top-[50%] translate-y-[-50%] right-4 flex items-center gap-2 text-neutral-400">
+                    <div className="absolute top-[50%] right-4 flex translate-y-[-50%] items-center gap-2 text-neutral-400">
                       <div className="flex items-center gap-2">
                         {amountType === "sei" ? (
                           <SeiIcon className="size-4" />
@@ -853,22 +820,46 @@ const AgentTradeTab = ({
                       <div className="h-4 w-0.5 bg-neutral-400" />
                       <button
                         type="button"
-                        className="text-xs text-neutral-400 hover:text-neutral-300 transition-colors"
-                        onClick={() => handleMaxClick(setFieldValue)}
+                        className="cursor-pointer text-xs text-neutral-400 transition-colors hover:text-neutral-300"
+                        onClick={() =>
+                          handleAmountTypeChange(
+                            amountType === "sei" ? "tokens" : "sei",
+                            setFieldValue,
+                          )
+                        }
                       >
-                        MAX
+                        <ArrowLeftRight className="size-4" />
                       </button>
                     </div>
+                  </div>
+                  <div className="mt-1 flex items-center justify-end gap-2 pr-1">
+                    <div className="flex items-center gap-1">
+                      <Wallet className="size-4 text-neutral-400" />
+                      <span className="text-xs text-neutral-400">
+                        {activeTradeTab === "buy"
+                          ? `${balanceData ? formatEther(balanceData.value) : "0"} SEI`
+                          : amountType === "sei"
+                            ? `${balanceData ? formatEther(balanceData.value) : "0"} SEI`
+                            : `${tokenBalanceData ? formatEther(tokenBalanceData) : "0"} ${agent?.tokenSymbol?.toUpperCase() || token.name.toUpperCase()}`}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs text-green-500 transition-colors hover:text-neutral-300"
+                      onClick={() => handleMaxClick(setFieldValue)}
+                    >
+                      MAX
+                    </button>
                   </div>
                   <ErrorMessage
                     name="amount"
                     component="div"
-                    className="text-red-500 text-xs mt-1"
+                    className="mt-1 text-xs text-red-500"
                   />
 
                   {/* Show converted amount for SEI input */}
                   {amountType === "sei" && convertedAmount > 0 && (
-                    <div className="text-xs text-neutral-400 text-center">
+                    <div className="text-center text-xs text-neutral-400">
                       ≈ {convertedAmount.toFixed(6)}{" "}
                       {agent?.tokenSymbol?.toUpperCase() ||
                         token.name.toUpperCase()}
@@ -879,7 +870,7 @@ const AgentTradeTab = ({
                 {activeTradeTab === "buy" &&
                   calculatedBuyCost &&
                   amountType === "tokens" && (
-                    <div className="p-3 bg-green-500/5 border border-green-500/10 rounded-lg">
+                    <div className="rounded-lg border border-green-500/10 bg-green-500/5 p-3">
                       <div className="flex justify-between text-sm">
                         <span>Cost:</span>
                         <span>
@@ -905,7 +896,7 @@ const AgentTradeTab = ({
                 {activeTradeTab === "buy" &&
                   calculatedBuyCostWithSEI &&
                   amountType === "sei" && (
-                    <div className="p-3 bg-green-500/5 border border-green-500/10 rounded-lg">
+                    <div className="rounded-lg border border-green-500/10 bg-green-500/5 p-3">
                       <div className="flex justify-between text-sm">
                         <span>Cost:</span>
                         <span>
@@ -935,7 +926,7 @@ const AgentTradeTab = ({
                   )}
 
                 {activeTradeTab === "sell" && calculatedSellReturn && (
-                  <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg">
+                  <div className="rounded-lg border border-red-500/10 bg-red-500/5 p-3">
                     <div className="flex justify-between text-sm font-medium">
                       <span>You will receive:</span>
                       <span>
@@ -958,7 +949,7 @@ const AgentTradeTab = ({
                       !dirty ||
                       !values.amount
                     }
-                    className={`py-2 w-full capitalize rounded-lg font-semibold cursor-pointer flex items-center justify-center gap-2 ${
+                    className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-2 font-semibold capitalize ${
                       activeTradeTab === "buy" ? "bg-green-600" : "bg-red-600"
                     } ${
                       (activeTradeTab === "buy"
@@ -969,7 +960,7 @@ const AgentTradeTab = ({
                       !isValid ||
                       !dirty ||
                       !values.amount
-                        ? "opacity-50 cursor-not-allowed"
+                        ? "cursor-not-allowed opacity-50"
                         : ""
                     }`}
                   >
@@ -977,7 +968,7 @@ const AgentTradeTab = ({
                       ? buyTokenStatus.isPending
                       : sellTokenStatus.isPending) ||
                       isApprovalPending) && (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     )}
                     {(
                       activeTradeTab === "buy"
@@ -989,7 +980,7 @@ const AgentTradeTab = ({
                         ? "Approving..."
                         : activeTradeTab}
                   </button>
-                  <div className="mt-1.25 text-neutral-400 text-xs flex items-center justify-center">
+                  <div className="mt-1.25 flex items-center justify-center text-xs text-neutral-400">
                     <p>
                       {activeTradeTab === "buy" ? (
                         <>
@@ -1034,12 +1025,12 @@ const AgentTradeTab = ({
       )}
 
       {/* transactions */}
-      <div className="mt-5 w-full">
+      <div hidden className="mt-5 w-full">
         <div className="ml-2 flex items-center gap-2">
           <ArrowUpDown className="size-4" />
           <h2 className="text-lg font-semibold">Trade Statistics</h2>
         </div>
-        <div className="mt-3 px-3 py-2 bg-primary-foreground border rounded-lg">
+        <div className="mt-3 rounded-lg border bg-primary-foreground px-3 py-2">
           {token.tradeStats ? (
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
@@ -1072,7 +1063,7 @@ const AgentTradeTab = ({
               </div>
             </div>
           ) : (
-            <div className="text-center py-4 text-muted-foreground">
+            <div className="py-4 text-center text-muted-foreground">
               No trading activity yet
             </div>
           )}
