@@ -25,6 +25,7 @@ import { createFetcher } from "@/lib/fetcher";
 import AuthWrapper from "@/components/auth-wrapper";
 import ModulsDeployerABI from "@/lib/abi/ModulsDeployer.json";
 import { useWriteContract } from "wagmi";
+import { Switch } from "../components/ui/switch";
 
 const modulTypes = [
   {
@@ -105,6 +106,7 @@ const CreateAgent = () => {
   const prebuyDivRef = useRef(null);
 
   const [showSocialLinks, setShowSocialLinks] = useState(false);
+  const [showLaunchSchedule, setShowLaunchSchedule] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [agentImageUrl, setAgentImageURL] = useState();
 
@@ -120,7 +122,7 @@ const CreateAgent = () => {
       .max(100, "Agent name must be less than 100 characters")
       .required("Agent name is required"),
     description: Yup.string()
-      .min(10, "Agent description must be at least 10 characters")
+      .min(4, "Agent description must be at least 10 characters")
       .max(1024, "Agent description must be less than 1024 characters")
       .required("Agent description is required"),
     modulType: Yup.string()
@@ -368,8 +370,8 @@ const CreateAgent = () => {
   return (
     <AuthWrapper pageLevel={true}>
       {() => (
-        <div className="px-6 pt-4 flex flex-col">
-          <div className="max-w-lg mx-auto">
+        <div className="flex flex-col px-6 pt-4">
+          <div className="mx-auto max-w-lg">
             <div className="ml-1">
               <h1 className="text-2xl font-bold">Launch Your Agent</h1>
               <p className="mt-1 text-lg text-muted-foreground">
@@ -385,14 +387,14 @@ const CreateAgent = () => {
             >
               {({ values, setFieldValue, isValid }) => (
                 <Form className="">
-                  <div className="flex flex-col gap-5 mt-4 px-4 py-6 border rounded-xl">
+                  <div className="mt-4 flex flex-col gap-5 rounded-xl border px-4 py-6">
                     <div className="ml-1">
                       <h2 className="text-xl font-semibold">Agent Identity</h2>
                       <p className="text-muted-foreground">
                         Give your agent a face and identity.
                       </p>
                     </div>
-                    <div className="flex flex-col md:flex-row gap-5">
+                    <div className="flex flex-col gap-5 md:flex-row">
                       <div className="flex-1">
                         <label htmlFor="agent-name" className="ml-1">
                           Agent Name
@@ -407,7 +409,7 @@ const CreateAgent = () => {
                         <ErrorMessage
                           name="name"
                           component="div"
-                          className="text-red-500 text-sm mt-1"
+                          className="mt-1 text-sm text-red-500"
                         />
                       </div>
                       <div className="flex-1">
@@ -425,7 +427,7 @@ const CreateAgent = () => {
                         <ErrorMessage
                           name="tokenSymbol"
                           component="div"
-                          className="text-red-500 text-sm mt-1"
+                          className="mt-1 text-sm text-red-500"
                         />
                       </div>
                     </div>
@@ -443,9 +445,9 @@ const CreateAgent = () => {
                       <ErrorMessage
                         name="description"
                         component="div"
-                        className="text-red-500 text-sm mt-1"
+                        className="mt-1 text-sm text-red-500"
                       />
-                      <p className="ml-1 mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 ml-1 text-xs text-muted-foreground">
                         Set the tone. Define the agent's behavior or chat style.
                       </p>
                     </div>
@@ -457,7 +459,7 @@ const CreateAgent = () => {
                         {modulTypes.map((modul) => (
                           <div
                             key={modul.identifier}
-                            className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
+                            className={`cursor-pointer rounded-lg border p-3 transition-all duration-200 ${
                               values.modulType === modul.value
                                 ? "border-accent bg-accent/10"
                                 : "border-border hover:border-accent/50"
@@ -468,8 +470,8 @@ const CreateAgent = () => {
                           >
                             <div className="flex items-center gap-3">
                               <div className="text-xl">{modul.emoji}</div>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-foreground text-sm">
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-semibold text-foreground">
                                   {modul.name}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
@@ -477,8 +479,8 @@ const CreateAgent = () => {
                                 </p>
                               </div>
                               {values.modulType === modul.value && (
-                                <div className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
-                                  <div className="w-1.5 h-1.5 bg-accent-foreground rounded-full"></div>
+                                <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-accent">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-accent-foreground"></div>
                                 </div>
                               )}
                             </div>
@@ -488,12 +490,12 @@ const CreateAgent = () => {
                       <ErrorMessage
                         name="modulType"
                         component="div"
-                        className="text-red-500 text-sm mt-1"
+                        className="mt-1 text-sm text-red-500"
                       />
                     </div>
 
                     <div>
-                      <div className="ml-1 mt-5 flex items-center gap-2">
+                      <div className="mt-5 ml-1 flex items-center gap-2">
                         <Link className="size-4" />
                         <p>
                           add social links{" "}
@@ -528,7 +530,7 @@ const CreateAgent = () => {
                           <ErrorMessage
                             name="websiteUrl"
                             component="div"
-                            className="text-red-500 text-sm mt-1"
+                            className="mt-1 text-sm text-red-500"
                           />
                         </div>
                         <div className="">
@@ -545,7 +547,7 @@ const CreateAgent = () => {
                           <ErrorMessage
                             name="twitterUrl"
                             component="div"
-                            className="text-red-500 text-sm mt-1"
+                            className="mt-1 text-sm text-red-500"
                           />
                         </div>
                         <div className="">
@@ -562,7 +564,7 @@ const CreateAgent = () => {
                           <ErrorMessage
                             name="telegramUrl"
                             component="div"
-                            className="text-red-500 text-sm mt-1"
+                            className="mt-1 text-sm text-red-500"
                           />
                         </div>
                       </div>
@@ -574,7 +576,7 @@ const CreateAgent = () => {
                         Agent Image
                       </label>
                       <div
-                        className="mt-2 p-8 border-2 border-dashed border-accent/20 rounded-lg text-center cursor-pointer hover:border-accent/40 transition-colors"
+                        className="mt-2 cursor-pointer rounded-lg border-2 border-dashed border-accent/20 p-8 text-center transition-colors hover:border-accent/40"
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, setFieldValue)}
                         onClick={() =>
@@ -586,7 +588,7 @@ const CreateAgent = () => {
                             <img
                               src={agentImageUrl}
                               alt="Agent"
-                              className="w-20 h-20 object-cover rounded-lg"
+                              className="h-20 w-20 rounded-lg object-cover"
                             />
                             <p className="text-sm text-muted-foreground">
                               {selectedFileName}
@@ -618,7 +620,7 @@ const CreateAgent = () => {
                           <File className="size-5" />
                           <h3 className="font-semibold">File size and type</h3>
                         </div>
-                        <ul className="mt-1 ml-1 list-disc list-inside text-sm font-light">
+                        <ul className="mt-1 ml-1 list-inside list-disc text-sm font-light">
                           <li>Max. size 5MB.</li>
                           <li>JPG, GIF, and PNG formats.</li>
                         </ul>
@@ -627,7 +629,7 @@ const CreateAgent = () => {
                       <ErrorMessage
                         name="agentImage"
                         component="div"
-                        className="text-red-500 text-sm mt-1"
+                        className="mt-1 text-sm text-red-500"
                       />
                     </div>
                     <div className="">
@@ -645,7 +647,7 @@ const CreateAgent = () => {
                   </div>
                   <div
                     ref={taxSettingsDivRef}
-                    className="flex flex-col gap-5 mt-4 px-4 py-6 border rounded-xl"
+                    className="mt-4 flex flex-col gap-5 rounded-xl border px-4 py-6"
                   >
                     <div className="ml-1">
                       <h2 className="text-xl font-semibold">Tax Settings</h2>
@@ -664,7 +666,7 @@ const CreateAgent = () => {
                             {values.taxSettings.totalTaxPercentage}%
                           </span>
                         </label>
-                        <div className="mt-2 flex flex-col gap-1.5 items-center">
+                        <div className="mt-2 flex flex-col items-center gap-1.5">
                           <Slider
                             className=""
                             rangeClassName="dark:bg-accent"
@@ -680,12 +682,12 @@ const CreateAgent = () => {
                               )
                             }
                           />
-                          <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
+                          <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
                             <span>2%</span>
                             <span>10%</span>
                           </div>
                         </div>
-                        <p className="ml-1 mt-2 text-xs text-muted-foreground">
+                        <p className="mt-2 ml-1 text-xs text-muted-foreground">
                           Percentage fee taken on every swap.
                         </p>
                       </div>
@@ -699,7 +701,7 @@ const CreateAgent = () => {
                             {values.taxSettings.agentWalletShare}%
                           </span>
                         </label>
-                        <div className="mt-3 flex flex-col gap-1.5 items-center">
+                        <div className="mt-3 flex flex-col items-center gap-1.5">
                           <Slider
                             className="mt-2"
                             rangeClassName="dark:bg-accent"
@@ -719,7 +721,7 @@ const CreateAgent = () => {
                               );
                             }}
                           />
-                          <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
+                          <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
                             <span>1%</span>
                             <span>100%</span>
                           </div>
@@ -743,7 +745,7 @@ const CreateAgent = () => {
                             {values.taxSettings.devWalletShare}%
                           </span>
                         </label>
-                        <div className="mt-3 flex flex-col gap-1.5 items-center">
+                        <div className="mt-3 flex flex-col items-center gap-1.5">
                           <Slider
                             className=""
                             rangeClassName="dark:bg-accent"
@@ -763,7 +765,7 @@ const CreateAgent = () => {
                               );
                             }}
                           />
-                          <div className="w-full mt-1 px-1 flex justify-between text-xs text-muted-foreground">
+                          <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
                             <span>0%</span>
                             <span>99%</span>
                           </div>
@@ -773,10 +775,62 @@ const CreateAgent = () => {
                         </p>
                       </div>
                     </div>
+                    <div>
+                      <div className="ml-1">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-xl font-semibold">
+                            Launch Schedule
+                          </h2>
+                          <Switch
+                            checked={showLaunchSchedule}
+                            onCheckedChange={setShowLaunchSchedule}
+                            className="data-[state=checked]:bg-accent [&>span]:border [&>span]:border-accent [&>span]:dark:data-[state=unchecked]:bg-black"
+                          />
+                        </div>
+                        <p
+                          hidden={!showLaunchSchedule}
+                          className="text-muted-foreground"
+                        >
+                          Set when trading opens for your token. Leave empty to
+                          deploy without opening trading yet.
+                        </p>
+                      </div>
+                      <div
+                        hidden={!showLaunchSchedule}
+                        className="bg-neutral-850 mt-3 flex flex-col gap-4 rounded-lg border px-2 py-4"
+                      >
+                        <div className="flex w-full flex-col gap-1">
+                          <label
+                            htmlFor="launch-date"
+                            className="ml-1 text-sm font-semibold"
+                          >
+                            Launch Date & Time
+                          </label>
+                          <Field
+                            as={Input}
+                            type="datetime-local"
+                            id="launch-date"
+                            name="launchDate"
+                            className="py-2"
+                          />
+                          <ErrorMessage
+                            name="launchDate"
+                            component="div"
+                            className="mt-1 text-sm text-red-500"
+                          />
+                          <p className="ml-1 text-xs text-muted-foreground">
+                            Optional: Must be at least 5 minutes from now if
+                            set. Token deploys immediately, trading opens at the
+                            specified time.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        className="px-3 py-2 bg-button-gradient rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 flex items-center gap-2"
+                        className="bg-button-gradient flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-500 hover:scale-105"
                         onClick={() =>
                           prebuyDivRef.current &&
                           prebuyDivRef.current.scrollIntoView({
@@ -791,43 +845,8 @@ const CreateAgent = () => {
                   </div>
                   <div
                     ref={prebuyDivRef}
-                    className="flex flex-col mt-4 px-4 py-6 border rounded-xl"
+                    className="mt-4 flex flex-col rounded-xl border px-4 py-6"
                   >
-                    <div className="ml-1">
-                      <h2 className="text-xl font-semibold">Launch Schedule</h2>
-                      <p className="text-muted-foreground">
-                        Set when trading opens for your token. Leave empty to
-                        deploy without opening trading yet.
-                      </p>
-                    </div>
-                    <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
-                      <div className="w-full flex flex-col gap-1">
-                        <label
-                          htmlFor="launch-date"
-                          className="ml-1 text-sm font-semibold"
-                        >
-                          Launch Date & Time
-                        </label>
-                        <Field
-                          as={Input}
-                          type="datetime-local"
-                          id="launch-date"
-                          name="launchDate"
-                          className="py-2"
-                        />
-                        <ErrorMessage
-                          name="launchDate"
-                          component="div"
-                          className="text-red-500 text-sm mt-1"
-                        />
-                        <p className="text-xs text-muted-foreground ml-1">
-                          Optional: Must be at least 5 minutes from now if set.
-                          Token deploys immediately, trading opens at the
-                          specified time.
-                        </p>
-                      </div>
-                    </div>
-
                     <div className="mt-4 ml-1">
                       <h3 className="text-lg font-semibold">Pre-buy Token</h3>
                       <p className="text-muted-foreground">
@@ -836,8 +855,8 @@ const CreateAgent = () => {
                         protect against MEV attacks.
                       </p>
                     </div>
-                    <div className="mt-3 px-2 py-4 bg-neutral-850 border rounded-lg flex flex-col gap-4">
-                      <div className="w-full flex flex-col gap-1">
+                    <div className="bg-neutral-850 mt-3 flex flex-col gap-4 rounded-lg border px-2 py-4">
+                      <div className="flex w-full flex-col gap-1">
                         <label
                           htmlFor="slippage"
                           className="ml-1 text-sm font-semibold"
@@ -854,10 +873,10 @@ const CreateAgent = () => {
                         <ErrorMessage
                           name="prebuySettings.slippage"
                           component="div"
-                          className="text-red-500 text-sm mt-1"
+                          className="mt-1 text-sm text-red-500"
                         />
                       </div>
-                      <div className="w-full flex flex-col gap-1">
+                      <div className="flex w-full flex-col gap-1">
                         <label
                           htmlFor="amount"
                           className="ml-1 text-sm font-semibold"
@@ -870,12 +889,12 @@ const CreateAgent = () => {
                             type="number"
                             id="amount"
                             name="prebuySettings.amountInEther"
-                            className="py-2 pr-24 appearance-none"
+                            className="appearance-none py-2 pr-24"
                           />
-                          <div className="absolute top-[50%] translate-y-[-50%] right-4 flex items-center gap-2 text-neutral-400">
+                          <div className="absolute top-[50%] right-4 flex translate-y-[-50%] items-center gap-2 text-neutral-400">
                             <button
                               type="button"
-                              className="text-green-500 hover:text-green-400 transition-colors text-xs font-medium"
+                              className="text-xs font-medium text-green-500 transition-colors hover:text-green-400"
                               onClick={() => {
                                 if (walletBalance?.formatted && deploymentFee) {
                                   const walletBalanceInEther = parseFloat(
@@ -909,9 +928,9 @@ const CreateAgent = () => {
                             >
                               MAX
                             </button>
-                            <div className="w-px h-4 bg-border"></div>
+                            <div className="h-4 w-px bg-border"></div>
                             <div className="flex items-center gap-1">
-                              <span className="uppercase text-xs">sei</span>
+                              <span className="text-xs uppercase">sei</span>
                               <SeiIcon className="size-4" />
                             </div>
                           </div>
@@ -919,9 +938,9 @@ const CreateAgent = () => {
                         <ErrorMessage
                           name="prebuySettings.amountInEther"
                           component="div"
-                          className="text-red-500 text-sm mt-1"
+                          className="mt-1 text-sm text-red-500"
                         />
-                        <div className="px-1 w-full flex justify-between text-xs">
+                        <div className="flex w-full justify-between px-1 text-xs">
                           <div className="flex items-center gap-1">
                             <Wallet className="size-3" />
                             <span className="">
@@ -931,7 +950,7 @@ const CreateAgent = () => {
                             </span>
                           </div>
                         </div>
-                        <div className="w-full px-1 mt-2 text-xs text-muted-foreground flex justify-between items-center">
+                        <div className="mt-2 flex w-full items-center justify-between px-1 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <span>Deployment Fee</span>
                             <Info className="size-3.5" />
@@ -942,7 +961,7 @@ const CreateAgent = () => {
                               : "Loading..."}
                           </span>
                         </div>
-                        <div className="w-full px-1 mt-1 text-xs text-muted-foreground flex justify-between items-center">
+                        <div className="mt-1 flex w-full items-center justify-between px-1 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <span>Total Required</span>
                             <Info className="size-3.5" />
@@ -983,11 +1002,11 @@ const CreateAgent = () => {
                           !isValid ||
                           deployModulsTokenPending
                         }
-                        className="px-3 py-2 bg-button-gradient rounded-lg text-sm font-semibold hover:scale-105 transition-all duration-500 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="bg-button-gradient flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-all duration-500 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {(createAgentMutation.isPending ||
                           deployModulsTokenPending) && (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                         )}
                         {createAgentMutation.isPending ||
                         deployModulsTokenPending
