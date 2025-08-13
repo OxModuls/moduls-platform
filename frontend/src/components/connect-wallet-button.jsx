@@ -4,6 +4,7 @@ import trustwalletIcon from "../assets/icons/trustwallet.svg";
 import avatarImage from "../assets/avatar.svg";
 import { useWalletModalStore } from "../shared/store";
 import AuthStatusIndicator from "./auth-status-indicator";
+import { useIsMobile } from "../hooks/use-mobile";
 
 // map connector icons
 const connectorIcons = new Map([
@@ -14,6 +15,7 @@ const connectorIcons = new Map([
 const ConnectWalletButton = () => {
   const { isConnected, connector: activeConnector } = useAccount();
   const { isWalletModalOpen, setWalletModal } = useWalletModalStore();
+  const isMobile = useIsMobile();
 
   return (
     <>
@@ -27,7 +29,7 @@ const ConnectWalletButton = () => {
             <img
               src={avatarImage}
               alt=""
-              className="size-11 rounded-full border-2 border-accent"
+              className="size-9 md:size-11 rounded-full border-2 border-accent"
             />
             <img
               src={
@@ -36,7 +38,7 @@ const ConnectWalletButton = () => {
               alt={activeConnector?.name + "logo"}
               className="absolute right-0 bottom-0 size-6 rounded-full"
             />
-            <AuthStatusIndicator size="md" />
+            <AuthStatusIndicator size={isMobile ? "sm" : "md"} />
           </div>
         </button>
       ) : (

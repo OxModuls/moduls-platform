@@ -228,7 +228,7 @@ const Agent = () => {
     <div className="flex w-full max-w-screen flex-col px-6 pt-4">
       <div className="mx-auto w-full max-w-lg">
         <div className="flex w-full items-center gap-3">
-          <Avatar className="size-24 border-3 border-accent">
+          <Avatar className="size-16 md:size-20 border-3 border-accent">
             <AvatarImage src={token.image} />
             <AvatarFallback>
               {token.name?.charAt(0)?.toUpperCase()}
@@ -384,7 +384,7 @@ const Agent = () => {
                     (100 * token.curveProgress.current) /
                     token.curveProgress.target
                   }
-                  indicatorClassName="bg-green-500 dark:bg-green-600"
+                  className="[&>div]:dark:bg-green-600"
                 />
                 <div className="mt-2 flex w-full justify-between text-sm">
                   <span>
