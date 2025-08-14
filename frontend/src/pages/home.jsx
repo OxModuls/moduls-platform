@@ -1,12 +1,23 @@
-import { ArrowUpRight, Bot, Info } from "lucide-react";
-import { GiNinjaHead } from "react-icons/gi";
+import { ArrowDownWideNarrow, Bot, Info, RefreshCw } from "lucide-react";
 import { keepPreviousData, useQueries } from "@tanstack/react-query";
 import { createFetcher } from "../lib/fetcher";
 import config from "../shared/config";
 import ordinal from "ordinal";
 import { useWalletModalStore } from "../shared/store";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useAccount } from "wagmi";
+import { dummyAgents } from "../shared/dummy-data";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { ellipsizeAddress } from "../lib/utils";
+import { Progress } from "../components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { useState } from "react";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -29,15 +40,19 @@ const Home = () => {
   const { data: platformStats, isPending: isPlatformStatsPending } =
     platformStatResult;
 
+  const [filter, setFilter] = useState("");
+  const [sortKey, setSortKey] = useState("Creation Time");
+
   return (
     <div className="flex flex-col items-center px-6 pt-4">
       <div className="mx-auto max-w-lg">
+
         <div className="shadow-l flex w-full flex-col items-center rounded-2xl border px-6 py-8">
           <h1 className="text-center text-2xl font-bold text-accent capitalize">
             Deploy Modular Agents
           </h1>
           <p className="mt-2 text-center">
-            Deploy agents instantly with modular on-chain logic. {" "}
+            Deploy agents instantly with modular on-chain logic.{" "}
             {platformStats?.activeUsersCount > 0 &&
               `Become the ${ordinal(platformStats?.activeUsersCount)} user to launch your own Modul.`}{" "}
             No coding required.
@@ -56,6 +71,99 @@ const Home = () => {
               <span className="">Launch Agent</span>
             </div>
           </button>
+        </div>
+
+        {/* agents */}
+        <div className="shadow-l mt-8">
+          <div className="flex w-full gap-2">
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filters" />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "GameFi NPC",
+                  "DeFAI",
+                  "Meme Token",
+                  "Oracle Feed",
+                  "Custom Logic",
+                ].map((x, idx) => (
+                  <SelectItem key={idx} value={x}>
+                    {x}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              defaultValue="Creation Time"
+              value={sortKey}
+              onValueChange={setSortKey}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "Creation Time",
+                  "Trading Volume",
+                  "Progress",
+                  "Last Trade",
+                ].map((x, idx) => (
+                  <SelectItem key={idx} value={x}>
+                    {x}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button className="cursor-pointer rounded-lg border bg-input/50 p-2">
+              <ArrowDownWideNarrow className="size-5" />
+            </button>
+            <button className="cursor-pointer rounded-lg border bg-input/50 p-2">
+              <RefreshCw className="size-5" />
+            </button>
+          </div>
+          <div className="mt-2 grid grid-cols-1 gap-x-1 gap-y-2 md:grid-cols-2">
+            {dummyAgents.map((agent, idx) => (
+              <Link
+                key={idx}
+                to={`/agents/${agent.uniqueId}`}
+                className="flex gap-2 rounded-2xl border px-2 py-2"
+              >
+                <Avatar className="size-16 shrink-0 border-2 border-accent">
+                  <AvatarImage src={agent.logoUrl} />
+                  <AvatarFallback>{agent.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex grow flex-col items-start">
+                  <div className="flex w-full items-center gap-2">
+                    <span className="text-sm">{agent.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {agent.tokenSymbol}
+                    </span>
+                  </div>
+                  <span className="grow-0 rounded-md bg-accent/20 px-1 py-0.5 text-xs text-accent">
+                    {agent.tags[0]}
+                  </span>
+                  <div className="mt-1 flex w-full justify-between text-sm">
+                    <span>Created by:</span>
+                    <span>
+                      {ellipsizeAddress(agent.creator.walletAddress, 4, 4)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex w-full justify-between text-sm">
+                    <span>Market Cap:</span>
+                    <span>10K SEI</span>
+                  </div>
+                  <div className="mt-1 flex w-full items-center gap-1">
+                    <Progress
+                      value={agent.curveProgress}
+                      className="[&>div]:dark:bg-green-600"
+                    />
+                    <span className="text-xs">{agent.curveProgress}%</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
 
         <div className="shadow-l mt-8 flex w-full items-start gap-4 rounded-2xl border px-8 py-8">
@@ -115,31 +223,6 @@ const Home = () => {
               >
                 Get Started Now
               </button>
-            </div>
-          </div>
-        </div>
-        <div className="shadow-l mt-8 flex w-full items-start gap-4 rounded-2xl border px-8 py-8">
-          <div className="flex-0 rounded-lg border border-accent p-2">
-            <GiNinjaHead className="size-7 text-accent" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold">Built for Hackers</h2>
-            <div className="mt-2 ml-1">
-              <p className="font-semibold">Why devs love moduls:</p>
-              <div className="mt-1 flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span>🦩 Bonding Curve Presets</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>💬 Embedded Chat UI</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>🛠️ Agent Memory & Hooks</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>📦 Deploy to Sei</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
