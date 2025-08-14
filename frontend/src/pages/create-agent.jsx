@@ -668,9 +668,7 @@ const CreateAgent = () => {
                         </label>
                         <div className="mt-2 flex flex-col items-center gap-1.5">
                           <Slider
-                            className=""
-                            rangeClassName="dark:bg-accent"
-                            thumbClassName="dark:border-accent"
+                            className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
                             min={2}
                             max={10}
                             step={1}
@@ -703,9 +701,7 @@ const CreateAgent = () => {
                         </label>
                         <div className="mt-3 flex flex-col items-center gap-1.5">
                           <Slider
-                            className="mt-2"
-                            rangeClassName="dark:bg-accent"
-                            thumbClassName="dark:border-accent"
+                            className="mt-2 [&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
                             min={1}
                             max={100}
                             step={1}
@@ -747,9 +743,7 @@ const CreateAgent = () => {
                         </label>
                         <div className="mt-3 flex flex-col items-center gap-1.5">
                           <Slider
-                            className=""
-                            rangeClassName="dark:bg-accent"
-                            thumbClassName="dark:border-accent"
+                            className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
                             min={0}
                             max={99}
                             step={1}

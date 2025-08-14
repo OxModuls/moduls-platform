@@ -1,5 +1,5 @@
 import { useAuth } from "../shared/hooks/useAuth";
-import { Brain } from "lucide-react";
+import { Unplug } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useWalletModalStore } from "../shared/store";
@@ -27,8 +27,8 @@ const AuthWrapper = ({
     const LoaderContent = () => (
       <div className="flex flex-col items-center gap-4">
         <div className="relative">
-          <div className="size-16 bg-accent/20 rounded-2xl flex items-center justify-center animate-pulse">
-            <Brain className="size-8 text-accent" />
+          <div className="size-40 bg-accent/20 rounded-2xl flex items-center justify-center animate-pulse">
+            <Unplug className="size-24 text-accent" />
           </div>
           <div className="absolute inset-0 border-2 border-accent/30 rounded-2xl animate-ping"></div>
         </div>
@@ -67,8 +67,8 @@ const AuthWrapper = ({
   if (!isAuthenticated) {
     const ErrorContent = () => (
       <div className="text-center">
-        <div className="size-16 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Brain className="size-8 text-red-500" />
+        <div className="size-40 bg-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Unplug className="size-24 text-red-500" />
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">
           Authentication Required
