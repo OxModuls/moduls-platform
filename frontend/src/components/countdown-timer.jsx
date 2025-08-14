@@ -10,7 +10,7 @@ const CountdownTimer = ({ targetTimestamp, onComplete }) => {
       return remaining;
     };
 
-    // Initial calculation
+    // Initial calculation -
     setTimeRemaining(calculateTimeRemaining());
 
     // Set up interval to update every second
