@@ -46,15 +46,12 @@ const Home = () => {
   return (
     <div className="flex flex-col items-center px-6 pt-4">
       <div className="mx-auto max-w-lg">
-
         <div className="shadow-l flex w-full flex-col items-center rounded-2xl border px-6 py-8">
           <h1 className="text-center text-2xl font-bold text-accent capitalize">
             Deploy Modular Agents
           </h1>
           <p className="mt-2 text-center">
             Deploy agents instantly with modular on-chain logic.{" "}
-            {platformStats?.activeUsersCount > 0 &&
-              `Become the ${ordinal(platformStats?.activeUsersCount)} user to launch your own Modul.`}{" "}
             No coding required.
           </p>
           <button
