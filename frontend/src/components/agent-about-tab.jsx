@@ -196,9 +196,6 @@ const AgentAboutTab = ({
         </div>
         {agent?.tags && agent.tags.length > 0 && (
           <div className="rounded-lg border bg-primary-foreground px-4 py-3">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="font-medium">Tags:</span>
-            </div>
             <div className="flex flex-wrap gap-2">
               {agent.tags.map((tag, index) => (
                 <span
