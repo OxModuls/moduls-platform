@@ -190,7 +190,7 @@ const AgentHoldersTab = ({
                     <div className="flex items-center gap-2">
                       {getSpecialHolderType(holder.address) ? (
                         <span
-                          className={`rounded-full border border-blue-200 bg-blue-100 px-2 py-1 text-xs ${getSpecialHolderType(holder.address).color} font-medium`}
+                          className={`rounded-full border border-blue-200 bg-blue-100 px-1 py-0.5 text-xs ${getSpecialHolderType(holder.address).color} font-medium`}
                           title={getSpecialHolderType(holder.address).tooltip}
                         >
                           {getSpecialHolderType(holder.address).name}

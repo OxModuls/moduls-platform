@@ -46,16 +46,13 @@ const Home = () => {
   return (
     <div className="flex flex-col items-center px-6 pt-4">
       <div className="mx-auto max-w-lg">
-
         <div className="shadow-l flex w-full flex-col items-center rounded-2xl border px-6 py-8">
           <h1 className="text-center text-2xl font-bold text-accent capitalize">
             Deploy Modular Agents
           </h1>
           <p className="mt-2 text-center">
-            Deploy agents instantly with modular on-chain logic.{" "}
-            {platformStats?.activeUsersCount > 0 &&
-              `Become the ${ordinal(platformStats?.activeUsersCount)} user to launch your own Modul.`}{" "}
-            No coding required.
+            Deploy agents instantly with modular on-chain logic. No coding
+            required.
           </p>
           <button
             onClick={() => {
@@ -122,12 +119,12 @@ const Home = () => {
               <RefreshCw className="size-5" />
             </button>
           </div>
-          <div className="mt-2 grid grid-cols-1 gap-x-1 gap-y-2 md:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-x-1 gap-y-2">
             {dummyAgents.map((agent, idx) => (
               <Link
                 key={idx}
                 to={`/agents/${agent.uniqueId}`}
-                className="flex gap-2 rounded-2xl border px-2 py-2"
+                className="flex gap-2 rounded-2xl border p-2 md:p-4"
               >
                 <Avatar className="size-16 shrink-0 border-2 border-accent">
                   <AvatarImage src={agent.logoUrl} />
@@ -136,12 +133,15 @@ const Home = () => {
                 <div className="flex grow flex-col items-start">
                   <div className="flex w-full items-center gap-2">
                     <span className="text-sm">{agent.name}</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {agent.tokenSymbol}
                     </span>
+                    <span className="grow-0 rounded-md bg-accent/20 px-1 py-0.5 text-xs text-accent">
+                      {agent.tags[0]}
+                    </span>
                   </div>
-                  <span className="grow-0 rounded-md bg-accent/20 px-1 py-0.5 text-xs text-accent">
-                    {agent.tags[0]}
+                  <span className="w-48 overflow-hidden text-xs text-muted-foreground overflow-ellipsis whitespace-nowrap">
+                    {agent.description}
                   </span>
                   <div className="mt-1 flex w-full justify-between text-sm">
                     <span>Created by:</span>

@@ -228,7 +228,7 @@ const Agent = () => {
     <div className="flex w-full max-w-screen flex-col px-6 pt-4">
       <div className="mx-auto w-full max-w-lg">
         <div className="flex w-full items-center gap-3">
-          <Avatar className="size-16 md:size-20 border-3 border-accent">
+          <Avatar className="size-16 border-3 border-accent md:size-20">
             <AvatarImage src={token.image} />
             <AvatarFallback>
               {token.name?.charAt(0)?.toUpperCase()}
@@ -401,6 +401,12 @@ const Agent = () => {
               </div>
             </div>
           )}
+          <button
+            className="bg-button-gradient mr-0 ml-auto w-fit cursor-pointer rounded-xl px-3 py-2"
+            onClick={() => setAgentChatOpen(true)}
+          >
+            Chat with agent
+          </button>
         </div>
         <Tabs defaultValue="about" className="mt-5">
           <TabsList

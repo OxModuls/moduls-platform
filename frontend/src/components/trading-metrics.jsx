@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   useTradingMetrics,
   formatVolumeSEI,
@@ -6,7 +6,13 @@ import {
   getPriceChangeColor,
   formatTradingAmount,
 } from "../shared/hooks/useTrading";
-import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  ChartCandlestick,
+  BriefcaseBusiness,
+} from "lucide-react";
 
 const TradingMetrics = ({
   tokenAddress,
@@ -21,8 +27,6 @@ const TradingMetrics = ({
   } = useTradingMetrics(tokenAddress, {
     enabled: !!tokenAddress,
   });
-
-  const [showMarketCap, setShowMarketCap] = useState(false);
 
   if (isLoading) {
     return (
@@ -104,6 +108,16 @@ const TradingMetrics = ({
   // Main metrics (most important)
   const mainMetrics = [
     {
+      label: "Price",
+      value: `${formatTradingAmount(data.currentPrice, 18)} SEI`,
+      icon: ChartCandlestick,
+    },
+    {
+      label: "Market Cap",
+      value: `${calculateMarketCap()} SEI`,
+      icon: BriefcaseBusiness,
+    },
+    {
       label: "24h Volume",
       value: formatVolumeSEI(data.volume24h),
       icon: BarChart3,
@@ -114,6 +128,7 @@ const TradingMetrics = ({
       value: formatPriceChange(data.priceChange24h),
       icon: data.priceChange24h >= 0 ? TrendingUp : TrendingDown,
       color: getPriceChangeColor(data.priceChange24h),
+      colorText: true,
     },
     {
       label: "24h High",
@@ -131,60 +146,8 @@ const TradingMetrics = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Current Price/Market Cap Toggle */}
-      <div className="rounded-lg border border-border p-4">
-        <div hidden className="debug text-center">
-          <button
-            onClick={() =>
-              (totalSupply || agentData?.totalSupply || data.totalSupply) &&
-              setShowMarketCap(!showMarketCap)
-            }
-            className={`mb-1 text-sm text-muted-foreground transition-colors ${
-              totalSupply || agentData?.totalSupply || data.totalSupply
-                ? "cursor-pointer hover:text-foreground"
-                : "cursor-default"
-            }`}
-          >
-            {showMarketCap ? "Market Cap" : "Current Price"}{" "}
-            {(totalSupply || agentData?.totalSupply || data.totalSupply) &&
-              "(click to toggle)"}
-          </button>
-          <div className="text-2xl font-bold text-foreground">
-            {showMarketCap
-              ? `${calculateMarketCap()} SEI`
-              : `${formatTradingAmount(data.currentPrice, 18)} SEI`}
-          </div>
-          {data.priceChange24h !== 0 && (
-            <div
-              className={`mt-1 text-sm ${getPriceChangeColor(data.priceChange24h)}`}
-            >
-              {formatPriceChange(data.priceChange24h)} (24h)
-            </div>
-          )}
-        </div>
-        <div className="">
-          <div className="flex w-full justify-between">
-            <p>Price</p>
-            <span>{formatTradingAmount(data.currentPrice, 18)} SEI</span>
-          </div>
-          {(totalSupply || agentData?.totalSupply || data.totalSupply) && (
-            <div className="flex w-full justify-between">
-              <p>Market Cap</p>
-              <span>{calculateMarketCap()} SEI</span>
-            </div>
-          )}
-          {data.priceChange24h !== 0 && (
-            <div
-              className={`mt-1 text-center text-sm ${getPriceChangeColor(data.priceChange24h)}`}
-            >
-              {formatPriceChange(data.priceChange24h)} (24h)
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Main Metrics Grid - Max 2 per row */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-cols-2 gap-4">
         {mainMetrics.map((metric, index) => (
           <MetricCard key={index} {...metric} />
         ))}
@@ -229,7 +192,7 @@ const TradingMetrics = ({
   );
 };
 
-const MetricCard = ({ label, value, icon: Icon, color }) => {
+const MetricCard = ({ label, value, icon: Icon, color, colorText = false }) => {
   return (
     <div className="rounded-lg border border-border/30 bg-muted/20 p-3 text-center">
       <div className="mb-2 flex items-center justify-center gap-1">
@@ -239,7 +202,7 @@ const MetricCard = ({ label, value, icon: Icon, color }) => {
         </span>
       </div>
       <div
-        className="text-sm font-semibold break-words text-foreground"
+        className={`text-sm font-semibold break-words text-foreground ${colorText ? color : ""}`}
         title={value}
       >
         {value}

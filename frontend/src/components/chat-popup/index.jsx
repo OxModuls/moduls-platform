@@ -6,19 +6,21 @@ import { Separator } from "../ui/separator";
 import ChatSidebar from "./chat-sidebar";
 import AgentChat from "./agent-chat";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { MessageCircle } from "lucide-react";
 
 const ChatPopup = ({ open, onOpenChange, agent }) => {
   const [fullScreen, setFullScreen] = useState(false);
   const prevChats = [
     { title: "What's the most effective way to use you" },
-    { title: "Check my ETH balance" },
+    { title: "Check my SEI balance" },
   ];
 
   return (
     <Popover open={open} onOpenChange={onOpenChange} modal={true}>
       <PopoverTrigger asChild>
-        <button className="fixed right-4 bottom-16 z-10 cursor-pointer rounded-full border-2 border-accent">
-          <Avatar className="size-12">
+        <button data-popover-open={open} className="cursor-pointe fixed right-4 bottom-16 z-20 data-[popover-open=false]:animate-pulse-bounce">
+          <MessageCircle className="size-16 md:size-20 fill-accent/50 stroke-1 text-accent" />
+          <Avatar className="absolute top-[50%] left-[50%] z-10 size-11 md:size-14 translate-x-[-50%] translate-y-[-50%]">
             <AvatarImage src={agent.logoUrl} />
             <AvatarFallback>
               {agent.name?.charAt(0)?.toUpperCase()}
@@ -26,9 +28,7 @@ const ChatPopup = ({ open, onOpenChange, agent }) => {
           </Avatar>
         </button>
       </PopoverTrigger>
-      <div
-        className={`fixed inset-0 z-10 bg-black/50 ${open ? "" : "hidden"}`}
-      />
+      <div hidden={!open} className={`fixed inset-0 z-10 bg-black/50`} />
 
       {fullScreen && (
         <PopoverAnchor className="fixed top-0 left-0"></PopoverAnchor>
