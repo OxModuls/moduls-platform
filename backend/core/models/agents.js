@@ -3,11 +3,15 @@ const mongoose = require('mongoose');
 
 
 const agentModulEnum = [
+    "GAMING_BUDDY",
+    "TRADING_ASSISTANT",
+    "MEME",
+    "PORTFOLIO_WATCHER",
+    "SOCIAL_SENTINEL",
+    // Legacy types for backward compatibility
     "GAME_FI_NPC",
     "DEFI_AI",
-    "MEME",
-    "ORACLE_FEED",
-    "CUSTOM"
+    "ORACLE_FEED"
 ]
 
 

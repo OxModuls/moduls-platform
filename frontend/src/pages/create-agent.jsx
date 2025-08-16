@@ -29,39 +29,44 @@ import { Switch } from "../components/ui/switch";
 
 const modulTypes = [
   {
-    name: "GameFi NPC",
-    emoji: "🎮",
-    description: "Onchain AI that responds in-chat and via gameplay.",
-    identifier: "GAME_FI_NPC",
-    value: "GAME_FI_NPC",
+    name: "Gaming Buddy",
+    emoji: "🎲",
+    description:
+      "Interactive gaming system that presents various games and entertainment options to users.",
+    identifier: "GAMING_BUDDY",
+    value: "GAMING_BUDDY",
   },
   {
-    name: "DeFAI",
-    emoji: "🧠",
-    description: "Scan, snipe execute — fully autonomous, fully aligned",
-    identifier: "DEFI_AI",
-    value: "DEFI_AI",
+    name: "Trading Assistant",
+    emoji: "📈",
+    description:
+      "AI-powered trading bot that analyzes markets, executes trades, and provides insights when you're the developer.",
+    identifier: "TRADING_ASSISTANT",
+    value: "TRADING_ASSISTANT",
   },
   {
     name: "Meme Token",
     emoji: "💸",
-    description: "Mint, hype, moon — launch fully memetic, fully chaotic.",
+    description:
+      "Viral meme token with trading metrics, holder analytics, and community hype tracking.",
     identifier: "MEME",
     value: "MEME",
   },
   {
-    name: "Oracle Feed",
-    emoji: "🔮",
-    description: "Pulls and verifies external data onchain.",
-    identifier: "ORACLE_FEED",
-    value: "ORACLE_FEED",
+    name: "Portfolio Watcher",
+    emoji: "📊",
+    description:
+      "Tracks portfolio performance across multiple chains and provides insights.",
+    identifier: "PORTFOLIO_WATCHER",
+    value: "PORTFOLIO_WATCHER",
   },
   {
-    name: "Custom Logic",
-    emoji: "🛠️",
-    description: "Paste or upload a .goat.json to define custom behavior.",
-    identifier: "CUSTOM",
-    value: "CUSTOM",
+    name: "Social Sentinel",
+    emoji: "🛡️",
+    description:
+      "Gathers social media data based on keywords and topics, providing insights through a chat interface.",
+    identifier: "SOCIAL_SENTINEL",
+    value: "SOCIAL_SENTINEL",
   },
 ];
 
@@ -127,7 +132,13 @@ const CreateAgent = () => {
       .required("Agent description is required"),
     modulType: Yup.string()
       .oneOf(
-        ["GAME_FI_NPC", "DEFI_AI", "MEME", "ORACLE_FEED", "CUSTOM"],
+        [
+          "GAMING_BUDDY",
+          "TRADING_ASSISTANT",
+          "MEME",
+          "PORTFOLIO_WATCHER",
+          "SOCIAL_SENTINEL",
+        ],
         "Invalid module type",
       )
       .required("Module type is required"),

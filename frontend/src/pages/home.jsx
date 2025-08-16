@@ -2,7 +2,6 @@ import { ArrowDownWideNarrow, Bot, Info, RefreshCw } from "lucide-react";
 import { keepPreviousData, useQueries } from "@tanstack/react-query";
 import { createFetcher } from "../lib/fetcher";
 import config from "../shared/config";
-import ordinal from "ordinal";
 import { useWalletModalStore } from "../shared/store";
 import { Link, useNavigate } from "react-router";
 import { useAccount } from "wagmi";
@@ -79,11 +78,11 @@ const Home = () => {
               </SelectTrigger>
               <SelectContent>
                 {[
-                  "GameFi NPC",
-                  "DeFAI",
+                  "Gaming System",
+                  "Trading Assistant",
                   "Meme Token",
-                  "Oracle Feed",
-                  "Custom Logic",
+                  "Portfolio Watcher",
+                  "Social Data",
                 ].map((x, idx) => (
                   <SelectItem key={idx} value={x}>
                     {x}
@@ -140,7 +139,7 @@ const Home = () => {
                       {agent.tags[0]}
                     </span>
                   </div>
-                  <span className="w-48 overflow-hidden text-xs text-muted-foreground overflow-ellipsis whitespace-nowrap">
+                  <span className="w-48 overflow-hidden text-xs overflow-ellipsis whitespace-nowrap text-muted-foreground">
                     {agent.description}
                   </span>
                   <div className="mt-1 flex w-full justify-between text-sm">

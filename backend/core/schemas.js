@@ -29,7 +29,7 @@ const agentCreateSchema = z.object({
     telegramUrl: z.string().optional(),
 
     // Module and token info
-    modulType: z.enum(['GAME_FI_NPC', 'DEFI_AI', 'MEME', 'ORACLE_FEED', 'CUSTOM'], {
+    modulType: z.enum(['GAMING_BUDDY', 'TRADING_ASSISTANT', 'MEME', 'PORTFOLIO_WATCHER', 'SOCIAL_SENTINEL', 'GAME_FI_NPC', 'DEFI_AI', 'ORACLE_FEED'], {
         errorMap: () => ({ message: 'Invalid module type' })
     }),
     tokenSymbol: z.string().min(1, 'Token symbol is required').max(16, 'Token symbol must be less than 16 characters'),
@@ -72,7 +72,7 @@ const agentResponseSchema = z.object({
     status: z.enum(['PENDING', 'ACTIVE', 'INACTIVE']),
     launchDate: z.date(),
     isVerified: z.boolean(),
-    modulType: z.enum(['GAME_FI_NPC', 'DEFI_AI', 'MEME', 'ORACLE_FEED', 'CUSTOM']),
+    modulType: z.enum(['GAMING_BUDDY', 'TRADING_ASSISTANT', 'MEME', 'PORTFOLIO_WATCHER', 'SOCIAL_SENTINEL', 'GAME_FI_NPC', 'DEFI_AI', 'ORACLE_FEED']),
     tokenSymbol: z.string(),
     tokenDecimals: z.number(),
     totalSupply: z.number(),

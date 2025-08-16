@@ -37,10 +37,10 @@ export const dummyAgents = [
     description: "AURA AURA AURA AURA AURA AURA AURA AURA ",
     logoUrl:
       "https://res.cloudinary.com/dit5mp9ke/image/upload/v1754732891/moduls-agents/htphqydattugyifyqnbt.png",
-    tags: ["GameFi NPC", "AUra", "AURA"],
+    tags: ["Gaming System", "AUra", "AURA"],
     status: "ACTIVE",
     isVerified: false,
-    modulType: "GAME_FI_NPC",
+    modulType: "GAMING_BUDDY",
     tokenSymbol: "AURA",
     tokenDecimals: 18,
     totalSupply: 1000000000,
