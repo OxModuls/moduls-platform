@@ -78,8 +78,8 @@ const AdvancedChart = ({
           showMarketCap && totalSupply ? parseFloat(totalSupply) / 1e18 : 1;
 
         // Debug: Log raw data to see what we're getting
-        console.log("Chart raw data sample:", rawData.slice(0, 3));
-        console.log("Supply multiplier:", supplyMultiplier);
+        // console.log("Chart raw data sample:", rawData.slice(0, 3));
+        // console.log("Supply multiplier:", supplyMultiplier);
 
         // Process price data - backend returns values in wei format as strings
         const priceData = rawData
@@ -96,9 +96,9 @@ const AdvancedChart = ({
             const priceInEther = parseFloat(item.close) / 1e18;
             const displayValue = priceInEther * supplyMultiplier;
 
-            console.log(
-              `Price conversion - close: ${item.close}, priceInEther: ${priceInEther}, displayValue: ${displayValue}`,
-            );
+            // console.log(
+            //   `Price conversion - close: ${item.close}, priceInEther: ${priceInEther}, displayValue: ${displayValue}`,
+            // );
 
             return {
               time: timeValue,
@@ -107,7 +107,7 @@ const AdvancedChart = ({
           })
           .filter((item) => item && item.value > 0);
 
-        console.log("Processed price data sample:", priceData.slice(0, 3));
+        // console.log("Processed price data sample:", priceData.slice(0, 3));
 
         // Process volume data - backend returns values in wei format as strings
         const volumeData = rawData
@@ -144,18 +144,18 @@ const AdvancedChart = ({
 
         if (priceData.length > 0) {
           areaSeries.setData(priceData);
-          console.log("Area series data set with", priceData.length, "points");
+          // console.log("Area series data set with", priceData.length, "points");
         } else {
           console.warn("No valid price data to set");
         }
 
         if (volumeData.length > 0) {
           volumeSeries.setData(volumeData);
-          console.log(
-            "Volume series data set with",
-            volumeData.length,
-            "points",
-          );
+          // console.log(
+          //   "Volume series data set with",
+          //   volumeData.length,
+          //   "points",
+          // );
         } else {
           console.warn("No valid volume data to set");
         }

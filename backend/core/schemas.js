@@ -98,4 +98,77 @@ const agentResponseSchema = z.object({
     launchDate: z.date().optional(),
 });
 
-module.exports = { agentSchema, agentCreateSchema, agentResponseSchema };
+// Chat schemas
+const threadCreateSchema = z.object({
+    agentId: z.string().min(1, 'Agent ID is required'),
+    title: z.string().min(1, 'Thread title is required').max(200, 'Thread title must be less than 200 characters').optional(),
+    tags: z.array(z.string()).optional(),
+});
+
+const threadUpdateSchema = z.object({
+    title: z.string().min(1, 'Thread title is required').max(200, 'Thread title must be less than 200 characters').optional(),
+    status: z.enum(['ACTIVE', 'ARCHIVED', 'DELETED']).optional(),
+    isPinned: z.boolean().optional(),
+    tags: z.array(z.string()).optional(),
+});
+
+const messageCreateSchema = z.object({
+    threadId: z.string().min(1, 'Thread ID is required'),
+    content: z.string().min(1, 'Message content is required').max(10000, 'Message content must be less than 10000 characters'),
+    parentMessageId: z.string().optional(),
+    messageType: z.enum(['text', 'image', 'file', 'command']).default('text'),
+    metadata: z.record(z.any()).optional(),
+});
+
+const messageUpdateSchema = z.object({
+    content: z.string().min(1, 'Message content is required').max(10000, 'Message content must be less than 10000 characters').optional(),
+    status: z.enum(['pending', 'processing', 'completed', 'failed']).optional(),
+    error: z.string().optional(),
+    metadata: z.record(z.any()).optional(),
+});
+
+const threadResponseSchema = z.object({
+    uniqueId: z.string(),
+    agentId: z.string(),
+    userId: z.string(),
+    userWalletAddress: z.string(),
+    title: z.string(),
+    status: z.enum(['ACTIVE', 'ARCHIVED', 'DELETED']),
+    messageCount: z.number(),
+    lastMessageAt: z.date(),
+    isPinned: z.boolean(),
+    tags: z.array(z.string()),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+});
+
+const messageResponseSchema = z.object({
+    uniqueId: z.string(),
+    threadId: z.string(),
+    agentId: z.string(),
+    userId: z.string(),
+    parentMessageId: z.string().nullable(),
+    content: z.string(),
+    role: z.enum(['user', 'assistant', 'system']),
+    messageType: z.enum(['text', 'image', 'file', 'command']),
+    status: z.enum(['pending', 'processing', 'completed', 'failed']),
+    model: z.string().nullable(),
+    tokens: z.number().nullable(),
+    responseTime: z.number().nullable(),
+    error: z.string().nullable(),
+    metadata: z.record(z.any()),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+});
+
+module.exports = {
+    agentSchema,
+    agentCreateSchema,
+    agentResponseSchema,
+    threadCreateSchema,
+    threadUpdateSchema,
+    messageCreateSchema,
+    messageUpdateSchema,
+    threadResponseSchema,
+    messageResponseSchema
+};

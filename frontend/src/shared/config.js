@@ -63,6 +63,15 @@ const config = {
         tradingChart: '/api/trading/chart',
         userTradingHistory: '/api/trading/user',
         tradingOverview: '/api/trading/overview',
+
+        // Chat endpoints
+        chatThreads: '/api/chat/threads',
+        chatMessages: '/api/chat/threads',
+        createThread: '/api/chat/threads',
+        updateThread: '/api/chat/threads',
+        deleteThread: '/api/chat/threads',
+        createMessage: '/api/chat/threads',
+        updateMessage: '/api/chat/messages',
     }
 };
 

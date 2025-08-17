@@ -1,13 +1,13 @@
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSidebar } from "../ui/sidebar";
 import { useBalance } from "wagmi";
 import {
   Copy,
   Maximize2,
   Minimize2,
-  PanelLeft,
   PanelLeftClose,
   X,
+  MessageCircle,
+  PanelLeft,
 } from "lucide-react";
 
 import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
@@ -15,28 +15,183 @@ import { Separator } from "../ui/separator";
 import { Textarea } from "../ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { formatBigIntToUnits } from "../../lib/utils";
+import { useState, useRef, useEffect } from "react";
+import { useAuth } from "../../shared/hooks/useAuth";
+import {
+  useCreateThread,
+  useCreateMessage,
+  useThreadMessages,
+} from "../../shared/hooks/useChat";
+import { toast } from "sonner";
 
-const AgentChat = ({ agent, fullScreen, onFullScreenChange, onOpenChange }) => {
-  const { open: sidebarOpen, toggleSidebar } = useSidebar();
+// Utility function to format relative time
+const formatRelativeTime = (date) => {
+  const now = new Date();
+  const messageDate = new Date(date);
+  const diffInSeconds = Math.floor((now - messageDate) / 1000);
+
+  if (diffInSeconds < 60) {
+    return "just now";
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  } else if (diffInSeconds < 2592000) {
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  } else {
+    return messageDate.toLocaleDateString();
+  }
+};
+
+const AgentChat = ({
+  agent,
+  selectedThreadId,
+  fullScreen,
+  onFullScreenChange,
+  onOpenChange,
+  onThreadCreated,
+  onSidebarToggle,
+  sidebarOpen,
+}) => {
   const isMobile = useIsMobile();
+  const { isAuthenticated } = useAuth();
+
+  // Chat state
+  const [chatInput, setChatInput] = useState("");
+  const [isStartingChat, setIsStartingChat] = useState(false);
+  const textareaRef = useRef(null);
+
+  // Chat mutations
+  const createThreadMutation = useCreateThread();
+  const createMessageMutation = useCreateMessage();
+
+  // Fetch messages for selected thread
+  const { data: messagesData, isLoading: messagesLoading } = useThreadMessages(
+    selectedThreadId,
+    { enabled: !!selectedThreadId },
+  );
+
+  const messages = messagesData?.data?.messages || [];
 
   const { data: agentWalletBalance } = useBalance({
     address: agent.walletAddress,
   });
 
-  const promptSuggestions = [
-    "What Can I Do? 🤔",
-    "Get Trading Alpha 📈",
-    "Defi Execution ⚡",
-    "Defi Research 🔍",
-    "Goal-oriented Tasks 🎯",
+  // Predefined prompt suggestions for each modul type
+  const modulTypePrompts = {
+    GAMING_BUDDY: [
+      "Start a new game 🎮",
+      "Show me available games 🎲",
+      "What's my gaming score? 🏆",
+    ],
+    TRADING_ASSISTANT: [
+      "Analyze market trends 📊",
+      "Get trading signals 📈",
+      "Portfolio performance review 📋",
+    ],
+    MEME: [
+      "Show meme trends 🚀",
+      "Community sentiment 📢",
+      "Viral meme analysis 🔥",
+    ],
+    PORTFOLIO_WATCHER: [
+      "Portfolio overview 📈",
+      "Asset allocation 📊",
+      "Performance metrics 📋",
+    ],
+    SOCIAL_SENTINEL: [
+      "Search social trends 🔍",
+      "Keyword analysis 📝",
+      "Sentiment overview 😊",
+    ],
+  };
+
+  // Get prompts for the current agent's modul type, fallback to generic prompts
+  const promptSuggestions = modulTypePrompts[agent.modulType] || [
+    "What can you do? 🤔",
+    "How do I use this? ❓",
+    "Show me features ✨",
   ];
 
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion) => {
+    setChatInput(suggestion);
+    // Focus the textarea after setting the value
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 0);
+  };
+
+  // Handle start chat with race condition protection
+  const handleStartChat = async () => {
+    if (!chatInput.trim() || isStartingChat || !isAuthenticated) {
+      if (!isAuthenticated) {
+        toast.error("Please connect your wallet to start chatting");
+        return;
+      }
+      return;
+    }
+
+    setIsStartingChat(true);
+
+    try {
+      let threadId = selectedThreadId;
+
+      // Create new thread if none exists
+      if (!threadId) {
+        const threadResult = await createThreadMutation.mutateAsync({
+          agentId: agent.uniqueId,
+          title: `New conversation`,
+          tags: [agent.modulType],
+        });
+        threadId = threadResult.data.uniqueId;
+        // Notify parent component about the new thread
+        if (onThreadCreated) {
+          onThreadCreated(threadId);
+        }
+      }
+
+      // Send the message
+      await createMessageMutation.mutateAsync({
+        threadId,
+        messageData: {
+          content: chatInput,
+          messageType: "text",
+        },
+      });
+
+      // Clear input after successful send
+      setChatInput("");
+
+      // Removed toast.success("Message sent!") to avoid showing on every message
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      toast.error("Failed to send message");
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0 && textareaRef.current) {
+      textareaRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length]);
+
   return (
-    <main className="flex flex-1 flex-col p-2">
-      <div className="flex justify-between px-1 py-1">
+    <main className="flex h-full w-full flex-1 flex-col overflow-hidden p-2">
+      <div className="flex shrink-0 justify-between px-1 py-1">
         <div className="flex items-center gap-3">
-          <button className="cursor-pointer" onClick={toggleSidebar}>
+          <button
+            className="cursor-pointer"
+            onClick={() => onSidebarToggle((prev) => !prev)}
+          >
             {sidebarOpen ? (
               <PanelLeftClose className="size-6" />
             ) : (
@@ -73,10 +228,12 @@ const AgentChat = ({ agent, fullScreen, onFullScreenChange, onOpenChange }) => {
             {!!agentWalletBalance && (
               <div className="rounded-lg bg-neutral-700 px-2 py-1 text-sm">
                 <span>
-                  {Number(formatBigIntToUnits(
-                    agentWalletBalance.value,
-                    agentWalletBalance.decimals,
-                  )).toFixed(6)}
+                  {Number(
+                    formatBigIntToUnits(
+                      agentWalletBalance.value,
+                      agentWalletBalance.decimals,
+                    ),
+                  ).toFixed(6)}
                 </span>{" "}
                 SEI
               </div>
@@ -107,36 +264,165 @@ const AgentChat = ({ agent, fullScreen, onFullScreenChange, onOpenChange }) => {
       {/* separator line*/}
       <Separator className="my-2" />
 
-      <div className="flex min-h-[45vh] flex-1 items-center justify-center">
-        <div className="mx-auto max-w-md">
-          <div className="flex flex-col items-center justify-center gap-5 px-4">
-            <div className="">
-              <h2 className="text-xl font-semibold">
-                What can I help you with?
-              </h2>
-            </div>
-            <div className="w-full">
-              <Textarea placeholder="Ask me anything" className="" />
-              <button className="from-logo bg-button-gradient mt-3 w-full cursor-pointer rounded-lg py-2 font-medium">
-                Start Chat
-              </button>
+      {/* Messages Area */}
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+        {messagesLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-muted-foreground">
+              Loading messages...
             </div>
           </div>
-
-          <div className="mt-8 flex w-full justify-center">
-            <div className="flex w-full flex-wrap justify-center gap-1.5 p-4">
-              {promptSuggestions.map((suggestion, idx) => (
-                <button
-                  key={idx}
-                  className="cursor-pointer rounded-xl bg-neutral-800 px-2 py-1"
-                >
-                  {suggestion}
-                </button>
-              ))}
+        ) : messages.length === 0 ? (
+          <div className="flex min-h-[45vh] flex-1 items-center justify-center">
+            <div className="mx-auto max-w-md">
+              <div className="flex flex-col items-center justify-center gap-5 px-4">
+                <div className="text-center">
+                  {/* Show default chat input box in mini mode OR when thread is selected in full screen */}
+                  {fullScreen === false || selectedThreadId ? (
+                    <>
+                      <h2 className="text-xl font-semibold">
+                        What can I help you with?
+                      </h2>
+                      <div className="mt-4 w-full">
+                        <Textarea
+                          ref={textareaRef}
+                          placeholder="Ask me anything"
+                          className="w-full"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleStartChat();
+                            }
+                          }}
+                        />
+                        <button
+                          className={`from-logo bg-button-gradient mt-3 w-full cursor-pointer rounded-lg py-2 font-medium ${
+                            !chatInput.trim() ||
+                            isStartingChat ||
+                            !isAuthenticated
+                              ? "cursor-not-allowed opacity-50"
+                              : ""
+                          }`}
+                          onClick={handleStartChat}
+                          disabled={
+                            !chatInput.trim() ||
+                            isStartingChat ||
+                            !isAuthenticated
+                          }
+                        >
+                          {isStartingChat ? "Starting..." : "Start Chat"}
+                        </button>
+                      </div>
+                      <div className="mt-6 flex w-full justify-center">
+                        <div className="flex w-full flex-wrap justify-center gap-1.5">
+                          {promptSuggestions.map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              className="cursor-pointer rounded-xl bg-neutral-800 px-2 py-1 transition-colors hover:bg-neutral-700"
+                              onClick={() => handleSuggestionClick(suggestion)}
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-4 flex justify-center">
+                        <div className="rounded-full bg-gradient-to-br from-red-500/20 to-orange-500/20 p-6">
+                          <MessageCircle className="h-12 w-12 text-red-400" />
+                        </div>
+                      </div>
+                      <h2 className="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-2xl font-bold text-transparent">
+                        Start a Conversation
+                      </h2>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Choose a conversation from the sidebar or create a new
+                        one to begin chatting
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+        ) : (
+          // Display existing messages
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.uniqueId}
+                className={`flex gap-3 ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                {message.role === "assistant" && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={agent.logoUrl} />
+                    <AvatarFallback>
+                      {agent.name?.charAt(0)?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+
+                <div
+                  className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                    message.role === "user"
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-muted"
+                  }`}
+                >
+                  <p className="text-sm">{message.content}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatRelativeTime(message.createdAt)}
+                  </p>
+                </div>
+
+                {message.role === "user" && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>U</AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Input Area - Only show if thread exists AND has messages */}
+      {selectedThreadId && messages.length > 0 && (
+        <div className="border-t p-4">
+          <div className="flex gap-2">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Type your message..."
+              className="flex-1"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleStartChat();
+                }
+              }}
+            />
+            <button
+              className={`bg-button-gradient rounded-lg px-4 py-2 font-medium ${
+                !chatInput.trim() || isStartingChat
+                  ? "cursor-not-allowed opacity-50"
+                  : ""
+              }`}
+              onClick={handleStartChat}
+              disabled={!chatInput.trim() || isStartingChat}
+            >
+              {isStartingChat ? "Sending..." : "Send"}
+            </button>
           </div>
         </div>
-      </div>
+      )}
     </main>
   );
 };

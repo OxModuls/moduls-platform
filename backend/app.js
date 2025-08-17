@@ -10,6 +10,7 @@ const usersRouter = require('./routes/users');
 const agentsRouter = require('./routes/agents');
 const tradingRouter = require('./routes/trading');
 const holdersRouter = require('./routes/holders');
+const chatRouter = require('./routes/chat');
 const fs = require('fs');
 const path = require('path');
 const { openApiDoc } = require('./core/openapi');
@@ -78,6 +79,7 @@ app.use('/api', usersRouter);
 app.use('/api', agentsRouter);
 app.use('/api/trading', tradingRouter);
 app.use('/api', holdersRouter);
+app.use('/api/chat', chatRouter);
 
 // New webhook routes
 app.use('/api/webhooks', webhookRoutes);
