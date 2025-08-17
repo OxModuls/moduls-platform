@@ -25,15 +25,30 @@ const ChatPopup = ({ open, onOpenChange, agent }) => {
       <PopoverTrigger asChild>
         <button
           data-popover-open={open}
-          className="cursor-pointe fixed right-4 bottom-16 z-20 data-[popover-open=false]:animate-pulse-bounce"
+          className="group data-[popover-open=false]:animate-float fixed right-4 bottom-8 z-20 cursor-pointer rounded-full bg-gradient-to-br from-accent/20 to-accent/10 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-accent/25 active:scale-95 active:shadow-lg"
         >
-          <MessageCircle className="size-16 fill-accent/50 stroke-1 text-accent md:size-20" />
-          <Avatar className="absolute top-[50%] left-[50%] z-10 size-11 translate-x-[-50%] translate-y-[-50%] md:size-14">
-            <AvatarImage src={agent.logoUrl} />
-            <AvatarFallback>
-              {agent.name?.charAt(0)?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          {/* Animated background ring */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 to-accent/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+          {/* Main icon container */}
+          <div className="relative z-10 flex items-center justify-center">
+            <MessageCircle className="size-7 fill-accent/60 stroke-accent text-accent transition-all duration-300 group-hover:fill-accent/80 group-hover:stroke-accent/80 group-active:fill-accent/90 group-active:stroke-accent/90 md:size-8" />
+          </div>
+
+          {/* Agent avatar overlay */}
+          <div className="absolute -top-1 -right-1 z-20">
+            <Avatar className="size-7 ring-2 ring-background transition-transform duration-300 group-hover:scale-110 group-active:scale-95 md:size-8">
+              <AvatarImage src={agent.logoUrl} />
+              <AvatarFallback className="text-xs font-semibold">
+                {agent.name?.charAt(0)?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+
+          {/* Pulse animation when closed */}
+          {!open && (
+            <div className="absolute inset-0 animate-ping rounded-full bg-accent/20 opacity-20" />
+          )}
         </button>
       </PopoverTrigger>
       <div hidden={!open} className={`fixed inset-0 z-10 bg-black/50`} />
@@ -43,8 +58,15 @@ const ChatPopup = ({ open, onOpenChange, agent }) => {
       )}
 
       <PopoverContent
-        className="flex w-screen p-0 transition-all duration-200 data-[fullscreen=true]:h-screen md:w-[calc(var(--sidebar-width)+28rem)] data-[fullscreen=true]:md:w-screen"
+        className="right-4 flex max-h-[calc(100vh-12rem)] min-h-[300px] w-screen max-w-[calc(100vw-2rem)] p-0 transition-all duration-200 data-[fullscreen=true]:h-screen md:w-[calc(16rem+28rem)] data-[fullscreen=true]:md:w-screen"
         data-fullscreen={fullScreen}
+        side="top"
+        align="end"
+        sideOffset={30}
+        alignOffset={-20}
+        avoidCollisions={true}
+        collisionBoundary={document.body}
+        collisionPadding={30}
       >
         <div className="flex h-full w-full">
           {/* Desktop Sidebar - shares width */}

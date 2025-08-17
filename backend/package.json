@@ -2,13 +2,10 @@
 	"name": "backend",
 	"private": true,
 	"scripts": {
-		"start": "node app.js",
-		"dev": "nodemon app.js",
-		"migrate:modul-types": "node scripts/migrate-modul-types.js"
+		"start": "bun app.js",
+		"dev": "bun --watch app.js"
 	},
-	"devDependencies": {
-		"@types/bun": "latest"
-	},
+	"devDependencies": {},
 	"peerDependencies": {
 		"typescript": "^5"
 	},
@@ -19,6 +16,7 @@
 		"cors": "^2.8.5",
 		"dotenv": "^16.0.3",
 		"express": "5.1.0",
+		"groq-sdk": "^0.30.0",
 		"jsonwebtoken": "^9.0.2",
 		"mongoose": "^8.16.4",
 		"morgan": "^1.10.1",

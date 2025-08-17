@@ -16,6 +16,7 @@ const config = {
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '1234567890',
     agentWalletSecret: process.env.AGENT_WALLET_SECRET || 'moduls-agent-wallet-secret',
     chainMode: process.env.CHAIN_MODE || 'testnet',
+    groqApiKey: process.env.GROQ_API_KEY || 'groq-api-key',
     allowedOrigins: process.env.ALLOWED_ORIGINS ?
         process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()) : [
             'http://localhost:5173',

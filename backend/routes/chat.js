@@ -9,6 +9,7 @@ const {
     messageCreateSchema,
     messageUpdateSchema
 } = require('../core/schemas');
+const { processMessage } = require('../core/services');
 const crypto = require('crypto');
 
 const router = express.Router();
@@ -325,7 +326,8 @@ router.post('/threads/:threadId/messages', verifySession, async (req, res) => {
             parentMessageId,
             messageType,
             role: 'user',
-            metadata: metadata || {}
+            metadata: metadata || {},
+            status: 'pending' // Set initial status as pending
         });
 
         await message.save();
@@ -336,9 +338,27 @@ router.post('/threads/:threadId/messages', verifySession, async (req, res) => {
             lastMessageAt: new Date()
         });
 
+        // Process the message using modul services (async - don't wait for response)
+        processMessage(threadId, message._id.toString(), { content, messageType, metadata })
+            .then(result => {
+                console.log('Message processed successfully:', result);
+            })
+            .catch(error => {
+                console.error('Message processing failed:', error);
+                // Update message status to failed
+                Message.findByIdAndUpdate(message._id, {
+                    status: 'failed',
+                    error: error.message,
+                    updatedAt: new Date()
+                }).catch(updateError => {
+                    console.error('Failed to update message status:', updateError);
+                });
+            });
+
         return res.status(201).json({
             success: true,
-            data: message
+            data: message,
+            message: 'Message created and queued for processing'
         });
 
     } catch (error) {
