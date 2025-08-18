@@ -9,6 +9,7 @@ import {
   Database,
   Info,
   Link,
+  Tags,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -161,7 +162,7 @@ const AgentAboutTab = ({
         <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
           <div className="flex items-center gap-2">
             <Link className="size-5" />
-            <span className="font-medium">Contract Address:</span>
+            <span className="font-medium">Contract Address</span>
           </div>
           <div className="flex items-center gap-1">
             <span>{ellipsizeAddress(token.contractAddress)}</span>
@@ -179,7 +180,7 @@ const AgentAboutTab = ({
         <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
           <div className="flex items-center gap-2">
             <UserRound className="size-5" />
-            <span className="font-medium">Developer Address:</span>
+            <span className="font-medium">Developer Address</span>
           </div>
           <div className="flex items-center gap-1">
             <span>{ellipsizeAddress(token.devAddress)}</span>
@@ -195,12 +196,16 @@ const AgentAboutTab = ({
           </div>
         </div>
         {agent?.tags && agent.tags.length > 0 && (
-          <div className="rounded-lg border bg-primary-foreground px-4 py-3">
+          <div className="flex justify-between rounded-lg border bg-primary-foreground px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Tags className="size-5" />
+              <span className="font-medium">Tags</span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {agent.tags.map((tag, index) => (
                 <span
                   key={index}
-                  className=" rounded-md bg-accent/20 px-2 py-1 text-sm text-accent"
+                  className="rounded-md bg-accent/20 px-2 py-1 text-sm text-accent"
                 >
                   {tag}
                 </span>
