@@ -402,6 +402,7 @@ const Agent = () => {
             </div>
           )}
           <button
+            hidden={token.curveProgress.current < token.curveProgress.target}
             className="bg-button-gradient mr-0 ml-auto w-fit cursor-pointer rounded-xl px-3 py-2 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-accent/25"
             onClick={() => setAgentChatOpen(true)}
           >
