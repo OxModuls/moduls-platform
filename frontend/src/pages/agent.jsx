@@ -235,8 +235,8 @@ const Agent = () => {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex flex-col items-start gap-2">
-              <div className="flex gap-4">
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-4">
                 <h1 className="text-xl font-bold uppercase">{token.name}</h1>
                 <span className="rounded-md bg-accent/20 px-2 py-1 text-sm text-accent">
                   {agent.tags[0]}
