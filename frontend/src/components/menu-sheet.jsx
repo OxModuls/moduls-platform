@@ -55,7 +55,7 @@ const minorItems = [
   },
   {
     title: "Follow Twitter",
-    url: "#",
+    url: "https://x.com/modulsdotfun",
     icon: FaXTwitter,
   },
 ];
