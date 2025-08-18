@@ -776,11 +776,13 @@ const AgentTradeTab = ({
                 </div>
 
                 {/* Subtle Tax Information */}
-                {activeTradeTab === "buy" && token.tradeFees > 0 && (
-                  <div className="text-center text-xs text-neutral-500">
-                    Includes {token.tradeFees}% tax
-                  </div>
-                )}
+                  {/*
+                  {activeTradeTab === "buy" && token.tradeFees > 0 && (
+                    <div className="text-center text-xs text-neutral-500">
+                      Includes {token.tradeFees}% tax
+                    </div>
+                  )}
+                */}
 
                 <div className="flex w-full flex-col gap-1">
                   <div className="flex items-center justify-between">
