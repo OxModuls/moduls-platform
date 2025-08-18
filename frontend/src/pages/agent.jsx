@@ -235,8 +235,8 @@ const Agent = () => {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex flex-col items-start gap-2">
-              <div className="flex gap-4">
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-4">
                 <h1 className="text-xl font-bold uppercase">{token.name}</h1>
                 <span className="rounded-md bg-accent/20 px-2 py-1 text-sm text-accent">
                   {agent.tags[0]}
@@ -402,6 +402,7 @@ const Agent = () => {
             </div>
           )}
           <button
+            hidden={token.curveProgress.current < token.curveProgress.target}
             className="bg-button-gradient mr-0 ml-auto w-fit cursor-pointer rounded-xl px-3 py-2 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-accent/25"
             onClick={() => setAgentChatOpen(true)}
           >

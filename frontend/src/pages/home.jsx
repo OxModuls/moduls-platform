@@ -131,7 +131,7 @@ const Home = () => {
                 </Avatar>
                 <div className="flex grow flex-col items-start">
                   <div className="flex w-full items-center gap-2">
-                    <span className="text-sm">{agent.name}</span>
+                    <span className="text-lg">{agent.name}</span>
                     <span className="text-xs text-muted-foreground">
                       {agent.tokenSymbol}
                     </span>

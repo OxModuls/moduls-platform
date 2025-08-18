@@ -400,7 +400,7 @@ const CreateAgent = () => {
                 <Form className="">
                   <div className="mt-4 flex flex-col gap-5 rounded-xl border px-4 py-6">
                     <div className="ml-1">
-                      <h2 className="text-xl font-semibold">Agent Identity</h2>
+                      <h2 className="text-lg font-semibold">Agent Identity</h2>
                       <p className="text-muted-foreground">
                         Give your agent a face and identity.
                       </p>
@@ -480,12 +480,11 @@ const CreateAgent = () => {
                             }
                           >
                             <div className="flex items-center gap-3">
-                              <div className="text-xl">{modul.emoji}</div>
                               <div className="min-w-0 flex-1">
                                 <h3 className="text-sm font-semibold text-foreground">
-                                  {modul.name}
+                                  {modul.emoji} {modul.name}
                                 </h3>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="mt-0.5 text-xs text-muted-foreground">
                                   {modul.description}
                                 </p>
                               </div>
@@ -661,7 +660,7 @@ const CreateAgent = () => {
                     className="mt-4 flex flex-col gap-5 rounded-xl border px-4 py-6"
                   >
                     <div className="ml-1">
-                      <h2 className="text-xl font-semibold">Tax Settings</h2>
+                      <h2 className="text-lg font-semibold">Tax Settings</h2>
                       <p className="text-muted-foreground">
                         Fund your agent. Feed your dev. Or don't.
                       </p>
@@ -783,7 +782,7 @@ const CreateAgent = () => {
                     <div>
                       <div className="ml-1">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold">
+                          <h2 className="text-lg font-semibold">
                             Launch Schedule
                           </h2>
                           <Switch
@@ -792,10 +791,7 @@ const CreateAgent = () => {
                             className="data-[state=checked]:bg-accent [&>span]:border [&>span]:border-accent [&>span]:dark:data-[state=unchecked]:bg-black"
                           />
                         </div>
-                        <p
-                          hidden={!showLaunchSchedule}
-                          className="text-muted-foreground"
-                        >
+                        <p className="text-muted-foreground">
                           Set when trading opens for your token. Leave empty to
                           deploy without opening trading yet.
                         </p>
@@ -853,7 +849,7 @@ const CreateAgent = () => {
                     className="mt-4 flex flex-col rounded-xl border px-4 py-6"
                   >
                     <div className="mt-4 ml-1">
-                      <h3 className="text-lg font-semibold">Pre-buy Token</h3>
+                      <h2 className="text-lg font-semibold">Pre-buy Token</h2>
                       <p className="text-muted-foreground">
                         Purchase tokens immediately after deployment. This is
                         optional but can help establish initial liquidity and
