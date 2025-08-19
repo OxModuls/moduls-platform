@@ -15,7 +15,6 @@ import { MessageCircle } from "lucide-react";
 const ChatPopup = ({ open, onOpenChange, agent }) => {
   const [fullScreen, setFullScreen] = useState(false);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleThreadSelect = (threadId) => {
     setSelectedThreadId(threadId);
