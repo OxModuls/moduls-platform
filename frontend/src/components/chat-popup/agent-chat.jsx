@@ -24,6 +24,8 @@ import {
 } from "../../shared/hooks/useChat";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+import { useSidebar } from "../ui/sidebar";
+import avatarImg from "../../assets/avatar.svg";
 
 // Utility function to format relative time
 const formatRelativeTime = (date) => {
@@ -54,9 +56,8 @@ const AgentChat = ({
   onFullScreenChange,
   onOpenChange,
   onThreadCreated,
-  onSidebarToggle,
-  sidebarOpen,
 }) => {
+  const { open: sidebarOpen, toggleSidebar } = useSidebar();
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
 
@@ -186,14 +187,14 @@ const AgentChat = ({
   }, [messages.length]);
 
   return (
-    <main className="flex h-full max-h-[calc(100vh-12rem)] flex-col overflow-hidden p-2">
+    <main
+      data-fullscreen={fullScreen}
+      className="flex h-full flex-col overflow-hidden p-2 data-[fullscreen=false]:max-h-[calc(100vh-12rem)]"
+    >
       {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b pb-3">
+      <div className="flex shrink-0 items-center justify-between pb-3">
         <div className="flex items-center gap-3">
-          <button
-            className="cursor-pointer"
-            onClick={() => onSidebarToggle((prev) => !prev)}
-          >
+          <button className="cursor-pointer" onClick={toggleSidebar}>
             {sidebarOpen ? (
               <PanelLeftClose className="size-6" />
             ) : (
@@ -267,7 +268,7 @@ const AgentChat = ({
       <Separator className="my-2" />
 
       {/* Messages Area */}
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="min-h-0 flex-1 grow overflow-hidden">
         <div className="custom-scrollbar h-full max-h-[calc(100vh-20rem)] space-y-4 overflow-x-hidden overflow-y-auto p-4">
           {messagesLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -281,7 +282,7 @@ const AgentChat = ({
                 <div className="flex flex-col items-center justify-center gap-5 px-4">
                   <div className="text-center">
                     {/* Show default chat input box in mini mode OR when thread is selected in full screen */}
-                    {fullScreen === false || selectedThreadId ? (
+                    {!fullScreen || selectedThreadId ? (
                       <>
                         <h2 className="text-xl font-semibold">
                           What can I help you with?
@@ -365,7 +366,7 @@ const AgentChat = ({
                   }`}
                 >
                   {message.role === "assistant" && (
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="size-8">
                       <AvatarImage src={agent.logoUrl} />
                       <AvatarFallback>
                         {agent.name?.charAt(0)?.toUpperCase()}
@@ -389,7 +390,8 @@ const AgentChat = ({
                   </div>
 
                   {message.role === "user" && (
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="size-8">
+                      <AvatarImage src={avatarImg} />
                       <AvatarFallback>U</AvatarFallback>
                     </Avatar>
                   )}
@@ -401,7 +403,10 @@ const AgentChat = ({
       </div>
 
       {/* Input Area */}
-      <div className="flex shrink-0 gap-3 border-t p-4">
+      <div
+        hidden={!fullScreen && !selectedThreadId}
+        className="flex shrink-0 gap-3 border-t p-4"
+      >
         <div className="min-w-0 flex-1">
           <Textarea
             ref={textareaRef}
