@@ -94,4 +94,35 @@ export const dummyAgents = [
       walletAddress: "0x7b245DCf3e316C14C1D52a28c990dC8b4046056c",
     },
   },
+  {
+    uniqueId: "agent_1755523312189_8mlcry0xiir",
+    name: "Cosmo",
+    description: "Lord of the Cosmos",
+    logoUrl:
+      "https://res.cloudinary.com/dit5mp9ke/image/upload/v1755523311/moduls-agents/y4fqnkvrsdt3qx4tkq51.jpg",
+    tags: ["Gaming Buddy", "Cosmo", "COSMO"],
+    status: "ACTIVE",
+    isVerified: false,
+    modulType: "GAMING_BUDDY",
+    tokenSymbol: "COSMO",
+    tokenDecimals: 18,
+    totalSupply: 1000000000,
+    curveProgress: 5,
+    tokenAddress: "0x1B6312cd8DFF03FBcE2Ed7D160F9B6487e4929e7",
+    walletAddress: "0x53C9C04FfF03FF8e7925e3Aacbf58d933e0f8cc3",
+    taxSettings: {
+      totalTaxPercentage: 2,
+      agentWalletShare: 50,
+      devWalletShare: 50,
+    },
+    prebuySettings: {
+      slippage: 1,
+      amountInWei: "2000000000000000000",
+    },
+    createdAt: "2025-08-18T13:21:52.970Z",
+    updatedAt: "2025-08-18T13:22:02.881Z",
+    creator: {
+      walletAddress: "0x7b245DCf3e316C14C1D52a28c990dC8b4046056c",
+    },
+  },
 ];
