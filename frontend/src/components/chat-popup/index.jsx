@@ -53,7 +53,7 @@ const ChatPopup = ({ open, onOpenChange, agent }) => {
           {/* Pulse animation when closed */}
           <div
             hidden={open}
-            className="debug absolute inset-0 animate-ping rounded-full bg-accent/20 opacity-20"
+            className="absolute inset-0 animate-ping rounded-full bg-accent/20 opacity-20"
           />
         </button>
       </PopoverTrigger>
