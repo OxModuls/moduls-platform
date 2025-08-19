@@ -46,45 +46,45 @@ const MyAgentsDialog = ({ open, onOpenChange }) => {
           <DialogDescription className="sr-only">
             View your agents
           </DialogDescription>
-          <Separator className="my-2" />
-          <div className="h-96 overflow-y-auto">
-            <div className="mt-4 w-full">
-              {isMyAgentsLoading && !myAgents ? (
-                <div className="h-16 w-full animate-pulse rounded-lg bg-accent/20 transition-opacity duration-500" />
-              ) : myAgents && myAgents.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {myAgents.map((agent) => (
-                    <AgentCard
-                      key={agent.uniqueId}
-                      agent={agent}
-                      onLinkClick={() => {
-                        onOpenChange(false);
-                        closeWalletModal();
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border-2 border-dashed border-accent/20 bg-primary-foreground px-4 py-4 text-center text-muted-foreground">
-                  <p className="block font-semibold">No agents yet</p>
-                  <span className="mt-1 block text-xs">
-                    You haven't launched any agents.
-                  </span>
-                  <Link
-                    to="/create"
-                    className="bg-button-gradient mx-auto mt-4 block w-fit rounded-lg px-3 py-2 text-white"
-                    onClick={() => {
+        </DialogHeader>
+        <Separator className="my-2 w-full" />
+        <div className="h-96 overflow-y-auto">
+          <div className="mt-4 w-full">
+            {isMyAgentsLoading && !myAgents ? (
+              <div className="h-16 w-full animate-pulse rounded-lg bg-accent/20 transition-opacity duration-500" />
+            ) : myAgents && myAgents.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {myAgents.map((agent) => (
+                  <AgentCard
+                    key={agent.uniqueId}
+                    agent={agent}
+                    onLinkClick={() => {
                       onOpenChange(false);
                       closeWalletModal();
                     }}
-                  >
-                    Launch an agent
-                  </Link>
-                </div>
-              )}
-            </div>
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border-2 border-dashed border-accent/20 bg-primary-foreground px-4 py-4 text-center text-muted-foreground">
+                <p className="block font-semibold">No agents yet</p>
+                <span className="mt-1 block text-xs">
+                  You haven't launched any agents.
+                </span>
+                <Link
+                  to="/create"
+                  className="bg-button-gradient mx-auto mt-4 block w-fit rounded-lg px-3 py-2 text-white"
+                  onClick={() => {
+                    onOpenChange(false);
+                    closeWalletModal();
+                  }}
+                >
+                  Launch an agent
+                </Link>
+              </div>
+            )}
           </div>
-        </DialogHeader>
+        </div>
       </DialogContent>
     </Dialog>
   );
