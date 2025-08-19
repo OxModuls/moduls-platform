@@ -10,7 +10,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 
-import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
+import { cn, ellipsizeAddress, writeToClipboard } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { Textarea } from "../ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -50,6 +50,7 @@ const formatRelativeTime = (date) => {
 };
 
 const AgentChat = ({
+  className,
   agent,
   selectedThreadId,
   fullScreen,
@@ -189,7 +190,10 @@ const AgentChat = ({
   return (
     <main
       data-fullscreen={fullScreen}
-      className="flex h-full flex-col overflow-hidden p-2 data-[fullscreen=false]:max-h-[calc(100vh-12rem)]"
+      className={cn(
+        "flex h-full md:min-h-[50vh] flex-col overflow-hidden p-2 data-[fullscreen=false]:max-h-[calc(100vh-12rem)]",
+        className,
+      )}
     >
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between pb-3">
