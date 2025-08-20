@@ -24,6 +24,12 @@ class MessageProcessor {
                 throw new Error(`Agent not found for thread: ${threadId}`);
             }
 
+            // Get the user message that triggered this response
+            const userMessage = await Message.findOne({ uniqueId: messageId });
+            if (!userMessage) {
+                throw new Error(`User message not found: ${messageId}`);
+            }
+
             console.log('Processing message for agent:', {
                 name: agent.name,
                 modulType: agent.modulType,
@@ -36,6 +42,17 @@ class MessageProcessor {
 
             console.log('Available tools:', availableTools.map(t => t.name));
 
+            // Build conversation history (last 40 messages) for context
+            const rawHistory = await Message.find({ threadId: thread._id })
+                .sort({ createdAt: 1 })
+                .select('role content')
+                .lean();
+
+            const history = rawHistory
+                .filter(m => m && m.content && (m.role === 'user' || m.role === 'assistant'))
+                .slice(-40)
+                .map(m => ({ role: m.role, content: m.content }));
+
             // Process with LLM
             const context = {
                 modulType: agent.modulType,
@@ -45,11 +62,7 @@ class MessageProcessor {
                 messageId: messageId
             };
 
-            const llmResponse = await this.llm.processMessage(
-                messageData.content,
-                availableTools,
-                context
-            );
+            const llmResponse = await this.llm.processMessage(history, availableTools, context);
 
             let finalResponse;
 
@@ -61,7 +74,7 @@ class MessageProcessor {
                 );
 
                 // Generate final response based on tool results
-                finalResponse = await this.llm.generateFinalResponse(toolResults, context);
+                finalResponse = await this.llm.generateFinalResponse(toolResults, context, history);
             } else {
                 // Direct text response
                 finalResponse = llmResponse.content;
@@ -72,7 +85,8 @@ class MessageProcessor {
                 thread._id,
                 thread.agentId,
                 thread.userId,
-                finalResponse
+                finalResponse,
+                userMessage._id // Pass the user message ObjectId as parent
             );
 
             // Update message status
@@ -100,7 +114,7 @@ class MessageProcessor {
         }
     }
 
-    async createAssistantMessage(threadId, agentId, userId, content) {
+    async createAssistantMessage(threadId, agentId, userId, content, parentMessageId) {
         const message = new Message({
             uniqueId: this.generateUniqueId('msg'),
             threadId: threadId,
@@ -110,7 +124,8 @@ class MessageProcessor {
             role: 'assistant',
             messageType: 'text',
             status: 'completed',
-            model: 'groq-llama3-8b'
+            model: 'groq-llama3-8b',
+            parentMessageId: parentMessageId // Link to the user message
         });
 
         await message.save();

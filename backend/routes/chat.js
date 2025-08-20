@@ -339,14 +339,14 @@ router.post('/threads/:threadId/messages', verifySession, async (req, res) => {
         });
 
         // Process the message using modul services (async - don't wait for response)
-        processMessage(threadId, message._id.toString(), { content, messageType, metadata })
+        processMessage(threadId, message.uniqueId, { content, messageType, metadata })
             .then(result => {
                 console.log('Message processed successfully:', result);
             })
             .catch(error => {
                 console.error('Message processing failed:', error);
                 // Update message status to failed
-                Message.findByIdAndUpdate(message._id, {
+                Message.findOneAndUpdate({ uniqueId: message.uniqueId }, {
                     status: 'failed',
                     error: error.message,
                     updatedAt: new Date()

@@ -65,18 +65,89 @@ const AgentChat = ({
   const [chatInput, setChatInput] = useState("");
   const [isStartingChat, setIsStartingChat] = useState(false);
   const textareaRef = useRef(null);
+  const bottomAnchorRef = useRef(null);
+
+  const scrollToBottom = () => {
+    try {
+      if (bottomAnchorRef.current) {
+        bottomAnchorRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+        });
+      }
+    } catch {
+      // no-op
+    }
+  };
 
   // Chat mutations
   const createThreadMutation = useCreateThread();
-  const createMessageMutation = useCreateMessage();
+  const createMessageMutation = useCreateMessage({
+    onSuccess: async () => {
+      // Manually refetch to get the assistant response
+      const result = await refetchMessages();
+      if (result.data?.data?.messages) {
+        const serverMessages = result.data.data.messages;
+        // Re-order all messages to ensure proper sequence
+        setLocalMessages(orderMessages(serverMessages));
+      }
+      // Stop typing indicator
+      setIsTyping(false);
+      // Smooth scroll to bottom
+      scrollToBottom();
+    },
+    onError: (error) => {
+      // Stop typing indicator on error
+      setIsTyping(false);
+      console.error("Message creation failed:", error);
+    },
+  });
 
   // Fetch messages for selected thread
-  const { data: messagesData, isLoading: messagesLoading } = useThreadMessages(
-    selectedThreadId,
-    { enabled: !!selectedThreadId },
-  );
+  const {
+    data: messagesData,
+    isLoading: messagesLoading,
+    refetch: refetchMessages,
+  } = useThreadMessages(selectedThreadId, {
+    enabled: !!selectedThreadId,
+    refetchInterval: false, // Disable automatic refetching
+    staleTime: Infinity, // Keep data fresh indefinitely
+  });
 
   const messages = messagesData?.data?.messages || [];
+  const [localMessages, setLocalMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Function to order messages properly (user message followed by assistant response)
+  const orderMessages = (messages) => {
+    if (!messages || messages.length === 0) return [];
+
+    const ordered = [];
+    const processed = new Set();
+
+    messages.forEach((message) => {
+      if (processed.has(message._id)) return;
+
+      // Add the current message
+      ordered.push(message);
+      processed.add(message._id);
+
+      // If it's a user message, find and add its response
+      if (message.role === "user") {
+        const response = messages.find(
+          (m) => m.parentMessageId === message._id && m.role === "assistant",
+        );
+        if (response && !processed.has(response._id)) {
+          ordered.push(response);
+          processed.add(response._id);
+        }
+      }
+    });
+
+    return ordered.sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+    );
+  };
 
   const { data: agentWalletBalance } = useBalance({
     address: agent.walletAddress,
@@ -158,22 +229,32 @@ const AgentChat = ({
         }
       }
 
+      // Optimistically add the user's message locally
+      const optimisticUser = {
+        uniqueId: `temp_user_${Date.now()}`,
+        role: "user",
+        content: chatInput,
+        createdAt: new Date().toISOString(),
+      };
+      setLocalMessages((prev) => [...prev, optimisticUser]);
+      setChatInput("");
+
+      // Show typing indicator
+      setIsTyping(true);
+
       // Send the message
       await createMessageMutation.mutateAsync({
         threadId,
         messageData: {
-          content: chatInput,
+          content: optimisticUser.content,
           messageType: "text",
         },
       });
-
-      // Clear input after successful send
-      setChatInput("");
-
-      // Removed toast.success("Message sent!") to avoid showing on every message
     } catch (error) {
       console.error("Failed to start chat:", error);
       toast.error("Failed to send message");
+      // Stop typing indicator on error
+      setIsTyping(false);
     } finally {
       setIsStartingChat(false);
     }
@@ -181,10 +262,20 @@ const AgentChat = ({
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messages.length > 0 && textareaRef.current) {
-      textareaRef.current.scrollIntoView({ behavior: "smooth" });
+    scrollToBottom();
+  }, [localMessages.length, isTyping]);
+
+  // Load history only once when thread is selected
+  useEffect(() => {
+    if (!selectedThreadId) {
+      setLocalMessages([]);
+      return;
     }
-  }, [messages.length]);
+    const serverMessages = messagesData?.data?.messages || [];
+    setLocalMessages(orderMessages(serverMessages));
+  }, [selectedThreadId, messagesData?.data?.messages]);
+
+  console.log(localMessages.length, createMessageMutation.isPending);
 
   return (
     <main
@@ -269,7 +360,7 @@ const AgentChat = ({
 
       {/* Messages Area */}
       <div className="min-h-0 flex-1 grow overflow-hidden">
-        <div className="custom-scrollbar h-full max-h-[calc(100vh-20rem)] space-y-4 overflow-x-hidden overflow-y-auto p-4">
+        <div className="custom-scrollbar h-full space-y-4 overflow-x-hidden overflow-y-auto p-4 pb-24">
           {messagesLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-sm text-muted-foreground">
@@ -358,7 +449,7 @@ const AgentChat = ({
           ) : (
             // Display existing messages
             <div className="w-full max-w-full space-y-4">
-              {messages.map((message) => (
+              {localMessages.map((message) => (
                 <div
                   key={message.uniqueId}
                   className={`flex w-full gap-3 ${
@@ -375,13 +466,13 @@ const AgentChat = ({
                   )}
 
                   <div
-                    className={`max-w-[90%] rounded-lg px-4 py-2 sm:max-w-[85%] md:max-w-[80%] lg:max-w-[80%] ${
+                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
                       message.role === "user"
                         ? "bg-accent text-accent-foreground"
                         : "bg-muted"
                     }`}
                   >
-                    <p className="word-break-all overflow-hidden text-sm leading-relaxed break-words whitespace-pre-wrap">
+                    <p className="overflow-hidden text-sm leading-relaxed break-words break-all whitespace-pre-wrap">
                       {message.content}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -397,6 +488,23 @@ const AgentChat = ({
                   )}
                 </div>
               ))}
+              {isTyping && (
+                <div className="flex w-full justify-start gap-3">
+                  <Avatar className="size-8">
+                    <AvatarImage src={agent.logoUrl} />
+                    <AvatarFallback>
+                      {agent.name?.charAt(0)?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="max-w-[70%] rounded-lg bg-muted px-4 py-2">
+                    <div className="flex items-center gap-1">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]"></span>
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.1s]"></span>
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"></span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

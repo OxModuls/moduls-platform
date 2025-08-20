@@ -1,11 +1,10 @@
 import { ArrowDownWideNarrow, Bot, Info, RefreshCw } from "lucide-react";
-import { keepPreviousData, useQueries } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { createFetcher } from "../lib/fetcher";
 import config from "../shared/config";
 import { useWalletModalStore } from "../shared/store";
 import { Link, useNavigate } from "react-router";
 import { useAccount } from "wagmi";
-import { dummyAgents } from "../shared/dummy-data";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { ellipsizeAddress } from "../lib/utils";
 import { Progress } from "../components/ui/progress";
@@ -41,6 +40,42 @@ const Home = () => {
 
   const [filter, setFilter] = useState("");
   const [sortKey, setSortKey] = useState("Creation Time");
+  const [sortOrder, setSortOrder] = useState("desc");
+
+  // Build URL for agents query
+  const buildAgentsUrl = () => {
+    const params = new URLSearchParams();
+    if (filter) params.set("filter", filter);
+    if (sortKey) params.set("sortKey", sortKey);
+    if (sortOrder) params.set("order", sortOrder);
+    params.set("limit", "5");
+    return `${config.endpoints.agents}?${params.toString()}`;
+  };
+
+  // Ensure we call with dynamic URL by overriding _url at call-site
+  // TanStack doesn't pass args to queryFn, so we adapt by using a tiny wrapper
+  // above isn't enough; instead, we re-compute through key and then call fetcher here
+  // Workaround: compute agents data via a secondary call when key changes
+  // Simpler approach: inline fetcher here
+  const agentsUrl = buildAgentsUrl();
+  const {
+    data: agentsData,
+    isPending: isAgentsLoading,
+    isError: isAgentsLoadError,
+    error: agentsLoadError,
+    refetch: refetchAgentsDirect,
+  } = useQuery({
+    queryKey: ["agents-list", agentsUrl],
+    queryFn: async () => {
+      const fn = createFetcher({ url: agentsUrl, method: "GET" });
+      return await fn();
+    },
+    placeholderData: keepPreviousData,
+    refetchOnWindowFocus: false,
+    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 10,
+    retry: 1,
+  });
 
   return (
     <div className="flex flex-col items-center px-6 pt-4">
@@ -72,12 +107,16 @@ const Home = () => {
         {/* agents */}
         <div className="shadow-l mt-8">
           <div className="flex w-full gap-2">
-            <Select value={filter} onValueChange={setFilter}>
+            <Select
+              value={filter || "All"}
+              onValueChange={(val) => setFilter(val === "All" ? "" : val)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Filters" />
               </SelectTrigger>
               <SelectContent>
                 {[
+                  "All",
                   "Gaming System",
                   "Trading Assistant",
                   "Meme Token",
@@ -111,57 +150,128 @@ const Home = () => {
                 ))}
               </SelectContent>
             </Select>
-            <button className="cursor-pointer rounded-lg border bg-input/50 p-2">
-              <ArrowDownWideNarrow className="size-5" />
+            <button
+              className="cursor-pointer rounded-lg border bg-input/50 p-2"
+              onClick={() =>
+                setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
+              }
+              title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
+            >
+              <ArrowDownWideNarrow
+                className={`size-5 ${sortOrder === "asc" ? "rotate-180" : ""}`}
+              />
             </button>
-            <button className="cursor-pointer rounded-lg border bg-input/50 p-2">
+            <button
+              className="cursor-pointer rounded-lg border bg-input/50 p-2"
+              onClick={() => refetchAgentsDirect()}
+              title="Refresh"
+            >
               <RefreshCw className="size-5" />
             </button>
           </div>
           <div className="mt-2 grid grid-cols-1 gap-x-1 gap-y-2">
-            {dummyAgents.map((agent, idx) => (
-              <Link
-                key={idx}
-                to={`/agents/${agent.uniqueId}`}
-                className="flex gap-2 rounded-2xl border p-2 md:p-4"
-              >
-                <Avatar className="size-16 shrink-0 border-2 border-accent">
-                  <AvatarImage src={agent.logoUrl} />
-                  <AvatarFallback>{agent.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex grow flex-col items-start">
-                  <div className="flex w-full items-center gap-2">
-                    <span className="text-lg">{agent.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {agent.tokenSymbol}
-                    </span>
-                    <span className="grow-0 rounded-md bg-accent/20 px-1 py-0.5 text-xs text-accent">
-                      {agent.tags[0]}
-                    </span>
-                  </div>
-                  <span className="w-48 overflow-hidden text-xs overflow-ellipsis whitespace-nowrap text-muted-foreground">
-                    {agent.description}
-                  </span>
-                  <div className="mt-1 flex w-full justify-between text-sm">
-                    <span>Created by:</span>
-                    <span>
-                      {ellipsizeAddress(agent.creator.walletAddress, 4, 4)}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex w-full justify-between text-sm">
-                    <span>Market Cap:</span>
-                    <span>10K SEI</span>
-                  </div>
-                  <div className="mt-1 flex w-full items-center gap-1">
-                    <Progress
-                      value={agent.curveProgress}
-                      className="[&>div]:dark:bg-green-600"
-                    />
-                    <span className="text-xs">{agent.curveProgress}%</span>
+            {isAgentsLoading &&
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex gap-2 rounded-2xl border p-2 md:p-4"
+                >
+                  <div className="size-16 shrink-0 animate-pulse rounded-2xl border-2 border-accent bg-accent/10" />
+                  <div className="flex grow flex-col items-start gap-2">
+                    <div className="h-4 w-40 animate-pulse rounded bg-accent/20" />
+                    <div className="h-3 w-56 animate-pulse rounded bg-accent/10" />
+                    <div className="mt-1 h-3 w-full animate-pulse rounded bg-accent/10" />
                   </div>
                 </div>
-              </Link>
-            ))}
+              ))}
+            {isAgentsLoadError && (
+              <div className="flex flex-col items-center justify-center rounded-2xl border p-6 text-center text-sm">
+                <p className="text-red-500">
+                  {agentsLoadError?.message || "Failed to load agents."}
+                </p>
+                <button
+                  className="mt-2 rounded-md border px-3 py-1 text-xs"
+                  onClick={() => refetchAgentsDirect()}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {!isAgentsLoading &&
+              !isAgentsLoadError &&
+              (agentsData?.agents?.length ?? 0) === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-2xl border p-6 text-center text-sm">
+                  <p>No agents found.</p>
+                  <button
+                    className="mt-2 rounded-md border px-3 py-1 text-xs"
+                    onClick={() => {
+                      setFilter("");
+                      setSortKey("Creation Time");
+                      setSortOrder("desc");
+                      refetchAgentsDirect();
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
+            {!isAgentsLoading &&
+              !isAgentsLoadError &&
+              (agentsData?.agents?.length ?? 0) > 0 &&
+              (agentsData?.agents || []).map((agent, idx) => (
+                <Link
+                  key={idx}
+                  to={`/agents/${agent.uniqueId}`}
+                  className="flex gap-2 rounded-2xl border p-2 md:p-4"
+                >
+                  <Avatar className="size-16 shrink-0 border-2 border-accent">
+                    <AvatarImage src={agent.logoUrl} />
+                    <AvatarFallback>{agent.name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex grow flex-col items-start">
+                    <div className="flex w-full items-center gap-2">
+                      <span className="text-lg">{agent.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {agent.tokenSymbol}
+                      </span>
+                      {agent.tags?.[0] && (
+                        <span className="grow-0 rounded-md bg-accent/20 px-1 py-0.5 text-xs text-accent">
+                          {agent.tags[0]}
+                        </span>
+                      )}
+                    </div>
+                    <span className="w-48 overflow-hidden text-xs overflow-ellipsis whitespace-nowrap text-muted-foreground">
+                      {agent.description}
+                    </span>
+                    <div className="mt-1 flex w-full justify-between text-sm">
+                      <span>Created by:</span>
+                      <span>
+                        {ellipsizeAddress(
+                          agent?.creator?.walletAddress ||
+                            "0x0000000000000000000000000000000000000000",
+                          4,
+                          4,
+                        )}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex w-full justify-between text-sm">
+                      <span>Market Cap:</span>
+                      <span>
+                        {agent?.metrics?.marketCap
+                          ? agent.metrics.marketCap
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex w-full items-center gap-1">
+                      <Progress
+                        value={agent.curveProgress}
+                        className="[&>div]:dark:bg-green-600"
+                      />
+                      <span className="text-xs">{agent.curveProgress}%</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
           </div>
         </div>
 

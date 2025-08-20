@@ -80,7 +80,8 @@ export const useThreadMessages = (threadId, options = {}) => {
         limit = 50,
         offset = 0,
         before,
-        refetchInterval = 10000 // Refetch every 10 seconds for real-time updates
+        refetchInterval = false, // Disable automatic refetching to prevent message order issues
+        staleTime = 5000 // Consider data stale after 5 seconds for real-time chat
     } = options;
 
     return useQuery({
@@ -105,7 +106,7 @@ export const useThreadMessages = (threadId, options = {}) => {
         },
         enabled: enabled && !!threadId,
         refetchInterval,
-        staleTime: 5000, // Consider data stale after 5 seconds for real-time chat
+        staleTime,
         refetchOnWindowFocus: true,
     });
 };
@@ -125,7 +126,7 @@ export const useCreateThread = () => {
                 credentials: 'include',
             })();
         },
-        onSuccess: (data, variables) => {
+        onSuccess: (variables) => {
             // Invalidate and refetch threads for the specific agent
             queryClient.invalidateQueries({
                 queryKey: ['agent-threads', variables.agentId]
@@ -148,8 +149,9 @@ export const useCreateThread = () => {
 /**
  * Hook to create a new message
  */
-export const useCreateMessage = () => {
+export const useCreateMessage = (options = {}) => {
     const queryClient = useQueryClient();
+    const { onSuccess, onError } = options;
 
     return useMutation({
         mutationFn: async ({ threadId, messageData }) => {
@@ -174,10 +176,20 @@ export const useCreateMessage = () => {
             queryClient.invalidateQueries({
                 queryKey: ['recent-threads']
             });
+
+            // Call custom onSuccess if provided
+            if (onSuccess) {
+                onSuccess(data, variables);
+            }
         },
-        onError: (error) => {
+        onError: (error, variables) => {
             console.error('Error creating message:', error);
             toast.error('Failed to send message');
+
+            // Call custom onError if provided
+            if (onError) {
+                onError(error, variables);
+            }
         }
     });
 };
@@ -197,7 +209,7 @@ export const useUpdateThread = () => {
                 credentials: 'include',
             })();
         },
-        onSuccess: (data, variables) => {
+        onSuccess: () => {
             // Invalidate and refetch threads
             queryClient.invalidateQueries({
                 queryKey: ['agent-threads']
@@ -269,7 +281,7 @@ export const useUpdateMessage = () => {
                 credentials: 'include',
             })();
         },
-        onSuccess: (data, variables) => {
+        onSuccess: () => {
             // Invalidate and refetch messages for the specific thread
             queryClient.invalidateQueries({
                 queryKey: ['thread-messages']

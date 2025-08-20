@@ -42,6 +42,126 @@ const upload = multer({
     },
 });
 
+// List agents with filters, sorting and limit (homepage top 5)
+router.get("/agents", async (req, res) => {
+    try {
+        const {
+            filter: filterLabel,
+            modulType: modulTypeParam,
+            sortKey: sortKeyParam = 'Creation Time',
+            order: sortOrderParam = 'desc',
+            limit: limitParam = '5',
+        } = req.query;
+
+        // Map UI labels to modul types
+        const filterToModulType = {
+            'Gaming System': 'GAMING_BUDDY',
+            'Trading Assistant': 'TRADING_ASSISTANT',
+            'Meme Token': 'MEME',
+            'Portfolio Watcher': 'PORTFOLIO_WATCHER',
+            'Social Data': 'SOCIAL_SENTINEL',
+        };
+
+        const modulType = modulTypeParam || (filterLabel ? filterToModulType[filterLabel] : undefined);
+
+        // Map sort keys
+        const normalizedSortKey = (sortKeyParam || '').toString().toLowerCase();
+        let sortKey = 'createdAt';
+        if (normalizedSortKey.includes('volume')) sortKey = 'tradingVolume';
+        else if (normalizedSortKey.includes('last')) sortKey = 'lastTradeTime';
+        else if (normalizedSortKey.includes('progress')) sortKey = 'progress';
+        else sortKey = 'createdAt'; // Creation Time
+
+        const sortOrder = (sortOrderParam || 'desc').toLowerCase() === 'asc' ? 1 : -1;
+        const limit = Math.max(1, Math.min(parseInt(limitParam, 10) || 5, 50));
+
+        const pipeline = [];
+
+        if (modulType) {
+            pipeline.push({ $match: { modulType } });
+        }
+
+        // Lookup creator (for wallet address)
+        pipeline.push(
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'creator',
+                    foreignField: '_id',
+                    as: 'creatorDoc'
+                }
+            },
+            { $unwind: { path: '$creatorDoc', preserveNullAndEmptyArrays: true } }
+        );
+
+        // Lookup trading metrics by tokenAddress
+        pipeline.push(
+            {
+                $lookup: {
+                    from: 'trading_metrics',
+                    localField: 'tokenAddress',
+                    foreignField: 'tokenAddress',
+                    as: 'metrics'
+                }
+            },
+            { $unwind: { path: '$metrics', preserveNullAndEmptyArrays: true } }
+        );
+
+        // Compute fields used for sorting and UI
+        pipeline.push({
+            $addFields: {
+                tradingVolume: { $toDouble: { $ifNull: ['$metrics.volume24h', '0'] } },
+                lastTradeTime: { $ifNull: ['$metrics.lastTradeTime', new Date(0)] },
+                progress: { $literal: 0 }, // Placeholder until defined
+                curveProgress: { $literal: 0 }, // For UI compatibility
+            }
+        });
+
+        // Sort and limit
+        const sortStage = {};
+        sortStage[sortKey] = sortOrder;
+        // Fallback secondary sort by createdAt desc
+        sortStage['createdAt'] = -1;
+        pipeline.push({ $sort: sortStage });
+        pipeline.push({ $limit: limit });
+
+        // Shape output
+        pipeline.push({
+            $project: {
+                _id: 1,
+                uniqueId: 1,
+                name: 1,
+                description: 1,
+                modulType: 1,
+                tokenSymbol: 1,
+                logoUrl: 1,
+                status: 1,
+                createdAt: 1,
+                tags: 1,
+                curveProgress: 1,
+                'creator.walletAddress': '$creatorDoc.walletAddress',
+                // Useful metrics
+                'metrics.volume24h': 1,
+                'metrics.marketCap': 1,
+                'metrics.lastTradeTime': 1,
+            }
+        });
+
+        const results = await Agent.aggregate(pipeline).exec();
+
+        return res.status(200).json({
+            agents: results,
+            count: results.length
+        });
+    } catch (error) {
+        console.error('Error listing agents:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+});
+
 router.get("/agents/mine", verifySession, async (req, res) => {
     try {
         const { _id: userId } = req.user;

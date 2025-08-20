@@ -29,7 +29,7 @@ class LLMInterface {
         }
     }
 
-    async processMessage(message, tools, context) {
+    async processMessage(history, tools, context) {
         try {
             if (!this.isReady()) {
                 throw new Error('No LLM provider available. Please configure an API key or add a provider.');
@@ -41,14 +41,18 @@ class LLMInterface {
             }
 
             const systemPrompt = this.buildSystemPrompt(context);
-            const userPrompt = this.buildUserPrompt(message, tools, context);
+
+            // Build messages array: system + prior conversation history
+            // Expect history as array of { role: 'user'|'assistant', content: string }
+            const historyMessages = Array.isArray(history) ? history : [];
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...historyMessages
+            ];
 
             const completion = await provider.chat.completions.create({
                 model: this.defaultModel,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
+                messages,
                 temperature: 0.7,
                 max_tokens: 1000,
                 tool_choice: 'auto',
@@ -158,12 +162,11 @@ class LLMInterface {
         return systemPrompt;
     }
 
+    // Deprecated: kept for compatibility if needed elsewhere
     buildUserPrompt(message, tools, context) {
         const { agent } = context;
         let prompt = `User message: ${message}\n\n`;
-
-        prompt += `Please respond naturally and helpfully to the user's request, but ONLY if it's related to your specific token (${agent.tokenSymbol}) and your specialized domain. If the request is about other tokens or outside your expertise, politely explain that you're ${agent.name}'s specialized agent and can only help with ${agent.tokenSymbol} related questions. You have complete knowledge about ${agent.name} and ${agent.tokenSymbol}, so use that information when relevant.`;
-
+        prompt += `Please respond naturally and helpfully to the user's request, but ONLY if it's related to your specific token (${agent.tokenSymbol}) and your specialized domain.`;
         return prompt;
     }
 
@@ -195,19 +198,23 @@ class LLMInterface {
         return results;
     }
 
-    async generateFinalResponse(toolResults, context) {
+    async generateFinalResponse(toolResults, context, history = []) {
         try {
             const provider = this.providers[this.defaultProvider];
 
             const systemPrompt = this.buildSystemPrompt(context);
             const userPrompt = this.buildToolResultsPrompt(toolResults);
 
+            const historyMessages = Array.isArray(history) ? history : [];
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...historyMessages,
+                { role: 'user', content: userPrompt }
+            ];
+
             const completion = await provider.chat.completions.create({
                 model: this.defaultModel,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
+                messages,
                 temperature: 0.7,
                 max_tokens: 1000
             });
