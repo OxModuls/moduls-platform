@@ -6,7 +6,6 @@ import {
   PopoverTrigger,
 } from "../ui/popover";
 import { SidebarInset, SidebarProvider } from "../ui/sidebar";
-import { Separator } from "../ui/separator";
 import ChatSidebar from "./chat-sidebar";
 import AgentChat from "./agent-chat";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -61,8 +60,10 @@ const ChatPopup = ({ open, onOpenChange, agent }) => {
       {fullScreen && <PopoverAnchor className="fixed top-0 left-0" />}
 
       <PopoverContent
-        className="flex w-screen p-0 transition-all duration-200 data-[fullscreen=true]:h-screen md:w-[calc(var(--sidebar-width)+28rem)] data-[fullscreen=true]:md:w-screen"
+        className="w-fit p-0"
         data-fullscreen={fullScreen}
+        side="top"
+        align="end"
       >
         <SidebarProvider
           defaultOpen={false}
@@ -73,14 +74,14 @@ const ChatPopup = ({ open, onOpenChange, agent }) => {
           className="min-h-none"
         >
           <ChatSidebar
-            className={`${fullScreen || "sgroup-data-[collapsible=offcanvas]:-z-10 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*1)]"}`}
+            className={`${fullScreen || "group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*1)]"} border-r`}
             agent={agent}
             selectedThreadId={selectedThreadId}
             onThreadSelect={handleThreadSelect}
           />
-          <Separator orientation="vertical" />
           <SidebarInset className="z-10 bg-inherit md:peer-data-[variant=inset]:m-0">
             <AgentChat
+              className="w-screen transition-all duration-200 data-[fullscreen=true]:h-screen md:w-[28rem] data-[fullscreen=true]:md:w-screen"
               agent={agent}
               selectedThreadId={selectedThreadId}
               fullScreen={fullScreen}
