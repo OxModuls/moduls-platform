@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
+import { useCallback, } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useWalletSignature } from "./useWalletSignature";
 import { createFetcher } from "../../lib/fetcher";
@@ -66,6 +66,33 @@ export const useAuth = () => {
         }
 
         try {
+            // 1) Validate existing session first. Only proceed to SIWE if invalid/expired (401)
+            let shouldPerformSiwe = false;
+            try {
+                const existing = await createFetcher({
+                    method: "GET",
+                    url: config.endpoints.getAuthUser,
+                    credentials: 'include'
+                })();
+                if (existing) {
+                    // Ensure cache reflects current user and return early (no SIWE prompt)
+                    await refetchUser();
+                    return;
+                }
+            } catch (err) {
+                if (err?.status === 401) {
+                    // Not authenticated → perform SIWE
+                    shouldPerformSiwe = true;
+                } else {
+                    // Other errors (network/server). Do not trigger SIWE; surface error instead
+                    throw err;
+                }
+            }
+
+            if (!shouldPerformSiwe) {
+                return;
+            }
+
             // Get nonce
             const { nonce } = await createFetcher({
                 method: "GET",
