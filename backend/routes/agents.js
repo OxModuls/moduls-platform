@@ -55,11 +55,11 @@ router.get("/agents", async (req, res) => {
 
         // Map UI labels to modul types
         const filterToModulType = {
-            'Gaming System': 'GAMING_BUDDY',
+            'Gaming Buddy': 'GAMING_BUDDY',
             'Trading Assistant': 'TRADING_ASSISTANT',
             'Meme Token': 'MEME',
             'Portfolio Watcher': 'PORTFOLIO_WATCHER',
-            'Social Data': 'SOCIAL_SENTINEL',
+            'Social Sentinel': 'SOCIAL_SENTINEL',
         };
 
         const modulType = modulTypeParam || (filterLabel ? filterToModulType[filterLabel] : undefined);
@@ -120,8 +120,10 @@ router.get("/agents", async (req, res) => {
         // Sort and limit
         const sortStage = {};
         sortStage[sortKey] = sortOrder;
-        // Fallback secondary sort by createdAt desc
-        sortStage['createdAt'] = -1;
+        // Fallback secondary sort by createdAt desc when primary is not createdAt
+        if (sortKey !== 'createdAt') {
+            sortStage['createdAt'] = -1;
+        }
         pipeline.push({ $sort: sortStage });
         pipeline.push({ $limit: limit });
 

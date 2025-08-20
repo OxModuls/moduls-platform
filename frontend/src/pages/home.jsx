@@ -61,6 +61,7 @@ const Home = () => {
   const {
     data: agentsData,
     isPending: isAgentsLoading,
+    isFetching: isAgentsFetching,
     isError: isAgentsLoadError,
     error: agentsLoadError,
     refetch: refetchAgentsDirect,
@@ -117,11 +118,11 @@ const Home = () => {
               <SelectContent>
                 {[
                   "All",
-                  "Gaming System",
+                  "Gaming Buddy",
                   "Trading Assistant",
                   "Meme Token",
                   "Portfolio Watcher",
-                  "Social Data",
+                  "Social Sentinel",
                 ].map((x, idx) => (
                   <SelectItem key={idx} value={x}>
                     {x}
@@ -165,8 +166,13 @@ const Home = () => {
               className="cursor-pointer rounded-lg border bg-input/50 p-2"
               onClick={() => refetchAgentsDirect()}
               title="Refresh"
+              disabled={isAgentsLoading || isAgentsFetching}
             >
-              <RefreshCw className="size-5" />
+              {isAgentsLoading || isAgentsFetching ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <RefreshCw className="size-5" />
+              )}
             </button>
           </div>
           <div className="mt-2 grid grid-cols-1 gap-x-1 gap-y-2">
