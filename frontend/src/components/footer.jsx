@@ -9,7 +9,7 @@ const Footer = ({ className }) => {
   ];
   return (
     <footer className={cn("mt-8 w-full border-t p-5 text-sm", className)}>
-      <div className="flex flex-col items-center md:flex-row md:items-stretch md:justify-between lg:mx-auto lg:max-w-3xl">
+      <div className="flex flex-col items-center md:flex-row md:items-stretch md:justify-between">
         <p className="mt-1 flex flex-col items-center md:mt-0 md:flex-row">
           <span>&copy; 2025 Moduls. All rights reserved.</span>
           <span className="md:ml-2">Made with ❤️ for SEI</span>
@@ -29,7 +29,7 @@ const Footer = ({ className }) => {
           </ul>
         </div>
       </div>
-      <div className="mt-1 text-justify lg:mx-auto lg:max-w-3xl">
+      <div className="mt-1 text-justify lg:max-w-3xl">
         <div className="mr-1 inline-flex gap-1 text-amber-500">
           <span className="text-amber-500">Disclaimer:</span>
         </div>
