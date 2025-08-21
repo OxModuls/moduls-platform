@@ -3,6 +3,7 @@ import { useTradingChart } from "../shared/hooks/useTrading";
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import SimplePriceChart from "./simple-price-chart";
 import AdvancedChart from "./advanced-chart";
+import { cn } from "@/lib/utils";
 
 const TradingChart = ({
   tokenAddress,
@@ -91,10 +92,10 @@ const TradingChart = ({
 
   if (error) {
     return (
-      <div className={`border border-border rounded-lg p-6 ${className}`}>
+      <div className={`rounded-lg border border-border p-6 ${className}`}>
         <div className="text-center text-muted-foreground">
           <p>Unable to load chart data</p>
-          <p className="text-sm mt-1">Please try again later</p>
+          <p className="mt-1 text-sm">Please try again later</p>
         </div>
       </div>
     );
@@ -114,12 +115,12 @@ const TradingChart = ({
         : autoShouldUseSimpleChart; // auto mode
 
   return (
-    <div className={`border border-border rounded-lg ${className}`}>
+    <div className={cn(`rounded-lg border border-border`, className)}>
       {showControls && (
-        <div className="p-4 border-b border-border">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-              <h3 className="font-semibold text-foreground text-sm sm:text-base">
+        <div className="border-b border-border p-4">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h3 className="text-sm font-semibold text-foreground sm:text-base">
                 {showMarketCap ? "Market Cap" : "Price"} Chart
               </h3>
               <button
@@ -139,13 +140,13 @@ const TradingChart = ({
                   // Double-click to reset to auto mode
                   setForceChartMode(null);
                 }}
-                className={`w-2 h-2 rounded-full transition-all hover:scale-110 cursor-pointer flex-shrink-0 ${
+                className={`h-2 w-2 flex-shrink-0 cursor-pointer rounded-full transition-all hover:scale-110 ${
                   shouldUseSimpleChart
                     ? "bg-red-500 hover:bg-red-400"
                     : "bg-green-500 hover:bg-green-400"
                 } ${
                   forceChartMode !== null
-                    ? "ring-2 ring-offset-1 ring-gray-400"
+                    ? "ring-2 ring-gray-400 ring-offset-1"
                     : ""
                 }`}
                 title={`${shouldUseSimpleChart ? "Simple chart" : "Advanced chart"}${forceChartMode !== null ? ` (manual)` : ` (auto)`} - click to toggle, double-click for auto`}
@@ -153,14 +154,14 @@ const TradingChart = ({
               {totalSupply && (
                 <button
                   onClick={() => setShowMarketCap(!showMarketCap)}
-                  className="text-xs px-2 py-1 bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded transition-colors whitespace-nowrap cursor-pointer flex-shrink-0"
+                  className="flex-shrink-0 cursor-pointer rounded bg-muted px-2 py-1 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   {showMarketCap ? "Price" : "Market Cap"}
                 </button>
               )}
               {!shouldUseSimpleChart && trend.direction !== "neutral" && (
                 <div
-                  className={`flex items-center gap-1 text-xs sm:text-sm flex-shrink-0 ${
+                  className={`flex flex-shrink-0 items-center gap-1 text-xs sm:text-sm ${
                     trend.direction === "up" ? "text-green-600" : "text-red-600"
                   }`}
                 >
@@ -174,15 +175,15 @@ const TradingChart = ({
               )}
             </div>
 
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
+            <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto pb-1">
               {timeframeOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleTimeframeChange(option.value)}
-                  className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors whitespace-nowrap flex-shrink-0 ${
+                  className={`flex-shrink-0 rounded px-2 py-1 text-xs whitespace-nowrap transition-colors sm:px-3 sm:text-sm ${
                     timeframe === option.value
                       ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                   }`}
                 >
                   {option.label}
@@ -192,19 +193,19 @@ const TradingChart = ({
           </div>
 
           {/* Interval controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <span className="text-xs text-muted-foreground flex-shrink-0">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <span className="flex-shrink-0 text-xs text-muted-foreground">
               Interval:
             </span>
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
+            <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto pb-1">
               {getCurrentTimeframeOption()?.intervals.map((intervalOption) => (
                 <button
                   key={intervalOption}
                   onClick={() => handleIntervalChange(intervalOption)}
-                  className={`px-2 py-1 text-xs rounded transition-colors whitespace-nowrap flex-shrink-0 ${
+                  className={`flex-shrink-0 rounded px-2 py-1 text-xs whitespace-nowrap transition-colors ${
                     interval === intervalOption
                       ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                   }`}
                 >
                   {intervalOption}
@@ -217,7 +218,7 @@ const TradingChart = ({
 
       <div className="relative">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm text-muted-foreground">
