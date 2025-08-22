@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from "react";
-import { createChart, AreaSeries, HistogramSeries } from "lightweight-charts";
+import {
+  createChart,
+  CandlestickSeries,
+  HistogramSeries,
+} from "lightweight-charts";
 
 const AdvancedChart = ({
   chartData,
@@ -23,6 +27,17 @@ const AdvancedChart = ({
       },
       rightPriceScale: {
         borderVisible: true,
+        borderColor: "#2e2e2e",
+      },
+      grid: {
+        vertLines: {
+          color: "#2e2e2e",
+          style: 1,
+        },
+        horzLines: {
+          color: "#2e2e2e",
+          style: 1,
+        },
       },
       width: chartContainerRef.current.clientWidth,
       height: Math.max(height, 200),
@@ -30,26 +45,27 @@ const AdvancedChart = ({
 
     chart.timeScale().fitContent();
 
-    // Add area series for price
-    const areaSeries = chart.addSeries(AreaSeries, {
-      lineColor: "#2962FF",
-      topColor: "#2962FF",
-      bottomColor: "rgba(41, 98, 255, 0.28)",
-      lineWidth: 2,
+    // Add candlestick series for price
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      upColor: "#26a69a",
+      downColor: "#ef5350",
+      borderVisible: false,
+      wickUpColor: "#26a69a",
+      wickDownColor: "#ef5350",
       priceFormat: {
         type: "price",
         precision: 8,
         minMove: 0.00000001,
       },
     });
-    areaSeries.priceScale().applyOptions({
+    candlestickSeries.priceScale().applyOptions({
       scaleMargins: {
         top: 0.1,
-        bottom: 0.4,
+        bottom: 0.1,
       },
     });
 
-    // Add histogram series for volume
+    // Add histogram series for volume (disabled)
     const volumeSeries = chart.addSeries(HistogramSeries, {
       color: "#26a69a",
       priceFormat: {
@@ -60,6 +76,7 @@ const AdvancedChart = ({
         top: 0.7,
         bottom: 0,
       },
+      visible: false, // Hide volume series
     });
     volumeSeries.priceScale().applyOptions({
       scaleMargins: {
@@ -93,19 +110,31 @@ const AdvancedChart = ({
             const timeValue = Math.floor(timestamp.getTime() / 1000);
 
             // Convert from wei to ether and apply market cap multiplier
-            const priceInEther = parseFloat(item.close) / 1e18;
-            const displayValue = priceInEther * supplyMultiplier;
-
-            // console.log(
-            //   `Price conversion - close: ${item.close}, priceInEther: ${priceInEther}, displayValue: ${displayValue}`,
-            // );
+            const multiplier = 1e18;
+            const open =
+              (parseFloat(item.open) / multiplier) * supplyMultiplier;
+            const high =
+              (parseFloat(item.high) / multiplier) * supplyMultiplier;
+            const low = (parseFloat(item.low) / multiplier) * supplyMultiplier;
+            const close =
+              (parseFloat(item.close) / multiplier) * supplyMultiplier;
 
             return {
               time: timeValue,
-              value: displayValue,
+              open: open,
+              high: high,
+              low: low,
+              close: close,
             };
           })
-          .filter((item) => item && item.value > 0);
+          .filter(
+            (item) =>
+              item &&
+              item.open > 0 &&
+              item.high > 0 &&
+              item.low > 0 &&
+              item.close > 0,
+          );
 
         // console.log("Processed price data sample:", priceData.slice(0, 3));
 
@@ -143,7 +172,7 @@ const AdvancedChart = ({
           .filter((item) => item && item.value >= 0); // Allow 0 volume
 
         if (priceData.length > 0) {
-          areaSeries.setData(priceData);
+          candlestickSeries.setData(priceData);
           // console.log("Area series data set with", priceData.length, "points");
         } else {
           console.warn("No valid price data to set");
