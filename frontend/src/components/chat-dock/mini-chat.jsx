@@ -260,7 +260,7 @@ function InputBar({ value, onChange, onSend, disabled }) {
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
-          className="no-scrollbar max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border bg-transparent p-2 text-sm focus:outline-none"
+          className="no-scrollbar max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border border-white/20 bg-transparent p-2 py-3 text-sm focus:border-white/40 focus:outline-none"
         />
         <button
           disabled={disabled}
@@ -325,7 +325,7 @@ function MiniChat({
           messages={messages}
           isSending={isSending}
           suggestions={getPromptSuggestions(agent?.modulType)}
-          onSuggestionClick={setInputValue}
+          onSuggestionClick={handleSend}
           agent={agent}
           currentUser={currentUser}
           onControls={({ isAtBottom, scrollToBottom, hasMessages }) => {

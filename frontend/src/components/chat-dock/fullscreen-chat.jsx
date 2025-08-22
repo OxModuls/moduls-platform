@@ -168,7 +168,6 @@ function ThreadsPanel({
             key={t.uniqueId}
             className="group flex w-full items-center gap-2 pt-2"
           >
-            {console.log(t.uniqueId === selectedThreadId)}
             <button
               className={`flex-1 truncate rounded-md px-3 py-2 text-left text-sm transition-colors ${
                 selectedThreadId === t.uniqueId
@@ -184,6 +183,9 @@ function ThreadsPanel({
                 }`}
               >
                 {t.title || "New conversation"}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {formatRelativeTime(t.createdAt || t.updatedAt)}
               </span>
             </button>
             <button
@@ -446,7 +448,7 @@ function MessagesView({
           </div>
         </div>
       )}
-      <div ref={listRef} />
+      <div ref={listRef} className="h-10" />
       {/* Scroll button moved to parent container to avoid scrolling with messages */}
     </div>
   );
@@ -454,12 +456,31 @@ function MessagesView({
 
 function InputBox({ onSend, disabled }) {
   const [value, setValue] = useState("");
+  const textareaRef = useRef(null);
+  const MAX_TEXTAREA_HEIGHT = 100; // px cap
+
   const { handleKeyDown } = useEnterToSend({
     value,
     setValue,
     onSend,
     disabled,
   });
+
+  // Auto-grow textarea height up to a cap
+  const adjustHeight = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const next = Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT);
+    el.style.height = `${next}px`;
+    el.style.overflowY =
+      el.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
   return (
     <div className="border-t p-2 sm:p-3">
       <form
@@ -468,20 +489,25 @@ function InputBox({ onSend, disabled }) {
           if (!value.trim() || disabled) return;
           onSend(value);
           setValue("");
+          // reset height after send
+          requestAnimationFrame(() => adjustHeight());
         }}
-        className="mx-auto flex max-w-3xl items-center gap-2"
+        className="flex items-center gap-2"
       >
         <textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
-          className="no-scrollbar max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border bg-transparent p-2 text-sm focus:outline-none sm:min-h-[44px] sm:p-3"
+          className="no-scrollbar min-h-[40px] flex-1 resize-none self-stretch rounded-xl border border-white/20 bg-transparent p-2 py-3 text-sm focus:border-white/40 focus:outline-none sm:min-h-[44px] sm:p-3"
+          style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
         />
         <button
           disabled={disabled || !value.trim()}
-          className="bg-button-gradient flex items-center justify-center rounded-lg p-2 text-sm font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 sm:px-4 sm:py-2"
+          className="bg-button-gradient flex items-center justify-center self-stretch rounded-lg p-2 px-4 text-sm font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 sm:px-4 sm:py-2"
         >
           <Send className="size-4 sm:hidden" />
           <span className="hidden sm:inline">Send</span>
@@ -567,7 +593,7 @@ function FullscreenChat({
                 const newId =
                   res?.data?.uniqueId || res?.data?.thread?.uniqueId;
                 if (newId) setSelectedThreadId(newId);
-              } catch (e) {
+              } catch {
                 // noop, toast handled in hook
               }
             }}
@@ -606,26 +632,30 @@ function FullscreenChat({
                   setSelectedThreadId(newId);
                   setSidebarOpen(false);
                 }
-              } catch (e) {}
+              } catch {
+                // noop
+              }
             }}
           />
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col">
-          <MessagesView
-            messages={messages}
-            modulType={agent?.modulType}
-            isSending={isSending}
-            isPending={messagesLoading}
-            agent={agent}
-            currentUser={currentUser}
-            selectedThreadId={sessionThreadId}
-            sendMessage={sendMessage}
-            onControls={({ isAtBottom, scrollToBottom, hasMessages }) => {
-              scrollToBottomRef.current = scrollToBottom;
-              setShowScrollBtn(!isAtBottom && !!hasMessages);
-            }}
-          />
+          <div className="flex-1 overflow-hidden">
+            <MessagesView
+              messages={messages}
+              modulType={agent?.modulType}
+              isSending={isSending}
+              isPending={messagesLoading}
+              agent={agent}
+              currentUser={currentUser}
+              selectedThreadId={sessionThreadId}
+              sendMessage={sendMessage}
+              onControls={({ isAtBottom, scrollToBottom, hasMessages }) => {
+                scrollToBottomRef.current = scrollToBottom;
+                setShowScrollBtn(!isAtBottom && !!hasMessages);
+              }}
+            />
+          </div>
           {showScrollBtn && (
             <button
               type="button"

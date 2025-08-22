@@ -20,7 +20,7 @@ export const useWalletSignature = () => {
         address,
         nonce,
         chainId,
-        config.isDev ? "localhost:5173" : "moduls-one.vercel.app",
+        config.domain,
       );
 
       try {
