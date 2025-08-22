@@ -381,8 +381,8 @@ const CreateAgent = () => {
   return (
     <AuthWrapper pageLevel={true}>
       {() => (
-        <div className="flex flex-col px-6 pt-4">
-          <div className="mx-auto max-w-lg">
+        <div className="flex flex-col px-6 pt-4 lg:mx-auto lg:max-w-[64rem]">
+          <div className="">
             <div className="ml-1">
               <h1 className="text-2xl font-bold">Launch Your Agent</h1>
               <p className="mt-1 text-lg text-muted-foreground">
@@ -463,125 +463,128 @@ const CreateAgent = () => {
                       </p>
                     </div>
 
-                    {/* Modul Type Selection */}
-                    <div className="">
-                      <label className="ml-1">Modul Type</label>
-                      <div className="mt-2 grid grid-cols-1 gap-2">
-                        {modulTypes.map((modul) => (
-                          <div
-                            key={modul.identifier}
-                            className={`cursor-pointer rounded-lg border p-3 transition-all duration-200 ${
-                              values.modulType === modul.value
-                                ? "border-accent bg-accent/10"
-                                : "border-border hover:border-accent/50"
-                            }`}
-                            onClick={() =>
-                              setFieldValue("modulType", modul.value)
-                            }
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="min-w-0 flex-1">
-                                <h3 className="text-sm font-semibold text-foreground">
-                                  {modul.emoji} {modul.name}
-                                </h3>
-                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                  {modul.description}
-                                </p>
-                              </div>
-                              {values.modulType === modul.value && (
-                                <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-accent">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-accent-foreground"></div>
+                    <div className="grid grid-rows-[1fr_auto] gap-5 md:grid-cols-2 md:grid-rows-1">
+                      {/* Modul Type Selection */}
+                      <div className="">
+                        <label className="ml-1">Modul Type</label>
+                        <div className="mt-2 grid grid-cols-1 gap-2">
+                          {modulTypes.map((modul) => (
+                            <div
+                              key={modul.identifier}
+                              className={`cursor-pointer rounded-lg border p-3 transition-all duration-200 ${
+                                values.modulType === modul.value
+                                  ? "border-accent bg-accent/10"
+                                  : "border-border hover:border-accent/50"
+                              }`}
+                              onClick={() =>
+                                setFieldValue("modulType", modul.value)
+                              }
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <h3 className="text-sm font-semibold text-foreground">
+                                    {modul.emoji} {modul.name}
+                                  </h3>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">
+                                    {modul.description}
+                                  </p>
                                 </div>
-                              )}
+                                {values.modulType === modul.value && (
+                                  <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-accent">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-accent-foreground"></div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                        <ErrorMessage
+                          name="modulType"
+                          component="div"
+                          className="mt-1 text-sm text-red-500"
+                        />
                       </div>
-                      <ErrorMessage
-                        name="modulType"
-                        component="div"
-                        className="mt-1 text-sm text-red-500"
-                      />
-                    </div>
 
-                    <div>
-                      <div className="mt-5 ml-1 flex items-center gap-2">
-                        <Link className="size-4" />
-                        <p>
-                          add social links{" "}
-                          <span className="text-muted-foreground">
-                            (optional)
-                          </span>
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setShowSocialLinks(!showSocialLinks)}
-                          className="cursor-pointer"
+                      <div className="">
+                        <div className="mt-5 ml-1 flex items-center gap-2">
+                          <Link className="size-4" />
+                          <p>
+                            add social links{" "}
+                            <span className="text-muted-foreground">
+                              (optional)
+                            </span>
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setShowSocialLinks(!showSocialLinks)}
+                            className="cursor-pointer md:hidden"
+                          >
+                            <ChevronUp
+                              className={`size-4 ${showSocialLinks ? "rotate-180" : ""}`}
+                            />
+                          </button>
+                        </div>
+                        <div
+                          data-show={showSocialLinks}
+                          className={`mt-3 flex flex-col gap-5 data-[show=false]:hidden md:data-[show=false]:flex`}
                         >
-                          <ChevronUp
-                            className={`size-4 ${showSocialLinks ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                      </div>
-                      <div
-                        className={`mt-3 flex flex-col gap-5 ${showSocialLinks ? "hidden" : "flex"}`}
-                      >
-                        <div>
-                          <label htmlFor="website" className="ml-1">
-                            Website
-                          </label>
-                          <Field
-                            as={Input}
-                            id="website"
-                            name="websiteUrl"
-                            placeholder="Enter URL"
-                            className="mt-1"
-                          />
-                          <ErrorMessage
-                            name="websiteUrl"
-                            component="div"
-                            className="mt-1 text-sm text-red-500"
-                          />
-                        </div>
-                        <div className="">
-                          <label htmlFor="x-url" className="ml-1">
-                            X
-                          </label>
-                          <Field
-                            as={Input}
-                            id="x-url"
-                            name="twitterUrl"
-                            placeholder="Enter URL"
-                            className="mt-1"
-                          />
-                          <ErrorMessage
-                            name="twitterUrl"
-                            component="div"
-                            className="mt-1 text-sm text-red-500"
-                          />
-                        </div>
-                        <div className="">
-                          <label htmlFor="telegram" className="ml-1">
-                            Telegram
-                          </label>
-                          <Field
-                            as={Input}
-                            id="telegram"
-                            name="telegramUrl"
-                            placeholder="Enter URL"
-                            className="mt-1"
-                          />
-                          <ErrorMessage
-                            name="telegramUrl"
-                            component="div"
-                            className="mt-1 text-sm text-red-500"
-                          />
+                          <div>
+                            <label htmlFor="website" className="ml-1">
+                              Website
+                            </label>
+                            <Field
+                              as={Input}
+                              id="website"
+                              name="websiteUrl"
+                              placeholder="Enter URL"
+                              className="mt-1"
+                            />
+                            <ErrorMessage
+                              name="websiteUrl"
+                              component="div"
+                              className="mt-1 text-sm text-red-500"
+                            />
+                          </div>
+                          <div className="">
+                            <label htmlFor="x-url" className="ml-1">
+                              X
+                            </label>
+                            <Field
+                              as={Input}
+                              id="x-url"
+                              name="twitterUrl"
+                              placeholder="Enter URL"
+                              className="mt-1"
+                            />
+                            <ErrorMessage
+                              name="twitterUrl"
+                              component="div"
+                              className="mt-1 text-sm text-red-500"
+                            />
+                          </div>
+                          <div className="">
+                            <label htmlFor="telegram" className="ml-1">
+                              Telegram
+                            </label>
+                            <Field
+                              as={Input}
+                              id="telegram"
+                              name="telegramUrl"
+                              placeholder="Enter URL"
+                              className="mt-1"
+                            />
+                            <ErrorMessage
+                              name="telegramUrl"
+                              component="div"
+                              className="mt-1 text-sm text-red-500"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Agent Image Upload */}
-                    <div className="">
+                    <div className="mt-4">
                       <label htmlFor="agent-image" className="ml-1">
                         Agent Image
                       </label>
@@ -655,368 +658,395 @@ const CreateAgent = () => {
                       />
                     </div>
                   </div>
-                  <div
-                    ref={taxSettingsDivRef}
-                    className="mt-4 flex flex-col gap-5 rounded-xl border px-4 py-6"
-                  >
-                    <div className="ml-1">
-                      <h2 className="text-lg font-semibold">Tax Settings</h2>
-                      <p className="text-muted-foreground">
-                        Fund your agent. Feed your dev. Or don't.
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-y-5">
-                      <div className="">
-                        <label
-                          htmlFor="swap-tax"
-                          className="flex items-center justify-between"
-                        >
-                          <p className="">Total Swap Tax (%)</p>
-                          <span className="text-sm">
-                            {values.taxSettings.totalTaxPercentage}%
-                          </span>
-                        </label>
-                        <div className="mt-2 flex flex-col items-center gap-1.5">
-                          <Slider
-                            className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
-                            min={2}
-                            max={10}
-                            step={1}
-                            value={[values.taxSettings.totalTaxPercentage]}
-                            onValueChange={(value) =>
-                              setFieldValue(
-                                "taxSettings.totalTaxPercentage",
-                                value[0],
-                              )
-                            }
-                          />
-                          <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
-                            <span>2%</span>
-                            <span>10%</span>
-                          </div>
-                        </div>
-                        <p className="mt-2 ml-1 text-xs text-muted-foreground">
-                          Percentage fee taken on every swap.
-                        </p>
-                      </div>
-                      <div className="">
-                        <label
-                          htmlFor="agent-wallet"
-                          className="flex items-center justify-between"
-                        >
-                          <p className="">Agent Wallet (%)</p>
-                          <span className="text-sm">
-                            {values.taxSettings.agentWalletShare}%
-                          </span>
-                        </label>
-                        <div className="mt-3 flex flex-col items-center gap-1.5">
-                          <Slider
-                            className="mt-2 [&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
-                            min={1}
-                            max={100}
-                            step={1}
-                            value={[values.taxSettings.agentWalletShare]}
-                            onValueChange={(value) => {
-                              setFieldValue(
-                                "taxSettings.agentWalletShare",
-                                value[0],
-                              );
-                              setFieldValue(
-                                "taxSettings.devWalletShare",
-                                100 - value[0],
-                              );
-                            }}
-                          />
-                          <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
-                            <span>1%</span>
-                            <span>100%</span>
-                          </div>
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Funds your agent's operations and memory.
-                        </p>
-                      </div>
-                      <div className="">
-                        <label
-                          htmlFor="agent-wallet"
-                          className="flex items-center justify-between"
-                        >
-                          <p className="">
-                            Dev Wallet (%){" "}
-                            <span className="text-muted-foreground">
-                              (optional)
-                            </span>
-                          </p>
-                          <span className="text-sm">
-                            {values.taxSettings.devWalletShare}%
-                          </span>
-                        </label>
-                        <div className="mt-3 flex flex-col items-center gap-1.5">
-                          <Slider
-                            className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
-                            min={0}
-                            max={99}
-                            step={1}
-                            value={[values.taxSettings.devWalletShare]}
-                            onValueChange={(value) => {
-                              setFieldValue(
-                                "taxSettings.devWalletShare",
-                                value[0],
-                              );
-                              setFieldValue(
-                                "taxSettings.agentWalletShare",
-                                100 - value[0],
-                              );
-                            }}
-                          />
-                          <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
-                            <span>0%</span>
-                            <span>99%</span>
-                          </div>
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Kickback for builders, community, or vibes.
-                        </p>
-                      </div>
-                    </div>
-                    <div>
+                  <div className="grid grid-rows-2 gap-5 md:grid-cols-2 md:grid-rows-1">
+                    <div
+                      ref={taxSettingsDivRef}
+                      className="mt-4 flex flex-col gap-5 rounded-xl border px-4 py-6"
+                    >
                       <div className="ml-1">
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-lg font-semibold">
-                            Launch Schedule
-                          </h2>
-                          <Switch
-                            checked={showLaunchSchedule}
-                            onCheckedChange={setShowLaunchSchedule}
-                            className="data-[state=checked]:bg-accent [&>span]:border [&>span]:border-accent [&>span]:dark:data-[state=unchecked]:bg-black"
-                          />
-                        </div>
+                        <h2 className="text-lg font-semibold">Tax Settings</h2>
                         <p className="text-muted-foreground">
-                          Set when trading opens for your token. Leave empty to
-                          deploy without opening trading yet.
+                          Fund your agent. Feed your dev. Or don't.
                         </p>
                       </div>
-                      <div
-                        hidden={!showLaunchSchedule}
-                        className="bg-neutral-850 mt-3 flex flex-col gap-4 rounded-lg border px-2 py-4"
-                      >
+                      <div className="flex flex-col gap-y-5">
+                        <div className="">
+                          <label
+                            htmlFor="swap-tax"
+                            className="flex items-center justify-between"
+                          >
+                            <p className="">Total Swap Tax (%)</p>
+                            <span className="text-sm">
+                              {values.taxSettings.totalTaxPercentage}%
+                            </span>
+                          </label>
+                          <div className="mt-2 flex flex-col items-center gap-1.5">
+                            <Slider
+                              className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
+                              min={2}
+                              max={10}
+                              step={1}
+                              value={[values.taxSettings.totalTaxPercentage]}
+                              onValueChange={(value) =>
+                                setFieldValue(
+                                  "taxSettings.totalTaxPercentage",
+                                  value[0],
+                                )
+                              }
+                            />
+                            <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
+                              <span>2%</span>
+                              <span>10%</span>
+                            </div>
+                          </div>
+                          <p className="mt-2 ml-1 text-xs text-muted-foreground">
+                            Percentage fee taken on every swap.
+                          </p>
+                        </div>
+                        <div className="">
+                          <label
+                            htmlFor="agent-wallet"
+                            className="flex items-center justify-between"
+                          >
+                            <p className="">Agent Wallet (%)</p>
+                            <span className="text-sm">
+                              {values.taxSettings.agentWalletShare}%
+                            </span>
+                          </label>
+                          <div className="mt-3 flex flex-col items-center gap-1.5">
+                            <Slider
+                              className="mt-2 [&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={[values.taxSettings.agentWalletShare]}
+                              onValueChange={(value) => {
+                                setFieldValue(
+                                  "taxSettings.agentWalletShare",
+                                  value[0],
+                                );
+                                setFieldValue(
+                                  "taxSettings.devWalletShare",
+                                  100 - value[0],
+                                );
+                              }}
+                            />
+                            <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
+                              <span>1%</span>
+                              <span>100%</span>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Funds your agent's operations and memory.
+                          </p>
+                        </div>
+                        <div className="">
+                          <label
+                            htmlFor="agent-wallet"
+                            className="flex items-center justify-between"
+                          >
+                            <p className="">
+                              Dev Wallet (%){" "}
+                              <span className="text-muted-foreground">
+                                (optional)
+                              </span>
+                            </p>
+                            <span className="text-sm">
+                              {values.taxSettings.devWalletShare}%
+                            </span>
+                          </label>
+                          <div className="mt-3 flex flex-col items-center gap-1.5">
+                            <Slider
+                              className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
+                              min={0}
+                              max={99}
+                              step={1}
+                              value={[values.taxSettings.devWalletShare]}
+                              onValueChange={(value) => {
+                                setFieldValue(
+                                  "taxSettings.devWalletShare",
+                                  value[0],
+                                );
+                                setFieldValue(
+                                  "taxSettings.agentWalletShare",
+                                  100 - value[0],
+                                );
+                              }}
+                            />
+                            <div className="mt-1 flex w-full justify-between px-1 text-xs text-muted-foreground">
+                              <span>0%</span>
+                              <span>99%</span>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Kickback for builders, community, or vibes.
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="ml-1">
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-semibold">
+                              Launch Schedule
+                            </h2>
+                            <Switch
+                              checked={showLaunchSchedule}
+                              onCheckedChange={setShowLaunchSchedule}
+                              className="data-[state=checked]:bg-accent [&>span]:border [&>span]:border-accent [&>span]:dark:data-[state=unchecked]:bg-black"
+                            />
+                          </div>
+                          <p className="text-muted-foreground">
+                            Set when trading opens for your token. Leave empty
+                            to deploy without opening trading yet.
+                          </p>
+                        </div>
+                        <div
+                          hidden={!showLaunchSchedule}
+                          className="bg-neutral-850 mt-3 flex flex-col gap-4 rounded-lg border px-2 py-4"
+                        >
+                          <div className="flex w-full flex-col gap-1">
+                            <label
+                              htmlFor="launch-date"
+                              className="ml-1 text-sm font-semibold"
+                            >
+                              Launch Date & Time
+                            </label>
+                            <Field
+                              as={Input}
+                              type="datetime-local"
+                              id="launch-date"
+                              name="launchDate"
+                              className="py-2"
+                            />
+                            <ErrorMessage
+                              name="launchDate"
+                              component="div"
+                              className="mt-1 text-sm text-red-500"
+                            />
+                            <p className="ml-1 text-xs text-muted-foreground">
+                              Optional: Must be at least 5 minutes from now if
+                              set. Token deploys immediately, trading opens at
+                              the specified time.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 md:hidden">
+                        <button
+                          type="button"
+                          className="bg-button-gradient flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-500 hover:scale-105"
+                          onClick={() =>
+                            prebuyDivRef.current &&
+                            prebuyDivRef.current.scrollIntoView({
+                              behavior: "smooth",
+                            })
+                          }
+                        >
+                          <ArrowRight className="size-5" />
+                          <span>Next</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      ref={prebuyDivRef}
+                      className="mt-4 flex flex-col rounded-xl border px-4 py-6"
+                    >
+                      <div className="mt-4 ml-1">
+                        <h2 className="text-lg font-semibold">Pre-buy Token</h2>
+                        <p className="text-muted-foreground">
+                          Purchase tokens immediately after deployment. This is
+                          optional but can help establish initial liquidity and
+                          protect against MEV attacks.
+                        </p>
+                      </div>
+                      <div className="bg-neutral-850 mt-3 flex flex-col gap-4 rounded-lg border px-2 py-4">
                         <div className="flex w-full flex-col gap-1">
                           <label
-                            htmlFor="launch-date"
+                            htmlFor="slippage"
                             className="ml-1 text-sm font-semibold"
                           >
-                            Launch Date & Time
+                            Slippage (%)
                           </label>
                           <Field
                             as={Input}
-                            type="datetime-local"
-                            id="launch-date"
-                            name="launchDate"
+                            type="number"
+                            id="slippage"
+                            name="prebuySettings.slippage"
                             className="py-2"
                           />
                           <ErrorMessage
-                            name="launchDate"
+                            name="prebuySettings.slippage"
                             component="div"
                             className="mt-1 text-sm text-red-500"
                           />
-                          <p className="ml-1 text-xs text-muted-foreground">
-                            Optional: Must be at least 5 minutes from now if
-                            set. Token deploys immediately, trading opens at the
-                            specified time.
-                          </p>
                         </div>
-                      </div>
-                    </div>
+                        <div className="flex w-full flex-col gap-1">
+                          <label
+                            htmlFor="amount"
+                            className="ml-1 text-sm font-semibold"
+                          >
+                            Amount
+                          </label>
+                          <div className="relative">
+                            <Field
+                              as={Input}
+                              type="number"
+                              id="amount"
+                              name="prebuySettings.amountInEther"
+                              className="appearance-none py-2 pr-24"
+                            />
+                            <div className="absolute top-[50%] right-4 flex translate-y-[-50%] items-center gap-2 text-neutral-400">
+                              <button
+                                type="button"
+                                className="text-xs font-medium text-green-500 transition-colors hover:text-green-400"
+                                onClick={() => {
+                                  if (
+                                    walletBalance?.formatted &&
+                                    deploymentFee
+                                  ) {
+                                    const walletBalanceInEther = parseFloat(
+                                      walletBalance.formatted,
+                                    );
+                                    const deploymentFeeInEther = parseFloat(
+                                      formatEther(deploymentFee),
+                                    );
+                                    const currentSlippage =
+                                      values.prebuySettings.slippage || 1;
 
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        className="bg-button-gradient flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-500 hover:scale-105"
-                        onClick={() =>
-                          prebuyDivRef.current &&
-                          prebuyDivRef.current.scrollIntoView({
-                            behavior: "smooth",
-                          })
-                        }
-                      >
-                        <ArrowRight className="size-5" />
-                        <span>Next</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    ref={prebuyDivRef}
-                    className="mt-4 flex flex-col rounded-xl border px-4 py-6"
-                  >
-                    <div className="mt-4 ml-1">
-                      <h2 className="text-lg font-semibold">Pre-buy Token</h2>
-                      <p className="text-muted-foreground">
-                        Purchase tokens immediately after deployment. This is
-                        optional but can help establish initial liquidity and
-                        protect against MEV attacks.
-                      </p>
-                    </div>
-                    <div className="bg-neutral-850 mt-3 flex flex-col gap-4 rounded-lg border px-2 py-4">
-                      <div className="flex w-full flex-col gap-1">
-                        <label
-                          htmlFor="slippage"
-                          className="ml-1 text-sm font-semibold"
-                        >
-                          Slippage (%)
-                        </label>
-                        <Field
-                          as={Input}
-                          type="number"
-                          id="slippage"
-                          name="prebuySettings.slippage"
-                          className="py-2"
-                        />
-                        <ErrorMessage
-                          name="prebuySettings.slippage"
-                          component="div"
-                          className="mt-1 text-sm text-red-500"
-                        />
-                      </div>
-                      <div className="flex w-full flex-col gap-1">
-                        <label
-                          htmlFor="amount"
-                          className="ml-1 text-sm font-semibold"
-                        >
-                          Amount
-                        </label>
-                        <div className="relative">
-                          <Field
-                            as={Input}
-                            type="number"
-                            id="amount"
-                            name="prebuySettings.amountInEther"
-                            className="appearance-none py-2 pr-24"
-                          />
-                          <div className="absolute top-[50%] right-4 flex translate-y-[-50%] items-center gap-2 text-neutral-400">
-                            <button
-                              type="button"
-                              className="text-xs font-medium text-green-500 transition-colors hover:text-green-400"
-                              onClick={() => {
-                                if (walletBalance?.formatted && deploymentFee) {
-                                  const walletBalanceInEther = parseFloat(
-                                    walletBalance.formatted,
-                                  );
-                                  const deploymentFeeInEther = parseFloat(
-                                    formatEther(deploymentFee),
-                                  );
-                                  const currentSlippage =
-                                    values.prebuySettings.slippage || 1;
+                                    // Calculate available balance after deployment fee
+                                    const availableBalance =
+                                      walletBalanceInEther -
+                                      deploymentFeeInEther;
 
-                                  // Calculate available balance after deployment fee
-                                  const availableBalance =
-                                    walletBalanceInEther - deploymentFeeInEther;
+                                    // Calculate max amount considering slippage: amount * (1 + slippage/100) = availableBalance
+                                    // So: amount = availableBalance / (1 + slippage/100)
+                                    const slippageMultiplier =
+                                      1 + currentSlippage / 100;
+                                    const maxAmount = Math.max(
+                                      0,
+                                      availableBalance / slippageMultiplier,
+                                    );
 
-                                  // Calculate max amount considering slippage: amount * (1 + slippage/100) = availableBalance
-                                  // So: amount = availableBalance / (1 + slippage/100)
-                                  const slippageMultiplier =
-                                    1 + currentSlippage / 100;
-                                  const maxAmount = Math.max(
-                                    0,
-                                    availableBalance / slippageMultiplier,
-                                  );
-
-                                  setFieldValue(
-                                    "prebuySettings.amountInEther",
-                                    maxAmount,
-                                  );
-                                }
-                              }}
-                            >
-                              MAX
-                            </button>
-                            <div className="h-4 w-px bg-border"></div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs uppercase">sei</span>
-                              <SeiIcon className="size-4" />
+                                    setFieldValue(
+                                      "prebuySettings.amountInEther",
+                                      maxAmount,
+                                    );
+                                  }
+                                }}
+                              >
+                                MAX
+                              </button>
+                              <div className="h-4 w-px bg-border"></div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs uppercase">sei</span>
+                                <SeiIcon className="size-4" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <ErrorMessage
-                          name="prebuySettings.amountInEther"
-                          component="div"
-                          className="mt-1 text-sm text-red-500"
-                        />
-                        <div className="flex w-full justify-between px-1 text-xs">
-                          <div className="flex items-center gap-1">
-                            <Wallet className="size-3" />
-                            <span className="">
-                              {walletBalance?.formatted
-                                ? `${walletBalance.formatted} SEI`
-                                : "0 SEI"}
+                          <ErrorMessage
+                            name="prebuySettings.amountInEther"
+                            component="div"
+                            className="mt-1 text-sm text-red-500"
+                          />
+                          <div className="flex w-full justify-between px-1 text-xs">
+                            <div className="flex items-center gap-1">
+                              <Wallet className="size-3" />
+                              <span className="">
+                                {walletBalance?.formatted
+                                  ? `${walletBalance.formatted} SEI`
+                                  : "0 SEI"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex w-full items-center justify-between px-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <span>Deployment Fee</span>
+                              <Info className="size-3.5" />
+                            </div>
+                            <span>
+                              {deploymentFee
+                                ? `${formatEther(deploymentFee)} SEI`
+                                : "Loading..."}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex w-full items-center justify-between px-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <span>Total Required</span>
+                              <Info className="size-3.5" />
+                            </div>
+                            <span>
+                              {deploymentFee &&
+                              values.prebuySettings.amountInEther > 0
+                                ? (() => {
+                                    const preBuyAmount = parseEther(
+                                      (
+                                        values.prebuySettings.amountInEther || 0
+                                      ).toString(),
+                                    );
+                                    const slippageMultiplier = BigInt(
+                                      values.prebuySettings.slippage || 1,
+                                    );
+                                    const slippageAmount =
+                                      (preBuyAmount * slippageMultiplier) /
+                                      BigInt(100);
+                                    const totalRequired =
+                                      BigInt(deploymentFee) +
+                                      preBuyAmount +
+                                      slippageAmount;
+                                    return `${formatEther(totalRequired)} SEI`;
+                                  })()
+                                : deploymentFee
+                                  ? `${formatEther(deploymentFee)} SEI`
+                                  : "Loading..."}
                             </span>
                           </div>
                         </div>
-                        <div className="mt-2 flex w-full items-center justify-between px-1 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <span>Deployment Fee</span>
-                            <Info className="size-3.5" />
-                          </div>
-                          <span>
-                            {deploymentFee
-                              ? `${formatEther(deploymentFee)} SEI`
-                              : "Loading..."}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex w-full items-center justify-between px-1 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <span>Total Required</span>
-                            <Info className="size-3.5" />
-                          </div>
-                          <span>
-                            {deploymentFee &&
-                            values.prebuySettings.amountInEther > 0
-                              ? (() => {
-                                  const preBuyAmount = parseEther(
-                                    (
-                                      values.prebuySettings.amountInEther || 0
-                                    ).toString(),
-                                  );
-                                  const slippageMultiplier = BigInt(
-                                    values.prebuySettings.slippage || 1,
-                                  );
-                                  const slippageAmount =
-                                    (preBuyAmount * slippageMultiplier) /
-                                    BigInt(100);
-                                  const totalRequired =
-                                    BigInt(deploymentFee) +
-                                    preBuyAmount +
-                                    slippageAmount;
-                                  return `${formatEther(totalRequired)} SEI`;
-                                })()
-                              : deploymentFee
-                                ? `${formatEther(deploymentFee)} SEI`
-                                : "Loading..."}
-                          </span>
-                        </div>
+                      </div>
+                      <div className="mt-4 flex justify-end gap-2">
+                        <button
+                          type="submit"
+                          disabled={
+                            createAgentMutation.isPending ||
+                            !isValid ||
+                            deployModulsTokenPending
+                          }
+                          className="bg-button-gradient flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-all duration-500 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 md:hidden"
+                        >
+                          {(createAgentMutation.isPending ||
+                            deployModulsTokenPending) && (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                          )}
+                          {createAgentMutation.isPending ||
+                          deployModulsTokenPending
+                            ? createAgentMutation.isPending
+                              ? "Creating Agent..."
+                              : "Deploying Token..."
+                            : "Launch Agent"}
+                        </button>
                       </div>
                     </div>
-                    <div className="mt-4 flex justify-end gap-2">
-                      <button
-                        type="submit"
-                        disabled={
-                          createAgentMutation.isPending ||
-                          !isValid ||
-                          deployModulsTokenPending
-                        }
-                        className="bg-button-gradient flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-all duration-500 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {(createAgentMutation.isPending ||
-                          deployModulsTokenPending) && (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                        )}
-                        {createAgentMutation.isPending ||
+                  </div>
+                  <div className="mt-4 hidden md:flex">
+                    <button
+                      type="submit"
+                      disabled={
+                        createAgentMutation.isPending ||
+                        !isValid ||
                         deployModulsTokenPending
-                          ? createAgentMutation.isPending
-                            ? "Creating Agent..."
-                            : "Deploying Token..."
-                          : "Launch Agent"}
-                      </button>
-                    </div>
+                      }
+                      className="bg-button-gradient flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-center text-sm font-semibold transition-all duration-500 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {(createAgentMutation.isPending ||
+                        deployModulsTokenPending) && (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      )}
+                      {createAgentMutation.isPending || deployModulsTokenPending
+                        ? createAgentMutation.isPending
+                          ? "Creating Agent..."
+                          : "Deploying Token..."
+                        : "Launch Agent"}
+                    </button>
                   </div>
                 </Form>
               )}
