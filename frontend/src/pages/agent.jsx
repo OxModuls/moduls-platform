@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
 import ChatPopup from "@/components/chat-popup";
+import TradingChart from "@/components/trading-chart";
 
 const Agent = () => {
   const { uniqueId } = useParams();
@@ -225,8 +226,30 @@ const Agent = () => {
   };
 
   return (
-    <div className="flex w-full max-w-screen flex-col px-6 pt-4">
-      <div className="mx-auto w-full max-w-lg">
+    <div className="flex w-full max-w-screen flex-col px-6 pt-4 lg:mx-auto lg:max-w-[64rem]">
+      <div className="">
+        <div className="mb-8 hidden grid-cols-[auto_20rem] gap-4 lg:grid">
+          <div className="">
+            <TradingChart
+              tokenAddress={token?.contractAddress}
+              height={400}
+              totalSupply={token?.supply}
+            />
+          </div>
+          <div className="self-start rounded-lg border px-4 pb-4">
+            <AgentTradeTab
+              token={token}
+              agent={agent}
+              activeTradeTab={activeTradeTab}
+              setActiveTradeTab={setActiveTradeTab}
+              handleBuyToken={handleBuyToken}
+              handleSellToken={handleSellToken}
+              buyTokenStatus={buyTokenStatus}
+              sellTokenStatus={sellTokenStatus}
+              connectedAddress={connectedAddress}
+            />
+          </div>
+        </div>
         <div className="flex w-full items-center gap-3">
           <Avatar className="size-16 border-3 border-accent md:size-20">
             <AvatarImage src={token.image} />
@@ -285,7 +308,7 @@ const Agent = () => {
             </div>
           </div>
         </div>
-        <div className="mt-5 flex flex-col items-start gap-3">
+        <div className="mt-5 flex flex-col items-start gap-3 md:max-w-lg">
           <div className="flex flex-col gap-3 md:flex-row">
             <div className="flex w-auto items-center gap-2 rounded-lg border bg-primary-foreground px-4 py-3">
               <p>
@@ -411,7 +434,7 @@ const Agent = () => {
         </div>
         <Tabs defaultValue="about" className="mt-5">
           <TabsList
-            className="scrollbar-hide w-full flex-nowrap justify-start overflow-x-auto md:justify-center [&>*]:h-auto"
+            className="scrollbar-hide w-full flex-nowrap justify-start overflow-x-auto md:w-fit md:justify-center [&>*]:h-auto"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <TabsTrigger
@@ -424,7 +447,7 @@ const Agent = () => {
             <TabsTrigger
               value="trade"
               disabled={!isTradingEnabled}
-              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent lg:hidden dark:data-[state=active]:text-accent ${
                 !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
