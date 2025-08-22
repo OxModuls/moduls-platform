@@ -111,3 +111,5 @@ export const ERC20_ABI = [
 
 // TODO: Replace with your deployed ERC20 token contract address
 export const TOKEN_CONTRACT_ADDRESS = "0xYourTokenContractAddress"; 
+
+export const twitterUrl = "https://x.com/modulsdotfun";

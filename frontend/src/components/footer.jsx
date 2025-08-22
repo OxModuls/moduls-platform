@@ -29,7 +29,7 @@ const Footer = ({ className }) => {
           </ul>
         </div>
       </div>
-      <div className="mt-1 text-justify lg:max-w-3xl">
+      <div className="mt-1 text-justify">
         <div className="mr-1 inline-flex gap-1 text-amber-500">
           <span className="text-amber-500">Disclaimer:</span>
         </div>

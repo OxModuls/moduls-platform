@@ -466,7 +466,9 @@ const CreateAgent = () => {
                     <div className="grid grid-rows-[1fr_auto] gap-5 md:grid-cols-2 md:grid-rows-1">
                       {/* Modul Type Selection */}
                       <div className="">
-                        <label className="ml-1">Modul Type</label>
+                        <label className="ml-1 text-lg font-semibold">
+                          Modul Type
+                        </label>
                         <div className="mt-2 grid grid-cols-1 gap-2">
                           {modulTypes.map((modul) => (
                             <div
@@ -482,10 +484,10 @@ const CreateAgent = () => {
                             >
                               <div className="flex items-center gap-3">
                                 <div className="min-w-0 flex-1">
-                                  <h3 className="text-sm font-semibold text-foreground">
+                                  <h3 className="text-base font-semibold text-foreground">
                                     {modul.emoji} {modul.name}
                                   </h3>
-                                  <p className="mt-0.5 text-xs text-muted-foreground">
+                                  <p className="mt-0.5 text-sm text-muted-foreground">
                                     {modul.description}
                                   </p>
                                 </div>
@@ -505,11 +507,11 @@ const CreateAgent = () => {
                         />
                       </div>
 
-                      <div className="">
-                        <div className="mt-5 ml-1 flex items-center gap-2">
+                      <div className="mt-5 md:mt-0">
+                        <div className="ml-1 flex items-center gap-2">
                           <Link className="size-4" />
-                          <p>
-                            add social links{" "}
+                          <p className="text-lg font-semibold">
+                            Add social links{" "}
                             <span className="text-muted-foreground">
                               (optional)
                             </span>
@@ -585,7 +587,7 @@ const CreateAgent = () => {
 
                     {/* Agent Image Upload */}
                     <div className="mt-4">
-                      <label htmlFor="agent-image" className="ml-1">
+                      <label htmlFor="agent-image" className="ml-1 text-lg font-semibold">
                         Agent Image
                       </label>
                       <div
@@ -671,15 +673,12 @@ const CreateAgent = () => {
                       </div>
                       <div className="flex flex-col gap-y-5">
                         <div className="">
-                          <label
-                            htmlFor="swap-tax"
-                            className="flex items-center justify-between"
-                          >
+                          <div className="flex items-center justify-between">
                             <p className="">Total Swap Tax (%)</p>
                             <span className="text-sm">
                               {values.taxSettings.totalTaxPercentage}%
                             </span>
-                          </label>
+                          </div>
                           <div className="mt-2 flex flex-col items-center gap-1.5">
                             <Slider
                               className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
@@ -704,15 +703,12 @@ const CreateAgent = () => {
                           </p>
                         </div>
                         <div className="">
-                          <label
-                            htmlFor="agent-wallet"
-                            className="flex items-center justify-between"
-                          >
+                          <div className="flex items-center justify-between">
                             <p className="">Agent Wallet (%)</p>
                             <span className="text-sm">
                               {values.taxSettings.agentWalletShare}%
                             </span>
-                          </label>
+                          </div>
                           <div className="mt-3 flex flex-col items-center gap-1.5">
                             <Slider
                               className="mt-2 [&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
@@ -741,10 +737,7 @@ const CreateAgent = () => {
                           </p>
                         </div>
                         <div className="">
-                          <label
-                            htmlFor="agent-wallet"
-                            className="flex items-center justify-between"
-                          >
+                          <div className="flex items-center justify-between">
                             <p className="">
                               Dev Wallet (%){" "}
                               <span className="text-muted-foreground">
@@ -754,7 +747,7 @@ const CreateAgent = () => {
                             <span className="text-sm">
                               {values.taxSettings.devWalletShare}%
                             </span>
-                          </label>
+                          </div>
                           <div className="mt-3 flex flex-col items-center gap-1.5">
                             <Slider
                               className="[&_span]:data-[slot=slider-range]:dark:bg-accent [&_span]:data-[slot=slider-thumb]:dark:border-accent"
@@ -797,7 +790,7 @@ const CreateAgent = () => {
                           </div>
                           <p className="text-muted-foreground">
                             Set when trading opens for your token. Leave empty
-                            to deploy without opening trading yet.
+                            to open trading immediately
                           </p>
                         </div>
                         <div
@@ -852,7 +845,7 @@ const CreateAgent = () => {
                       ref={prebuyDivRef}
                       className="mt-4 flex flex-col rounded-xl border px-4 py-6"
                     >
-                      <div className="mt-4 ml-1">
+                      <div className="ml-1">
                         <h2 className="text-lg font-semibold">Pre-buy Token</h2>
                         <p className="text-muted-foreground">
                           Purchase tokens immediately after deployment. This is

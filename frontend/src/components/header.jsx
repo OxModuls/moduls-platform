@@ -8,6 +8,15 @@ import { Menu } from "lucide-react";
 import { useState } from "react";
 import MenuSheet from "./menu-sheet";
 import { cn } from "../lib/utils";
+import { FaTelegramPlane } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
+import { twitterUrl } from "@/shared/constants";
+
+const headerLinks = [
+  { title: "Launch Agent", url: "/create" },
+  { title: "How it works", url: "#" },
+  { title: "Fees", url: "#" },
+];
 
 const Header = ({ className }) => {
   const pathname = useLocation().pathname;
@@ -20,6 +29,28 @@ const Header = ({ className }) => {
           <Link to="/" className="flex items-center gap-2">
             <img src={modulsLogo} alt="Moduls Logo" className="h-10" />
           </Link>
+          <ul className="ml-2 hidden gap-3 lg:flex">
+            {headerLinks.map((link, idx) => (
+              <Link
+                key={idx}
+                to={link.url}
+                data-active={pathname === link.url}
+                className="group relative py-0.5 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:rounded-lg after:bg-accent after:content-[''] data-[active=false]:after:hidden"
+              >
+                <span className="font-semibold group-hover:text-accent group-data-[active=true]:text-accent">
+                  {link.title}
+                </span>
+              </Link>
+            ))}
+          </ul>
+          <ul className="ml-1 hidden items-center gap-2 lg:flex">
+            <Link to={"#"} target="_blank" className="hover:text-accent">
+              <FaTelegramPlane className="size-5" />
+            </Link>
+            <Link to={twitterUrl} target="_blank" className="hover:text-accent">
+              <FaXTwitter className="size-5" />
+            </Link>
+          </ul>
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden w-80 md:block">
@@ -28,7 +59,7 @@ const Header = ({ className }) => {
           <ConnectWalletButton />
           <button
             onClick={() => setMenuSheetOpen((prev) => !prev)}
-            className="cursor-pointer"
+            className="cursor-pointer lg:hidden"
           >
             <Menu className="size-7" />
           </button>

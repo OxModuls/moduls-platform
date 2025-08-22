@@ -80,99 +80,59 @@ const Home = () => {
 
   return (
     <div className="flex flex-col items-center px-6 pt-4">
-      <div className="">
-        <div className="gap-4 md:grid md:grid-cols-2 xl:grid-cols-3">
-          <div className="shadow-l flex w-full flex-col items-center rounded-2xl border px-6 py-8">
-            <h1 className="text-center text-2xl font-bold text-accent capitalize">
+      <div className="w-full lg:max-w-[84rem]">
+        <div className="flex w-full flex-col items-center rounded-2xl border px-6 py-8 shadow-lg md:hidden">
+          <h1 className="text-center text-2xl font-bold text-accent capitalize">
+            Deploy Modular Agents
+          </h1>
+          <p className="mt-2 text-center">
+            Deploy agents instantly with modular on-chain logic. No coding
+            required.
+          </p>
+          <button
+            onClick={() => {
+              if (isConnected && address) {
+                navigate("/create");
+              } else {
+                useWalletModalStore.getState().openWalletModal();
+              }
+            }}
+            className="bg-button-gradient mt-3 flex w-fit cursor-pointer justify-center rounded-xl px-3 py-2 transition-all duration-500 hover:-translate-y-1"
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="">Launch Agent</span>
+            </div>
+          </button>
+        </div>
+
+        <div className="hidden w-full items-center gap-6 justify-between rounded-2xl border px-6 py-8 shadow-lg md:flex">
+          <div>
+            <h1 className="text-3xl font-bold text-accent capitalize">
               Deploy Modular Agents
             </h1>
-            <p className="mt-2 text-center">
+            <p className="mt-2">
               Deploy agents instantly with modular on-chain logic. No coding
               required.
             </p>
-            <button
-              onClick={() => {
-                if (isConnected && address) {
-                  navigate("/create");
-                } else {
-                  useWalletModalStore.getState().openWalletModal();
-                }
-              }}
-              className="bg-button-gradient mt-3 flex w-fit cursor-pointer justify-center rounded-xl px-3 py-2 transition-all duration-500 hover:-translate-y-1"
-            >
-              <div className="flex items-center justify-between gap-1">
-                <span className="">Launch Agent</span>
-              </div>
-            </button>
           </div>
-          <div className="shadow-l hidden items-start gap-4 rounded-2xl border px-8 py-8 md:flex">
-            <div className="flex-0 rounded-lg border border-accent p-2">
-              <Bot className="size-7 text-accent" />
+          <button
+            onClick={() => {
+              if (isConnected && address) {
+                navigate("/create");
+              } else {
+                useWalletModalStore.getState().openWalletModal();
+              }
+            }}
+            className="shrink-0 bg-button-gradient mt-3 flex w-fit cursor-pointer justify-center rounded-xl px-3 py-2 transition-all duration-500 hover:-translate-y-1"
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="">Launch Agent</span>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold">Total Agents Created</h2>
-              <div className="text mt-2 ml-1 min-h-[56px]">
-                {isPlatformStatsPending ? (
-                  <div className="h-10 w-full animate-pulse rounded-xl bg-accent/20 transition-opacity duration-500" />
-                ) : (
-                  <>
-                    <p className="mt-2 text-4xl font-bold text-accent">
-                      {platformStats?.activeAgentsCount ?? "0"}
-                    </p>
-                    <span className="mt-1 text-sm">Active Moduls</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="col-span-full hidden items-center justify-center md:flex xl:col-span-1">
-            <div className="shadow-l flex items-start gap-4 rounded-2xl border px-8 py-8">
-              <div className="flex-0 rounded-lg border border-accent p-2">
-                <Info className="size-7 text-accent" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">
-                  Ready to launch your own Modul?
-                </h2>
-                <div className="ml-1">
-                  <div className="text mt-2">
-                    <div>
-                      <p className="font-semibold">
-                        1-click launch from templates
-                      </p>
-                      <p className="text-sm text-neutral-400">
-                        Customize agent. Choose a modul. Deploy.
-                      </p>
-                    </div>
-                    <div className="mt-2">
-                      <p className="font-semibold">
-                        Launch your agent with optional revenue sharing
-                      </p>
-                      <p className="text-sm text-neutral-400">
-                        Fund the agent. Feed the dev, or don't 😉.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (isConnected && address) {
-                        navigate("/create");
-                      } else {
-                        useWalletModalStore.getState().openWalletModal();
-                      }
-                    }}
-                    className="bg-button-gradient mt-3 inline-block rounded-xl px-3 py-2 transition-all duration-500 hover:scale-105"
-                  >
-                    Get Started Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          </button>
         </div>
 
         {/* agents */}
-        <div className="shadow-l mt-8">
+        <div className="mt-8 shadow-lg">
           <div className="flex w-full gap-2">
             <Select
               value={filter || "All"}
@@ -348,7 +308,7 @@ const Home = () => {
         </div>
 
         <div className="md:hidden">
-          <div className="shadow-l mt-8 flex w-full items-start gap-4 rounded-2xl border px-8 py-8">
+          <div className="mt-8 flex w-full items-start gap-4 rounded-2xl border px-8 py-8 shadow-lg">
             <div className="flex-0 rounded-lg border border-accent p-2">
               <Bot className="size-7 text-accent" />
             </div>
@@ -368,7 +328,7 @@ const Home = () => {
               </div>
             </div>
           </div>
-          <div className="shadow-l mt-8 flex w-full items-start gap-4 rounded-2xl border px-8 py-8">
+          <div className="mt-8 flex w-full items-start gap-4 rounded-2xl border px-8 py-8 shadow-lg md:hidden">
             <div className="flex-0 rounded-lg border border-accent p-2">
               <Info className="size-7 text-accent" />
             </div>
@@ -409,6 +369,37 @@ const Home = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-8 hidden w-full items-start gap-4 rounded-2xl border px-8 py-8 shadow-lg md:flex">
+          <div className="flex-0 rounded-lg border border-accent p-2">
+            <Info className="size-7 text-accent" />
+          </div>
+          <div className="flex grow items-center justify-between gap-6">
+            <div className="">
+              <h2 className="text-2xl font-bold">
+                Ready to launch your own Modul?
+              </h2>
+              <div className="">
+                <div className="mt-2">
+                  1-click launch from templates. Launch your agent with optional
+                  revenue sharing
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (isConnected && address) {
+                  navigate("/create");
+                } else {
+                  useWalletModalStore.getState().openWalletModal();
+                }
+              }}
+              className="bg-button-gradient mt-3 inline-block shrink-0 rounded-xl px-3 py-2 transition-all duration-500 hover:scale-105"
+            >
+              Get Started Now
+            </button>
           </div>
         </div>
       </div>

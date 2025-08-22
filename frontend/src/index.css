@@ -232,3 +232,13 @@
 .group:hover .animate-float {
   animation-play-state: paused;
 }
+
+.user-icon {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.user-icon > svg {
+  width: 100%;
+  height: 100%;
+}
