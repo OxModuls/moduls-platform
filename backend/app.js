@@ -25,9 +25,11 @@ const webhookRoutes = require('./core/webhooks/routes');
 const { listenAndProcessOnchainEvents } = require('./core/moduls-deployer-events');
 const { listenAndProcessTradingEvents } = require('./core/moduls-sales-events');
 const { listenAndProcessTokenEvents } = require('./core/agent-token-events');
+const ModulsMCPServer = require('./core/services/mcp/mcp-server');
 
-// Initialize Express app
+// Initialize Express app and shared resources
 const app = express();
+let mcpServerInstance = null; // Store MCP server instance
 
 // ============================================================================
 // CONFIGURATION
@@ -40,7 +42,16 @@ app.set('port', config.port);
 function setupMiddleware() {
     // Logging
     if (config.isDev) {
-        app.use(morgan('dev'));
+        // Use immediate: true to flush logs immediately
+        app.use(morgan('dev', {
+            immediate: true,
+            stream: {
+                write: (message) => {
+                    // Force write to stdout
+                    process.stdout.write(message);
+                }
+            }
+        }));
     } else {
         const accessLogStream = fs.createWriteStream(
             path.join(__dirname, 'access.log'),
@@ -133,6 +144,28 @@ function setupErrorHandling() {
 }
 
 // ============================================================================
+// MCP SERVER INITIALIZATION
+// ============================================================================
+async function initializeMCPServer() {
+    try {
+        // Only initialize if not already running
+        if (!mcpServerInstance || !mcpServerInstance.server.isConnected()) {
+            console.log('🚀 Initializing MCP server...');
+            mcpServerInstance = new ModulsMCPServer();
+            await mcpServerInstance.start();
+            console.log('✅ MCP server initialized successfully');
+        } else {
+            console.log('✅ MCP server already running');
+        }
+        return mcpServerInstance;
+    } catch (error) {
+        console.log('❌ Failed to initialize MCP server:', error);
+        mcpServerInstance = null;
+        return null;
+    }
+}
+
+// ============================================================================
 // EVENT SYSTEM INITIALIZATION
 // ============================================================================
 async function initializeEventSystem() {
@@ -163,7 +196,7 @@ async function initializeEventSystem() {
 // ============================================================================
 // GRACEFUL SHUTDOWN
 // ============================================================================
-function setupGracefulShutdown(server, eventUnwatchers) {
+function setupGracefulShutdown(server, eventUnwatchers, mcpServer) {
     const shutdown = async (signal) => {
         console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
 
@@ -172,6 +205,17 @@ function setupGracefulShutdown(server, eventUnwatchers) {
             server.close(() => {
                 console.log('✅ HTTP server closed');
             });
+
+            // Stop MCP server
+            try {
+                if (mcpServerInstance) {
+                    await mcpServerInstance.stop();
+                    mcpServerInstance = null;
+                    console.log('✅ MCP server stopped');
+                }
+            } catch (mcpError) {
+                console.warn('⚠️ MCP server stop failed:', mcpError.message);
+            }
 
             // Unwatch all blockchain events
             try {
@@ -223,8 +267,9 @@ async function startApplication() {
         setupRoutes();
         setupErrorHandling();
 
-        // Connect to database
+        // Connect to database with increased timeout
         await connectDB();
+        mongoose.set('bufferTimeoutMS', 15000); // Increase timeout to 15 seconds
         console.log('✅ Connected to MongoDB');
 
         // Start server
@@ -232,11 +277,14 @@ async function startApplication() {
             console.log(`✅ ${config.appName} is running on port ${app.get('port')}`);
         });
 
+        // Initialize MCP server
+        const mcpServer = await initializeMCPServer();
+
         // Initialize event system
         const { eventUnwatch, tradingEventUnwatch, tokenEventUnwatch } = await initializeEventSystem();
 
         // Setup graceful shutdown with server reference
-        setupGracefulShutdown(server, { eventUnwatch, tradingEventUnwatch, tokenEventUnwatch });
+        setupGracefulShutdown(server, { eventUnwatch, tradingEventUnwatch, tokenEventUnwatch }, mcpServer);
 
         console.log('🎉 Application startup completed successfully!');
 

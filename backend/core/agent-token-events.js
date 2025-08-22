@@ -168,9 +168,9 @@ async function startWatchingToken(tokenAddress) {
         // First, scan recent events to initialize state
         try {
             const currentBlock = await client.getBlockNumber();
-            const scanFromBlock = currentBlock - 5000n; // Last 5000 blocks
+            const scanFromBlock = currentBlock - 2000n; // Last 2000 blocks
 
-            console.log(`📡 Token Events: Scanning last 5000 blocks for ${tokenAddress}`);
+            console.log(`📡 Token Events: Scanning last 2000 blocks for ${tokenAddress}`);
 
             // Split into chunks of 500 blocks to respect RPC limits
             const chunkSize = 500n;

@@ -19,6 +19,7 @@ import { useDeleteThread, useCreateThread } from "@/shared/hooks/useChat";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useWalletModalStore, useThreadStore } from "@/shared/store";
 import jazzicon from "@metamask/jazzicon";
+import MarkdownRenderer from "@/components/ui/md";
 
 function formatModulType(type) {
   if (!type) return "";
@@ -431,7 +432,7 @@ function MessagesView({
                 m.role === "user" ? "bg-accent/15" : "bg-muted/40",
               )}
             >
-              {m.content}
+              <MarkdownRenderer content={m.content} />
             </div>
           </div>
         ))

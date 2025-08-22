@@ -3,7 +3,6 @@
  * Central export point for all modul services and utilities
  */
 
-const ModulService = require('./modul-services');
 const LLMInterface = require('./llm-interface');
 const MessageProcessor = require('./message-processor');
 
@@ -13,7 +12,6 @@ const llmInterface = new LLMInterface();
 
 // Export the services
 module.exports = {
-    ModulService,
     LLMInterface,
     MessageProcessor,
 
