@@ -40,8 +40,8 @@ function AgentCard({ agent, onLinkClick }) {
             </div>
           )}
         </div>
-        <div className="w-[80%] mt-1 flex items-center gap-2">
-          <span className="w-full overflow-ellipsis truncate whitespace-nowrap text-xs text-muted-foreground">
+        <div className="mt-1 flex w-[80%] items-center gap-2">
+          <span className="w-full truncate text-xs overflow-ellipsis whitespace-nowrap text-muted-foreground">
             {agent.description}
           </span>
         </div>

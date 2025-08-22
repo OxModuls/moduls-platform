@@ -7,6 +7,8 @@ import {
   Send,
   Trash2,
   Plus,
+  Copy,
+  Check,
 } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
@@ -200,12 +202,21 @@ function ThreadsPanel({
 }
 
 function ChatHeader({ agent, onRestore, onClose }) {
+  const [copied, setCopied] = useState(false);
   const { data: agentWalletBalance } = useBalance({
     address: agent?.walletAddress,
   });
   const balanceText = agentWalletBalance?.formatted
     ? `${Number(agentWalletBalance.formatted).toPrecision(8)} SEI`
     : "--";
+
+  const handleCopyAddress = () => {
+    if (agent?.walletAddress) {
+      navigator.clipboard.writeText(agent.walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
   return (
     <div className="flex items-center justify-between px-3 py-3 sm:px-6">
       {/* Left side - Agent details */}
@@ -235,11 +246,22 @@ function ChatHeader({ agent, onRestore, onClose }) {
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground sm:gap-4 sm:text-base">
             {agent?.walletAddress && (
-              <div className="flex items-center gap-1.5">
+              <div className="group flex items-center gap-1.5">
                 <span className="text-sm">📍</span>
                 <span className="font-mono text-sm">
                   {ellipsizeAddress(agent.walletAddress, 4, 4)}
                 </span>
+                <button
+                  onClick={handleCopyAddress}
+                  className="ml-1 rounded p-1 text-muted-foreground transition-all group-hover:visible hover:bg-accent/10 hover:text-accent"
+                  title="Copy wallet address"
+                >
+                  {copied ? (
+                    <Check className="size-3 text-green-500" />
+                  ) : (
+                    <Copy className="size-3" />
+                  )}
+                </button>
               </div>
             )}
             <div className="flex items-center gap-1.5">

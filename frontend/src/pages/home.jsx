@@ -16,6 +16,134 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useState } from "react";
+import {
+  useTradingMetrics,
+  formatTradingAmount,
+} from "../shared/hooks/useTrading";
+import { useModulsSalesManager } from "../shared/hooks/useModulsSalesManager";
+
+// Component for individual agent in the list
+const AgentListItem = ({ agent, idx }) => {
+  // Use ModulsSalesManager hook to get contract data for curve progress
+  const { data: contractData, isLoading: contractLoading } =
+    useModulsSalesManager(agent?.tokenAddress);
+
+  // Calculate market cap using backend data
+  const calculateMarketCap = () => {
+    // Use currentPrice from backend metrics + totalSupply
+    if (agent?.metrics?.currentPrice && agent?.totalSupply) {
+      try {
+        const price = parseFloat(
+          formatTradingAmount(agent.metrics.currentPrice, 18),
+        );
+        const supply = parseFloat(agent.totalSupply);
+        const marketCap = price * supply;
+
+        if (marketCap >= 1000000) {
+          return `${(marketCap / 1000000).toFixed(2)}M SEI`;
+        } else if (marketCap >= 1000) {
+          return `${(marketCap / 1000).toFixed(2)}K SEI`;
+        } else {
+          return `${marketCap.toFixed(4)} SEI`;
+        }
+      } catch (error) {
+        console.error("Error calculating market cap:", error);
+      }
+    }
+
+    // Fallback to backend calculated marketCap if available
+    if (agent?.metrics?.marketCap && agent.metrics.marketCap !== "0") {
+      try {
+        const marketCap = parseFloat(
+          formatTradingAmount(agent.metrics.marketCap, 18),
+        );
+        if (marketCap >= 1000000) {
+          return `${(marketCap / 1000000).toFixed(2)}M SEI`;
+        } else if (marketCap >= 1000) {
+          return `${(marketCap / 1000).toFixed(2)}K SEI`;
+        } else {
+          return `${marketCap.toFixed(4)} SEI`;
+        }
+      } catch (error) {
+        console.error("Error formatting backend market cap:", error);
+      }
+    }
+
+    return "0 SEI";
+  };
+
+  // Calculate curve progress like in agent.jsx
+  const calculateCurveProgress = () => {
+    if (!contractData?.marketStats?.ethCollected || !contractData?.maxEthCap) {
+      return 0;
+    }
+
+    try {
+      const current = parseFloat(contractData.marketStats.ethCollected);
+      const target = parseFloat(contractData.maxEthCap);
+      return target > 0 ? (current / target) * 100 : 0;
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  return (
+    <Link
+      key={idx}
+      to={`/agents/${agent.uniqueId}`}
+      className="flex gap-2 rounded-2xl border p-2 md:p-4"
+    >
+      <Avatar className="size-16 shrink-0 border-2 border-accent">
+        <AvatarImage src={agent.logoUrl} />
+        <AvatarFallback>{agent.name?.charAt(0)}</AvatarFallback>
+      </Avatar>
+      <div className="flex grow flex-col items-start">
+        <div className="flex w-full items-center gap-2">
+          <span className="text-lg">{agent.name}</span>
+          <span className="text-xs text-muted-foreground">
+            {agent.tokenSymbol}
+          </span>
+          {agent.tags?.[0] && (
+            <span className="grow-0 rounded-md bg-accent/20 px-1 py-0.5 text-xs text-accent">
+              {agent.tags[0]}
+            </span>
+          )}
+        </div>
+        <span className="w-48 overflow-hidden text-xs overflow-ellipsis whitespace-nowrap text-muted-foreground">
+          {agent.description}
+        </span>
+        <div className="mt-1 flex w-full justify-between text-sm">
+          <span>Created by:</span>
+          <span>
+            {ellipsizeAddress(
+              agent?.creator?.walletAddress ||
+                "0x0000000000000000000000000000000000000000",
+              4,
+              4,
+            )}
+          </span>
+        </div>
+        <div className="mt-1 flex w-full justify-between text-sm">
+          <span>Market Cap:</span>
+          <span className="font-semibold text-accent">
+            {calculateMarketCap()}
+          </span>
+        </div>
+        <div className="mt-1 flex w-full items-center gap-1">
+          <Progress
+            value={calculateCurveProgress()}
+            className="[&>div]:dark:bg-green-600"
+          />
+          <span className="text-xs text-muted-foreground">
+            {contractLoading
+              ? "..."
+              : `${calculateCurveProgress().toFixed(2)}%`}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -105,7 +233,7 @@ const Home = () => {
           </button>
         </div>
 
-        <div className="hidden w-full items-center gap-6 justify-between rounded-2xl border px-6 py-8 shadow-lg md:flex">
+        <div className="hidden w-full items-center justify-between gap-6 rounded-2xl border px-6 py-8 shadow-lg md:flex">
           <div>
             <h1 className="text-3xl font-bold text-accent capitalize">
               Deploy Modular Agents
@@ -123,7 +251,7 @@ const Home = () => {
                 useWalletModalStore.getState().openWalletModal();
               }
             }}
-            className="shrink-0 bg-button-gradient mt-3 flex w-fit cursor-pointer justify-center rounded-xl px-3 py-2 transition-all duration-500 hover:-translate-y-1"
+            className="bg-button-gradient mt-3 flex w-fit shrink-0 cursor-pointer justify-center rounded-xl px-3 py-2 transition-all duration-500 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between gap-1">
               <span className="">Launch Agent</span>
@@ -251,58 +379,7 @@ const Home = () => {
               !isAgentsLoadError &&
               (agentsData?.agents?.length ?? 0) > 0 &&
               (agentsData?.agents || []).map((agent, idx) => (
-                <Link
-                  key={idx}
-                  to={`/agents/${agent.uniqueId}`}
-                  className="flex gap-2 rounded-2xl border p-2 md:p-4"
-                >
-                  <Avatar className="size-16 shrink-0 border-2 border-accent">
-                    <AvatarImage src={agent.logoUrl} />
-                    <AvatarFallback>{agent.name?.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex grow flex-col items-start">
-                    <div className="flex w-full items-center gap-2">
-                      <span className="text-lg">{agent.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {agent.tokenSymbol}
-                      </span>
-                      {agent.tags?.[0] && (
-                        <span className="grow-0 rounded-md bg-accent/20 px-1 py-0.5 text-xs text-accent">
-                          {agent.tags[0]}
-                        </span>
-                      )}
-                    </div>
-                    <span className="w-48 overflow-hidden text-xs overflow-ellipsis whitespace-nowrap text-muted-foreground">
-                      {agent.description}
-                    </span>
-                    <div className="mt-1 flex w-full justify-between text-sm">
-                      <span>Created by:</span>
-                      <span>
-                        {ellipsizeAddress(
-                          agent?.creator?.walletAddress ||
-                            "0x0000000000000000000000000000000000000000",
-                          4,
-                          4,
-                        )}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex w-full justify-between text-sm">
-                      <span>Market Cap:</span>
-                      <span>
-                        {agent?.metrics?.marketCap
-                          ? agent.metrics.marketCap
-                          : "-"}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex w-full items-center gap-1">
-                      <Progress
-                        value={agent.curveProgress}
-                        className="[&>div]:dark:bg-green-600"
-                      />
-                      <span className="text-xs">{agent.curveProgress}%</span>
-                    </div>
-                  </div>
-                </Link>
+                <AgentListItem key={agent.uniqueId} agent={agent} idx={idx} />
               ))}
           </div>
         </div>

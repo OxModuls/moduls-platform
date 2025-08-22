@@ -50,7 +50,7 @@ router.get("/agents", async (req, res) => {
             modulType: modulTypeParam,
             sortKey: sortKeyParam = 'Creation Time',
             order: sortOrderParam = 'desc',
-            limit: limitParam = '5',
+            limit: limitParam = '10',
         } = req.query;
 
         // Map UI labels to modul types
@@ -136,6 +136,8 @@ router.get("/agents", async (req, res) => {
                 description: 1,
                 modulType: 1,
                 tokenSymbol: 1,
+                tokenAddress: 1,
+                totalSupply: 1,
                 logoUrl: 1,
                 status: 1,
                 createdAt: 1,
@@ -145,6 +147,7 @@ router.get("/agents", async (req, res) => {
                 // Useful metrics
                 'metrics.volume24h': 1,
                 'metrics.marketCap': 1,
+                'metrics.currentPrice': 1,
                 'metrics.lastTradeTime': 1,
             }
         });

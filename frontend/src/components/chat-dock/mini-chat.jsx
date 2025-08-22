@@ -1,4 +1,4 @@
-import { X, Maximize2, ChevronDown } from "lucide-react";
+import { X, Maximize2, ChevronDown, Copy, Check } from "lucide-react";
 import { useChatSession } from "@/shared/hooks/useChatSession";
 import { useEffect, useRef, useState } from "react";
 import { useBalance } from "wagmi";
@@ -31,6 +31,16 @@ function generateJazzicon(address, size = 32) {
 }
 
 function Header({ agent, balance, onMaximize, onClose }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAddress = () => {
+    if (agent?.walletAddress) {
+      navigator.clipboard.writeText(agent.walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between border-b px-3 py-2">
       <div className="flex min-w-0 items-center gap-2">
@@ -50,10 +60,25 @@ function Header({ agent, balance, onMaximize, onClose }) {
               </span>
             )}
           </div>
-          <div className="truncate text-sm text-muted-foreground">
-            {agent?.walletAddress
-              ? ellipsizeAddress(agent.walletAddress, 4, 4)
-              : ""}
+          <div className="group flex items-center gap-1 text-sm text-muted-foreground">
+            <span className="truncate">
+              {agent?.walletAddress
+                ? ellipsizeAddress(agent.walletAddress, 4, 4)
+                : ""}
+            </span>
+            {agent?.walletAddress && (
+              <button
+                onClick={handleCopyAddress}
+                className="ml-1 rounded p-0.5 text-muted-foreground transition-all group-hover:visible hover:bg-accent/10 hover:text-accent"
+                title="Copy wallet address"
+              >
+                {copied ? (
+                  <Check className="size-3 text-green-500" />
+                ) : (
+                  <Copy className="size-3" />
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
