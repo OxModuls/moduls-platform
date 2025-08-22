@@ -13,12 +13,11 @@ import { useEffect, useRef, useState } from "react";
 import { useEnterToSend } from "@/shared/hooks/useEnterToSend";
 import { useBalance } from "wagmi";
 import { getPromptSuggestions } from "./suggestions";
-import { ellipsizeAddress, cn } from "@/lib/utils";
+import { ellipsizeAddress, cn, generateJazzicon } from "@/lib/utils";
 import { useChatSession } from "@/shared/hooks/useChatSession";
 import { useDeleteThread, useCreateThread } from "@/shared/hooks/useChat";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useWalletModalStore, useThreadStore } from "@/shared/store";
-import jazzicon from "@metamask/jazzicon";
 import MarkdownRenderer from "@/components/ui/md";
 
 function formatModulType(type) {
@@ -28,17 +27,6 @@ function formatModulType(type) {
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
-}
-
-function generateJazzicon(address, size = 32) {
-  if (!address) return null;
-  try {
-    const seed = parseInt(address.slice(2, 10), 16);
-    return jazzicon(size, seed);
-  } catch (error) {
-    console.error("Error generating jazzicon:", error);
-    return null;
-  }
 }
 
 // Relative time helper for thread timestamps
