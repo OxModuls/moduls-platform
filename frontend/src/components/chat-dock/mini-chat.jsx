@@ -281,7 +281,7 @@ function MiniChat({
   onClose,
 }) {
   const [inputValue, setInputValue] = useState("");
-  const { data: currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const { data: agentWalletBalance } = useBalance({
     address: agent?.walletAddress,
   });
