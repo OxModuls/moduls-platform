@@ -17,7 +17,7 @@ import { ellipsizeAddress, cn } from "@/lib/utils";
 import { useChatSession } from "@/shared/hooks/useChatSession";
 import { useDeleteThread, useCreateThread } from "@/shared/hooks/useChat";
 import { useAuth } from "@/shared/hooks/useAuth";
-import { useWalletModalStore } from "@/shared/store";
+import { useWalletModalStore, useThreadStore } from "@/shared/store";
 import jazzicon from "@metamask/jazzicon";
 
 function formatModulType(type) {
@@ -74,133 +74,137 @@ function ThreadsPanel({
   const isPending = loading;
 
   return (
-    <div className="w-64 border-r p-3">
-      <div className="mb-2 text-xs font-semibold text-muted-foreground">
-        Chats
-      </div>
-      <div className="mb-2">
-        <button
-          className="w-full cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
-          onClick={onCreateThread}
-        >
-          <span className="inline-flex items-center gap-2">
-            <Plus className="size-4" />
-            <span>New chat</span>
-          </span>
-        </button>
-      </div>
-      <div className="custom-scrollbar flex max-h-[calc(100vh-8rem)] flex-col gap-2 overflow-y-auto">
-        {isPending &&
-          Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-10 animate-pulse rounded-lg bg-accent/10"
-            />
-          ))}
-        {!isPending && !isAuthenticated && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-4 rounded-full bg-muted/20 p-3">
-              <svg
-                className="h-8 w-8 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <h3 className="mb-2 text-sm font-semibold text-foreground">
-              Connect Wallet to View Conversations
-            </h3>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Please connect your wallet to see your conversation history with
-              this agent
-            </p>
-            <button
-              onClick={onConnectWallet}
-              className="mt-4 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition-colors hover:bg-accent/90 active:scale-95"
-            >
-              Connect Wallet
-            </button>
-            <div className="mt-4 w-full">
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
-            </div>
-          </div>
-        )}
-        {!isPending && isAuthenticated && (threads?.length || 0) === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-4 rounded-full bg-muted/20 p-3">
-              <svg
-                className="h-8 w-8 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-            </div>
-            <h3 className="mb-2 text-sm font-semibold text-foreground">
-              No Conversations Yet
-            </h3>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Start chatting with this agent to create your first conversation
-              thread
-            </p>
-            <div className="mt-4 w-full">
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
-            </div>
-          </div>
-        )}
-        {(threads || []).map((t) => (
-          <div
-            key={t.uniqueId}
-            className="group flex w-full items-center gap-2 pt-2"
+    <div className="flex h-full w-64 flex-col border-r">
+      <div className="flex-shrink-0 p-3">
+        <div className="mb-2 text-xs font-semibold text-muted-foreground">
+          Chats
+        </div>
+        <div className="mb-2">
+          <button
+            className="w-full cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
+            onClick={onCreateThread}
           >
-            <button
-              className={`flex-1 truncate rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                selectedThreadId === t.uniqueId
-                  ? "bg-accent/15"
-                  : "hover:bg-muted/40"
-              }`}
-              onClick={() => onSelectThread(t.uniqueId)}
-              title={t.title || "New conversation"}
-            >
-              <span
-                className={`block truncate font-semibold ${
-                  selectedThreadId === t.uniqueId ? "text-foreground" : ""
-                }`}
+            <span className="inline-flex items-center gap-2">
+              <Plus className="size-4" />
+              <span>New chat</span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div className="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto p-3 pt-0">
+        <div className="flex flex-col gap-2">
+          {isPending &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-10 animate-pulse rounded-lg bg-accent/10"
+              />
+            ))}
+          {!isPending && !isAuthenticated && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="mb-4 rounded-full bg-muted/20 p-3">
+                <svg
+                  className="h-8 w-8 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              </div>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">
+                Connect Wallet to View Conversations
+              </h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Please connect your wallet to see your conversation history with
+                this agent
+              </p>
+              <button
+                onClick={onConnectWallet}
+                className="mt-4 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition-colors hover:bg-accent/90 active:scale-95"
               >
-                {t.title || "New conversation"}
-              </span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {formatRelativeTime(t.createdAt || t.updatedAt)}
-              </span>
-            </button>
-            <button
-              title="Delete conversation"
-              aria-label="Delete conversation"
-              className="invisible shrink-0 cursor-pointer rounded-md p-1 text-muted-foreground transition-colors group-hover:visible hover:bg-red-500/10 hover:text-red-500"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteThread?.(t.uniqueId);
-              }}
+                Connect Wallet
+              </button>
+              <div className="mt-4 w-full">
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+              </div>
+            </div>
+          )}
+          {!isPending && isAuthenticated && (threads?.length || 0) === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="mb-4 rounded-full bg-muted/20 p-3">
+                <svg
+                  className="h-8 w-8 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+              </div>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">
+                No Conversations Yet
+              </h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Start chatting with this agent to create your first conversation
+                thread
+              </p>
+              <div className="mt-4 w-full">
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+              </div>
+            </div>
+          )}
+          {(threads || []).map((t) => (
+            <div
+              key={t.uniqueId}
+              className="group flex w-full items-center gap-2 pt-2"
             >
-              <Trash2 className="size-4" />
-            </button>
-          </div>
-        ))}
+              <button
+                className={`flex-1 truncate rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                  selectedThreadId === t.uniqueId
+                    ? "bg-accent/15"
+                    : "hover:bg-muted/40"
+                }`}
+                onClick={() => onSelectThread(t.uniqueId)}
+                title={t.title || "New conversation"}
+              >
+                <span
+                  className={`block truncate font-semibold ${
+                    selectedThreadId === t.uniqueId ? "text-foreground" : ""
+                  }`}
+                >
+                  {t.title || "New conversation"}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {formatRelativeTime(t.createdAt || t.updatedAt)}
+                </span>
+              </button>
+              <button
+                title="Delete conversation"
+                aria-label="Delete conversation"
+                className="invisible shrink-0 cursor-pointer rounded-md p-1 text-muted-foreground transition-colors group-hover:visible hover:bg-red-500/10 hover:text-red-500"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteThread?.(t.uniqueId);
+                }}
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -356,7 +360,7 @@ function MessagesView({
   return (
     <div
       ref={scrollRef}
-      className="custom-scrollbar relative flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-4"
+      className="custom-scrollbar relative min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-4"
     >
       {messages.length === 0 ? (
         <div className="flex h-full items-center justify-center py-6">
@@ -423,7 +427,7 @@ function MessagesView({
             )}
             <div
               className={cn(
-                "max-w-[85%] rounded-2xl px-3 py-3 text-sm break-words whitespace-pre-wrap",
+                "max-w-[75%] overflow-hidden rounded-2xl px-3 py-3 text-sm break-words whitespace-pre-wrap",
                 m.role === "user" ? "bg-accent/15" : "bg-muted/40",
               )}
             >
@@ -439,7 +443,7 @@ function MessagesView({
             alt={agent?.name}
             className="h-8 w-8 shrink-0 rounded-full"
           />
-          <div className="max-w-[60%] rounded-2xl bg-muted/40 px-3 py-2 text-sm">
+          <div className="max-w-[50%] overflow-hidden rounded-2xl bg-muted/40 px-3 py-2 text-sm">
             <span className="inline-flex items-center gap-1">
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]"></span>
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"></span>
@@ -502,12 +506,12 @@ function InputBox({ onSend, disabled }) {
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
-          className="no-scrollbar min-h-[40px] flex-1 resize-none self-stretch rounded-xl border border-white/20 bg-transparent p-2 py-3 text-sm focus:border-white/40 focus:outline-none sm:min-h-[44px] sm:p-3"
+          className="no-scrollbar min-h-[40px] flex-1 resize-none self-stretch rounded-xl border border-white/20 bg-transparent p-2 py-4 text-sm focus:border-white/40 focus:outline-none sm:min-h-[40px] sm:p-3"
           style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
         />
         <button
           disabled={disabled || !value.trim()}
-          className="bg-button-gradient flex items-center justify-center self-stretch rounded-lg p-2 px-4 text-sm font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 sm:px-4 sm:py-2"
+          className="bg-button-gradient flex items-center justify-center rounded-lg p-2 px-4 text-sm font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 sm:px-4 sm:py-3"
         >
           <Send className="size-4 sm:hidden" />
           <span className="hidden sm:inline">Send</span>
@@ -517,38 +521,41 @@ function InputBox({ onSend, disabled }) {
   );
 }
 
-function FullscreenChat({
-  agent,
-  selectedThreadId,
-  onSelectThread,
-  onRestore,
-  onClose,
-}) {
+function FullscreenChat({ agent, onRestore, onClose }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const scrollToBottomRef = useRef(() => {});
   const { isAuthenticated, user: currentUser } = useAuth();
   const { openWalletModal } = useWalletModalStore();
+  const { selectedThreadId, setSelectedThreadId } = useThreadStore();
   const deleteThreadMutation = useDeleteThread();
   const createThreadMutation = useCreateThread();
 
   const {
     threads,
     threadsLoading,
-    selectedThreadId: sessionThreadId,
-    setSelectedThreadId,
     messages,
     messagesLoading,
     isSending,
     sendMessage,
-  } = useChatSession(agent?.uniqueId, selectedThreadId || null);
+  } = useChatSession(agent?.uniqueId);
 
-  useEffect(() => {
-    if (onSelectThread && sessionThreadId) onSelectThread(sessionThreadId);
-  }, [sessionThreadId]);
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 200); // Match the animation duration
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-background">
+    <div
+      className={`fixed inset-0 z-50 flex flex-col overflow-hidden bg-background ${
+        isClosing
+          ? "animate-out duration-500 ease-in fade-out"
+          : "animate-in duration-500 ease-out fade-in"
+      }`}
+    >
       <div className="flex items-center justify-between border-b bg-gradient-to-r from-background to-muted/20 px-3 py-2 sm:px-6">
         {/* Left side - Sidebar toggle */}
         <div className="flex items-center gap-2">
@@ -568,7 +575,11 @@ function FullscreenChat({
 
         {/* Center - Chat header */}
         <div className="min-w-0 flex-1">
-          <ChatHeader agent={agent} onRestore={onRestore} onClose={onClose} />
+          <ChatHeader
+            agent={agent}
+            onRestore={onRestore}
+            onClose={handleClose}
+          />
         </div>
       </div>
       <div className="flex min-h-0 flex-1">
@@ -579,7 +590,7 @@ function FullscreenChat({
           <ThreadsPanel
             threads={threads}
             loading={threadsLoading}
-            selectedThreadId={sessionThreadId}
+            selectedThreadId={selectedThreadId}
             onSelectThread={setSelectedThreadId}
             isAuthenticated={isAuthenticated}
             onConnectWallet={openWalletModal}
@@ -612,7 +623,7 @@ function FullscreenChat({
           <ThreadsPanel
             threads={threads}
             loading={threadsLoading}
-            selectedThreadId={sessionThreadId}
+            selectedThreadId={selectedThreadId}
             onSelectThread={(id) => {
               setSelectedThreadId(id);
               setSidebarOpen(false);
@@ -639,23 +650,21 @@ function FullscreenChat({
           />
         </div>
 
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 overflow-hidden">
-            <MessagesView
-              messages={messages}
-              modulType={agent?.modulType}
-              isSending={isSending}
-              isPending={messagesLoading}
-              agent={agent}
-              currentUser={currentUser}
-              selectedThreadId={sessionThreadId}
-              sendMessage={sendMessage}
-              onControls={({ isAtBottom, scrollToBottom, hasMessages }) => {
-                scrollToBottomRef.current = scrollToBottom;
-                setShowScrollBtn(!isAtBottom && !!hasMessages);
-              }}
-            />
-          </div>
+        <div className="custom-scrollbar relative flex min-h-0 max-w-[100%] flex-1 flex-col overflow-x-hidden">
+          <MessagesView
+            messages={messages}
+            modulType={agent?.modulType}
+            isSending={isSending}
+            isPending={messagesLoading}
+            agent={agent}
+            currentUser={currentUser}
+            selectedThreadId={selectedThreadId}
+            sendMessage={sendMessage}
+            onControls={({ isAtBottom, scrollToBottom, hasMessages }) => {
+              scrollToBottomRef.current = scrollToBottom;
+              setShowScrollBtn(!isAtBottom && !!hasMessages);
+            }}
+          />
           {showScrollBtn && (
             <button
               type="button"

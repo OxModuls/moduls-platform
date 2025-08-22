@@ -346,6 +346,75 @@ class LLMInterface {
         this.defaultProvider = 'mock';
         console.log('✅ Mock LLM provider initialized for development.');
     }
+
+    /**
+     * Generate a short, descriptive title for a conversation thread
+     * based on the first user message and assistant response
+     */
+    async generateThreadTitle(userMessage, assistantResponse, context = {}) {
+        try {
+            if (!this.isReady()) {
+                // Fallback to a simple title if LLM is not available
+                return userMessage.length > 30 ? userMessage.substring(0, 30) + '...' : userMessage;
+            }
+
+            const provider = this.providers[this.defaultProvider];
+            if (!provider) {
+                throw new Error(`LLM provider '${this.defaultProvider}' not available`);
+            }
+
+            const titlePrompt = `Generate ONLY a short, descriptive title (maximum 4 words) for a conversation thread based on this exchange:
+
+User: ${userMessage}
+Assistant: ${assistantResponse}
+
+Context: This is a conversation with ${context.agentName || 'an AI agent'} (${context.modulType || 'AI agent'}).
+
+Requirements:
+- Keep it under 4 words maximum
+- Make it descriptive and specific to the conversation topic
+- Use title case (capitalize first letter of each word)
+- Avoid generic terms like "conversation" or "chat"
+- Focus on the main topic or question being discussed
+- Output ONLY the title, no additional text, quotes, or formatting
+
+Example output format:
+Bitcoin Price Analysis
+Portfolio Performance Review
+Gaming Trends Discussion`;
+
+            const completion = await provider.chat.completions.create({
+                model: this.defaultModel,
+                messages: [
+                    { role: 'system', content: 'You are a title generation assistant. You must output ONLY the title text with no additional formatting, quotes, or explanatory text. Keep responses extremely concise.' },
+                    { role: 'user', content: titlePrompt }
+                ],
+                temperature: 0.3, // Lower temperature for more consistent titles
+                max_tokens: 20, // Very short response needed - just the title
+            });
+
+            const title = completion.choices[0]?.message?.content?.trim();
+
+            if (!title) {
+                throw new Error('No title generated');
+            }
+
+            // Clean up the title - remove quotes, extra punctuation, etc.
+            let cleanTitle = title.replace(/^["']|["']$/g, '').replace(/\.$/, '');
+
+            // Ensure it's not too long
+            if (cleanTitle.length > 60) {
+                cleanTitle = cleanTitle.substring(0, 60).replace(/\s+\w*$/, '') + '...';
+            }
+
+            return cleanTitle;
+
+        } catch (error) {
+            console.warn('Title generation failed, using fallback:', error.message);
+            // Fallback to a simple title
+            return userMessage.length > 30 ? userMessage.substring(0, 30) + '...' : userMessage;
+        }
+    }
 }
 
 module.exports = LLMInterface;

@@ -11,6 +11,7 @@ const {
     threadWithMessageSchema
 } = require('../core/schemas');
 const { processMessage } = require('../core/services');
+const LLMInterface = require('../core/services/llm-interface');
 const crypto = require('crypto');
 
 const router = express.Router();
@@ -229,6 +230,95 @@ router.put('/threads/:threadId', verifySession, async (req, res) => {
 });
 
 /**
+ * Regenerate title for a thread based on its messages
+ */
+router.post('/threads/:threadId/regenerate-title', verifySession, async (req, res) => {
+    try {
+        const { threadId } = req.params;
+        const userId = req.user._id;
+
+        // Verify thread exists and user has access
+        const thread = await Thread.findOne({ uniqueId: threadId, userId }).populate('agentId');
+        if (!thread) {
+            return res.status(404).json({
+                success: false,
+                message: 'Thread not found'
+            });
+        }
+
+        // Get the first few messages to generate title from
+        const messages = await Message.find({ threadId: thread._id })
+            .sort({ createdAt: 1 })
+            .limit(4) // Get first 4 messages (2 exchanges)
+            .lean();
+
+        if (messages.length < 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thread needs at least one user message and one assistant response to generate title'
+            });
+        }
+
+        // Find first user message and first assistant response
+        const firstUserMessage = messages.find(m => m.role === 'user');
+        const firstAssistantMessage = messages.find(m => m.role === 'assistant');
+
+        if (!firstUserMessage || !firstAssistantMessage) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thread needs both user and assistant messages to generate title'
+            });
+        }
+
+        try {
+            const llm = new LLMInterface();
+
+            const context = {
+                agentName: thread.agentId?.name || 'AI Agent',
+                modulType: thread.agentId?.modulType || 'AI Agent'
+            };
+
+            const generatedTitle = await llm.generateThreadTitle(
+                firstUserMessage.content,
+                firstAssistantMessage.content,
+                context
+            );
+
+            // Update the thread with the generated title
+            const updatedThread = await Thread.findByIdAndUpdate(
+                thread._id,
+                { title: generatedTitle, updatedAt: new Date() },
+                { new: true }
+            );
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    thread: updatedThread,
+                    generatedTitle
+                },
+                message: 'Thread title regenerated successfully'
+            });
+
+        } catch (titleError) {
+            console.error('Title generation failed:', titleError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to generate title',
+                error: titleError.message
+            });
+        }
+
+    } catch (error) {
+        console.error('Error regenerating thread title:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
+
+/**
  * Get messages for a specific thread
  */
 router.get('/threads/:threadId/messages', verifySession, async (req, res) => {
@@ -343,6 +433,33 @@ router.post('/threads/:threadId/messages', verifySession, async (req, res) => {
         try {
             const result = await processMessage(threadId, message.uniqueId, { content, messageType, metadata });
 
+            // Generate title for existing threads if this is the first assistant response
+            // and the thread still has a default title
+            if (thread.title.toLowerCase() === 'new conversation' || thread.title.toLowerCase() === 'new conversation') {
+                try {
+                    const llm = new LLMInterface();
+
+                    // Get agent info for context
+                    const agent = await Agent.findById(thread.agentId);
+                    const context = {
+                        agentName: agent?.name || 'AI Agent',
+                        modulType: agent?.modulType || 'AI Agent'
+                    };
+
+                    const generatedTitle = await llm.generateThreadTitle(content, result.assistantMessage.content, context);
+
+                    // Update the thread with the generated title
+                    await Thread.findByIdAndUpdate(thread._id, {
+                        title: generatedTitle,
+                        updatedAt: new Date()
+                    });
+
+                } catch (titleError) {
+                    console.log('Failed to generate title for existing thread:', titleError.message);
+                    // Keep the default title if generation fails
+                }
+            }
+
             // Sanitize message objects to avoid BigInt serialization issues
             const sanitizeForJSON = (obj) => {
                 return JSON.parse(JSON.stringify(obj, (key, value) => {
@@ -450,6 +567,31 @@ router.post('/threads/with-message', verifySession, async (req, res) => {
         try {
             const result = await processMessage(thread.uniqueId, message.uniqueId, { content, messageType, metadata });
 
+            // Generate a descriptive title based on the conversation
+            try {
+                const llm = new LLMInterface();
+
+                const context = {
+                    agentName: agent.name,
+                    modulType: agent.modulType
+                };
+
+                const generatedTitle = await llm.generateThreadTitle(content, result.assistantMessage.content, context);
+
+                // Update the thread with the generated title
+                await Thread.findByIdAndUpdate(thread._id, {
+                    title: generatedTitle,
+                    updatedAt: new Date()
+                });
+
+                // Update the thread object for response
+                thread.title = generatedTitle;
+
+            } catch (titleError) {
+                console.warn('Failed to generate title, keeping default:', titleError.message);
+                // Keep the default title if generation fails
+            }
+
             // Sanitize objects to avoid BigInt serialization issues
             const sanitizeForJSON = (obj) => {
                 return JSON.parse(JSON.stringify(obj, (key, value) => {
@@ -541,20 +683,15 @@ router.put('/messages/:messageId', verifySession, async (req, res) => {
 });
 
 /**
- * Delete a thread (soft delete)
+ * Delete a thread (permanent deletion)
  */
 router.delete('/threads/:threadId', verifySession, async (req, res) => {
     try {
         const { threadId } = req.params;
         const userId = req.user._id;
 
-        // Soft delete thread
-        const thread = await Thread.findOneAndUpdate(
-            { uniqueId: threadId, userId },
-            { status: 'DELETED' },
-            { new: true }
-        );
-
+        // Find thread to verify ownership
+        const thread = await Thread.findOne({ uniqueId: threadId, userId });
         if (!thread) {
             return res.status(404).json({
                 success: false,
@@ -562,9 +699,16 @@ router.delete('/threads/:threadId', verifySession, async (req, res) => {
             });
         }
 
+        // Permanently delete all messages in the thread
+        await Message.deleteMany({ threadId: thread._id });
+
+        // Permanently delete the thread
+        await Thread.findByIdAndDelete(thread._id);
+
         return res.status(200).json({
             success: true,
-            message: 'Thread deleted successfully'
+            message: 'Thread and all messages permanently deleted',
+            deletedThreadId: threadId
         });
 
     } catch (error) {

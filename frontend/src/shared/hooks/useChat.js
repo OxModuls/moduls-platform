@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFetcher } from '../../lib/fetcher';
 import config from '../config';
 import { toast } from 'sonner';
+import { useThreadStore } from '../store';
 
 /**
  * Hook to fetch threads for a specific agent
@@ -12,11 +13,12 @@ export const useAgentThreads = (agentId, options = {}) => {
         limit = 20,
         offset = 0,
         status = 'ACTIVE',
-        refetchInterval = 30000 // Refetch every 30 seconds
+        refetchInterval = 10000, // Refetch every 10 seconds
+        selectedThreadId = null // Add selectedThreadId to trigger refetch when selection changes
     } = options;
 
     return useQuery({
-        queryKey: ['agent-threads', agentId, limit, offset, status],
+        queryKey: ['agent-threads', agentId, limit, offset, status, selectedThreadId],
         queryFn: async () => {
             if (!agentId) return null;
 
@@ -34,7 +36,7 @@ export const useAgentThreads = (agentId, options = {}) => {
         },
         enabled: enabled && !!agentId,
         refetchInterval,
-        staleTime: 15000, // Consider data stale after 15 seconds
+        staleTime: 30000, // Consider data stale after 30 seconds
         refetchOnWindowFocus: true,
     });
 };
@@ -137,7 +139,7 @@ export const useCreateThread = () => {
                 queryKey: ['recent-threads']
             });
 
-            toast.success('New conversation started');
+            // toast.success('New conversation started');
         },
         onError: (error) => {
             console.error('Error creating thread:', error);
@@ -288,11 +290,50 @@ export const useDeleteThread = () => {
                 queryKey: ['thread-messages', threadId]
             });
 
+            // Only clear the selected thread if it was the deleted one
+            const { selectedThreadId, clearSelectedThread } = useThreadStore.getState();
+            if (selectedThreadId === threadId) {
+                clearSelectedThread();
+            }
+
             toast.success('Conversation deleted');
         },
         onError: (error) => {
             console.error('Error deleting thread:', error);
             toast.error('Failed to delete conversation');
+        }
+    });
+};
+
+/**
+ * Hook to regenerate thread title
+ */
+export const useRegenerateThreadTitle = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (threadId) => {
+            return await createFetcher({
+                url: `${config.endpoints.regenerateThreadTitle}/${threadId}`,
+                method: 'POST',
+                credentials: 'include',
+            })();
+        },
+        onSuccess: () => {
+            // Invalidate and refetch threads to show updated title
+            queryClient.invalidateQueries({
+                queryKey: ['agent-threads']
+            });
+
+            queryClient.invalidateQueries({
+                queryKey: ['recent-threads']
+            });
+
+            toast.success('Thread title regenerated successfully');
+        },
+        onError: (error) => {
+            console.error('Error regenerating title:', error);
+            toast.error('Failed to regenerate thread title');
         }
     });
 };

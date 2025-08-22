@@ -71,6 +71,7 @@ const config = {
         createThread: '/api/chat/threads',
         createThreadWithMessage: '/api/chat/threads/with-message',
         updateThread: '/api/chat/threads',
+        regenerateThreadTitle: '/api/chat/threads/regenerate-title',
         deleteThread: '/api/chat/threads',
         createMessage: '/api/chat/threads',
         updateMessage: '/api/chat/messages',

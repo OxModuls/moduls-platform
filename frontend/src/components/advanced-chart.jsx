@@ -22,7 +22,7 @@ const AdvancedChart = ({
         textColor: "white",
       },
       rightPriceScale: {
-        borderVisible: false,
+        borderVisible: true,
       },
       width: chartContainerRef.current.clientWidth,
       height: Math.max(height, 200),
@@ -53,7 +53,7 @@ const AdvancedChart = ({
     const volumeSeries = chart.addSeries(HistogramSeries, {
       color: "#26a69a",
       priceFormat: {
-        type: "volume",
+        type: "price",
       },
       priceScaleId: "",
       scaleMargins: {

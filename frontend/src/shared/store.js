@@ -7,3 +7,15 @@ export const useWalletModalStore = create((set) => ({
   setWalletModal: (open) => set({ isWalletModalOpen: open }),
 }));
 
+export const useThreadStore = create((set, get) => ({
+  selectedThreadId: null,
+  setSelectedThreadId: (threadId) => set({ selectedThreadId: threadId }),
+  clearSelectedThread: () => set({ selectedThreadId: null }),
+
+  // Helper to check if a thread is selected
+  isThreadSelected: (threadId) => get().selectedThreadId === threadId,
+
+  // Get current selected thread ID
+  getSelectedThreadId: () => get().selectedThreadId,
+}));
+

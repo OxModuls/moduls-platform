@@ -6,6 +6,7 @@ import { getPromptSuggestions } from "./suggestions";
 import { ellipsizeAddress, cn } from "@/lib/utils";
 import { useEnterToSend } from "@/shared/hooks/useEnterToSend";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { useThreadStore } from "@/shared/store";
 import jazzicon from "@metamask/jazzicon";
 
 function formatModulType(type) {
@@ -273,44 +274,44 @@ function InputBar({ value, onChange, onSend, disabled }) {
   );
 }
 
-function MiniChat({
-  agent,
-  selectedThreadId,
-  onSelectThread,
-  onMaximize,
-  onClose,
-}) {
+function MiniChat({ agent, onMaximize, onClose }) {
   const [inputValue, setInputValue] = useState("");
+  const [isClosing, setIsClosing] = useState(false);
   const { user: currentUser } = useAuth();
   const { data: agentWalletBalance } = useBalance({
     address: agent?.walletAddress,
   });
-  const {
-    selectedThreadId: sessionThreadId,
-    messages,
-    isSending,
-    sendMessage,
-  } = useChatSession(agent?.uniqueId, selectedThreadId || null);
+  const { selectedThreadId } = useThreadStore();
+  const { messages, isSending, sendMessage } = useChatSession(agent?.uniqueId);
 
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const scrollToBottomRef = useRef(() => {});
-
-  useEffect(() => {
-    if (onSelectThread && sessionThreadId) onSelectThread(sessionThreadId);
-  }, [sessionThreadId]);
 
   const handleSend = (text) => {
     if (!text?.trim()) return;
     sendMessage(text);
   };
 
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 200); // Match the animation duration
+  };
+
   return (
     <>
       <div
-        className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm sm:hidden"
-        onClick={onClose}
+        className="fixed inset-0 z-30 animate-in bg-black/50 backdrop-blur-sm duration-200 fade-in sm:hidden"
+        onClick={handleClose}
       />
-      <div className="fixed right-2 bottom-4 z-40 flex h-[70svh] max-h-[calc(100svh-2rem)] w-[calc(100vw-1rem)] max-w-[420px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:right-4 sm:bottom-6 sm:h-[420px] sm:max-h-[420px] sm:w-[400px]">
+      <div
+        className={`fixed right-2 bottom-4 z-40 flex h-[70svh] max-h-[calc(100svh-2rem)] w-[calc(100vw-1rem)] max-w-[420px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:right-4 sm:bottom-6 sm:h-[420px] sm:max-h-[420px] sm:w-[400px] ${
+          isClosing
+            ? "animate-out duration-500 ease-in slide-out-to-bottom-4"
+            : "animate-in duration-500 ease-out slide-in-from-bottom-4"
+        }`}
+      >
         <Header
           agent={agent}
           balance={
@@ -319,7 +320,7 @@ function MiniChat({
               : "--"
           }
           onMaximize={onMaximize}
-          onClose={onClose}
+          onClose={handleClose}
         />
         <MessageList
           messages={messages}

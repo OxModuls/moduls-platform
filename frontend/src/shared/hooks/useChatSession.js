@@ -1,19 +1,24 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAgentThreads, useThreadMessages, useCreateMessage, useCreateThreadWithMessage } from "./useChat";
+import { useThreadStore } from "../store";
 
 /**
  * useChatSession
  * Centralizes threads, messages, and sending logic for chat UIs.
  */
-export function useChatSession(agentUniqueId, initialThreadId = null) {
-    const [selectedThreadId, setSelectedThreadId] = useState(initialThreadId);
+export function useChatSession(agentUniqueId) {
+    const { selectedThreadId, setSelectedThreadId } = useThreadStore();
     const [localMessages, setLocalMessages] = useState([]);
 
     // Threads
     const {
         data: threadsData,
         isPending: threadsLoading,
-    } = useAgentThreads(agentUniqueId, { enabled: !!agentUniqueId, refetchInterval: false });
+    } = useAgentThreads(agentUniqueId, {
+        enabled: !!agentUniqueId,
+        refetchInterval: false,
+        selectedThreadId // Pass selectedThreadId to trigger refetch when selection changes
+    });
 
     // Pick default thread if none selected yet
     useEffect(() => {
@@ -21,7 +26,7 @@ export function useChatSession(agentUniqueId, initialThreadId = null) {
         if (!selectedThreadId && apiThreads.length > 0) {
             setSelectedThreadId(apiThreads[0].uniqueId);
         }
-    }, [selectedThreadId, threadsData?.data?.threads]);
+    }, []);
 
     // Messages
     const {
@@ -47,6 +52,9 @@ export function useChatSession(agentUniqueId, initialThreadId = null) {
 
         // Check if we have a valid thread ID 
         const hasValidThread = Boolean(selectedThreadId);
+
+
+        console.log("Valid thread:", hasValidThread, selectedThreadId);
 
         if (hasValidThread) {
             console.log('useChatSession: Sending to existing thread:', selectedThreadId);
