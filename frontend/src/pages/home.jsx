@@ -176,7 +176,7 @@ const Home = () => {
     if (filter) params.set("filter", filter);
     if (sortKey) params.set("sortKey", sortKey);
     if (sortOrder) params.set("order", sortOrder);
-    params.set("limit", "5");
+    params.set("limit", "15");
     return `${config.endpoints.agents}?${params.toString()}`;
   };
 
