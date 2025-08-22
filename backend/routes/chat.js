@@ -7,7 +7,8 @@ const {
     threadCreateSchema,
     threadUpdateSchema,
     messageCreateSchema,
-    messageUpdateSchema
+    messageUpdateSchema,
+    threadWithMessageSchema
 } = require('../core/schemas');
 const { processMessage } = require('../core/services');
 const crypto = require('crypto');
@@ -338,31 +339,154 @@ router.post('/threads/:threadId/messages', verifySession, async (req, res) => {
             lastMessageAt: new Date()
         });
 
-        // Process the message using modul services (async - don't wait for response)
-        processMessage(threadId, message.uniqueId, { content, messageType, metadata })
-            .then(result => {
-                console.log('Message processed successfully:', result);
-            })
-            .catch(error => {
-                console.error('Message processing failed:', error);
-                // Update message status to failed
-                Message.findOneAndUpdate({ uniqueId: message.uniqueId }, {
-                    status: 'failed',
-                    error: error.message,
-                    updatedAt: new Date()
-                }).catch(updateError => {
-                    console.error('Failed to update message status:', updateError);
-                });
+        // Process the message using modul services (synchronously to get immediate response)
+        try {
+            const result = await processMessage(threadId, message.uniqueId, { content, messageType, metadata });
+
+            // Sanitize message objects to avoid BigInt serialization issues
+            const sanitizeForJSON = (obj) => {
+                return JSON.parse(JSON.stringify(obj, (key, value) => {
+                    if (typeof value === 'bigint') {
+                        return value.toString();
+                    }
+                    return value;
+                }));
+            };
+
+            return res.status(201).json({
+                success: true,
+                data: {
+                    userMessage: sanitizeForJSON(message),
+                    assistantMessage: sanitizeForJSON(result.assistantMessage)
+                },
+                message: 'Message processed successfully'
+            });
+        } catch (error) {
+            console.error('Message processing failed:', error);
+            // Update message status to failed
+            await Message.findOneAndUpdate({ uniqueId: message.uniqueId }, {
+                status: 'failed',
+                error: error.message,
+                updatedAt: new Date()
             });
 
-        return res.status(201).json({
-            success: true,
-            data: message,
-            message: 'Message created and queued for processing'
-        });
+            return res.status(500).json({
+                success: false,
+                message: 'Message processing failed',
+                error: error.message
+            });
+        }
 
     } catch (error) {
         console.error('Error creating message:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
+
+/**
+ * Create a thread and send first message in one operation
+ */
+router.post('/threads/with-message', verifySession, async (req, res) => {
+    try {
+        const validation = threadWithMessageSchema.safeParse(req.body);
+        if (!validation.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                errors: validation.error.flatten().fieldErrors
+            });
+        }
+
+        const { agentId, content, messageType, metadata } = validation.data;
+        const userId = req.user._id;
+
+        // Verify agent exists
+        const agent = await Agent.findOne({ uniqueId: agentId });
+        if (!agent) {
+            return res.status(404).json({
+                success: false,
+                message: 'Agent not found'
+            });
+        }
+
+        // Create new thread
+        const thread = new Thread({
+            uniqueId: generateUniqueId('thread'),
+            agentId: agent._id,
+            agentUniqueId: agent.uniqueId,
+            userId,
+            userWalletAddress: req.user.walletAddress,
+            title: content.length > 50 ? content.substring(0, 50) + '...' : content,
+            tags: []
+        });
+
+        await thread.save();
+
+        // Create the first message
+        const message = new Message({
+            uniqueId: generateUniqueId('msg'),
+            threadId: thread._id,
+            agentId: thread.agentId,
+            userId,
+            content,
+            messageType,
+            role: 'user',
+            metadata: metadata || {},
+            status: 'pending'
+        });
+
+        await message.save();
+
+        // Update thread statistics
+        await Thread.findByIdAndUpdate(thread._id, {
+            $inc: { messageCount: 1 },
+            lastMessageAt: new Date()
+        });
+
+        // Process the message using modul services (synchronously to get immediate response)
+        try {
+            const result = await processMessage(thread.uniqueId, message.uniqueId, { content, messageType, metadata });
+
+            // Sanitize objects to avoid BigInt serialization issues
+            const sanitizeForJSON = (obj) => {
+                return JSON.parse(JSON.stringify(obj, (key, value) => {
+                    if (typeof value === 'bigint') {
+                        return value.toString();
+                    }
+                    return value;
+                }));
+            };
+
+            return res.status(201).json({
+                success: true,
+                data: {
+                    thread: sanitizeForJSON(thread),
+                    userMessage: sanitizeForJSON(message),
+                    assistantMessage: sanitizeForJSON(result.assistantMessage)
+                },
+                message: 'Thread created and message processed successfully'
+            });
+        } catch (error) {
+            console.error('Message processing failed:', error);
+            // Update message status to failed
+            await Message.findOneAndUpdate({ uniqueId: message.uniqueId }, {
+                status: 'failed',
+                error: error.message,
+                updatedAt: new Date()
+            });
+
+            return res.status(500).json({
+                success: false,
+                message: 'Thread created but message processing failed',
+                error: error.message
+            });
+        }
+
+    } catch (error) {
+        console.error('Error creating thread with message:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error'

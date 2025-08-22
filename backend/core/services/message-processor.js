@@ -54,10 +54,18 @@ class MessageProcessor {
                 .map(m => ({ role: m.role, content: m.content }));
 
             // Process with LLM
+            // Sanitize agent object to avoid BigInt serialization issues
+            const sanitizedAgent = JSON.parse(JSON.stringify(agent, (key, value) => {
+                if (typeof value === 'bigint') {
+                    return value.toString();
+                }
+                return value;
+            }));
+
             const context = {
                 modulType: agent.modulType,
                 agentName: agent.name,
-                agent: agent, // Full agent object with all data
+                agent: sanitizedAgent, // Sanitized agent object without BigInt issues
                 threadId: threadId,
                 messageId: messageId
             };
@@ -98,6 +106,7 @@ class MessageProcessor {
             return {
                 success: true,
                 response: finalResponse,
+                assistantMessage: assistantMessage,
                 assistantMessageId: assistantMessage._id,
                 processingTime: Date.now() - new Date().getTime()
             };

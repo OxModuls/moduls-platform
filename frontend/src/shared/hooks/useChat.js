@@ -195,6 +195,37 @@ export const useCreateMessage = (options = {}) => {
 };
 
 /**
+ * Hook to create a thread with the first message
+ */
+export const useCreateThreadWithMessage = (options = {}) => {
+    const queryClient = useQueryClient();
+    const { onSuccess, onError } = options;
+
+    return useMutation({
+        mutationFn: async ({ agentId, content, messageType = 'text', metadata }) => {
+            return await createFetcher({
+                url: config.endpoints.createThreadWithMessage,
+                method: 'POST',
+                body: { agentId, content, messageType, metadata },
+                credentials: 'include',
+            })();
+        },
+        onSuccess: (data, variables) => {
+            // Invalidate thread and messages caches
+            queryClient.invalidateQueries({ queryKey: ['agent-threads', variables.agentId] });
+            queryClient.invalidateQueries({ queryKey: ['recent-threads'] });
+
+            if (onSuccess) onSuccess(data, variables);
+        },
+        onError: (error, variables) => {
+            console.error('Error creating thread with message:', error);
+            toast.error('Failed to start conversation');
+            if (onError) onError(error, variables);
+        }
+    });
+};
+
+/**
  * Hook to update a thread
  */
 export const useUpdateThread = () => {

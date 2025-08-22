@@ -120,6 +120,13 @@ const messageCreateSchema = z.object({
     metadata: z.record(z.any()).optional(),
 });
 
+const threadWithMessageSchema = z.object({
+    agentId: z.string().min(1, 'Agent ID is required'),
+    content: z.string().min(1, 'Message content is required').max(10000, 'Message content must be less than 10000 characters'),
+    messageType: z.enum(['text', 'image', 'file', 'command']).default('text'),
+    metadata: z.record(z.any()).optional(),
+});
+
 const messageUpdateSchema = z.object({
     content: z.string().min(1, 'Message content is required').max(10000, 'Message content must be less than 10000 characters').optional(),
     status: z.enum(['pending', 'processing', 'completed', 'failed']).optional(),
@@ -170,5 +177,6 @@ module.exports = {
     messageCreateSchema,
     messageUpdateSchema,
     threadResponseSchema,
-    messageResponseSchema
+    messageResponseSchema,
+    threadWithMessageSchema
 };

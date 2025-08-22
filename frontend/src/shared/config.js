@@ -68,6 +68,7 @@ const config = {
         chatThreads: '/api/chat/threads',
         chatMessages: '/api/chat/threads',
         createThread: '/api/chat/threads',
+        createThreadWithMessage: '/api/chat/threads/with-message',
         updateThread: '/api/chat/threads',
         deleteThread: '/api/chat/threads',
         createMessage: '/api/chat/threads',

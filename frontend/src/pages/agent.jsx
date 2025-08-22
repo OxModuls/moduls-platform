@@ -26,7 +26,7 @@ import config from "../shared/config";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
-import ChatPopup from "@/components/chat-popup";
+import ChatDock from "@/components/chat-dock";
 
 const Agent = () => {
   const { uniqueId } = useParams();
@@ -498,10 +498,10 @@ const Agent = () => {
       </div>
 
       {agent && (
-        <ChatPopup
-          open={agentChatOpen}
-          onOpenChange={setAgentChatOpen}
+        <ChatDock
           agent={agent}
+          openMini={agentChatOpen}
+          onOpenMiniChange={setAgentChatOpen}
         />
       )}
     </div>
