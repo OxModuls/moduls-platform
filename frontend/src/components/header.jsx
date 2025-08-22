@@ -25,11 +25,11 @@ const Header = ({ className }) => {
   return (
     <header className={cn("w-full px-4 pb-4", className)}>
       <div className="flex items-center justify-between py-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <Link to="/" className="flex items-center gap-2">
             <img src={modulsLogo} alt="Moduls Logo" className="h-10" />
           </Link>
-          <ul className="ml-2 hidden gap-3 lg:flex">
+          <div className="ml-10 hidden items-center gap-4 lg:flex">
             {headerLinks.map((link, idx) => (
               <Link
                 key={idx}
@@ -42,15 +42,14 @@ const Header = ({ className }) => {
                 </span>
               </Link>
             ))}
-          </ul>
-          <ul className="ml-1 hidden items-center gap-2 lg:flex">
             <Link to={"#"} target="_blank" className="hover:text-accent">
               <FaTelegramPlane className="size-5" />
             </Link>
             <Link to={twitterUrl} target="_blank" className="hover:text-accent">
               <FaXTwitter className="size-5" />
             </Link>
-          </ul>
+          </div>
+          <ul className="ml-4 hidden items-center gap-4 lg:flex"></ul>
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden w-80 md:block">
