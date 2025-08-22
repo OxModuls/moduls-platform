@@ -18,9 +18,10 @@ import { toast } from "sonner";
 import { useModulsSalesManager } from "@/shared/hooks/useModulsSalesManager";
 import { formatTokenAmount } from "@/shared/hooks/useTrading";
 import { wagmiConfig } from "../wagmi";
-import { formatBigIntToUnits } from "../lib/utils";
+import { cn, formatBigIntToUnits } from "../lib/utils";
 
 const AgentTradeTab = ({
+  className,
   token,
   agent,
   activeTradeTab,
@@ -640,7 +641,7 @@ const AgentTradeTab = ({
   });
 
   return (
-    <div className="w-full">
+    <div className={cn("w-full", className)}>
       {!token.isAddressValid ? (
         <div className="pt-4 text-center">
           <div
@@ -776,7 +777,7 @@ const AgentTradeTab = ({
                 </div>
 
                 {/* Subtle Tax Information */}
-                  {/*
+                {/*
                   {activeTradeTab === "buy" && token.tradeFees > 0 && (
                     <div className="text-center text-xs text-neutral-500">
                       Includes {token.tradeFees}% tax

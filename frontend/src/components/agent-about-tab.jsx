@@ -107,7 +107,7 @@ const AgentAboutTab = ({
         </div>
       )}
       {isTradingEnabled && (
-        <div className="">
+        <div className="lg:hidden">
           <div className="ml-2 flex items-center gap-2">
             <ChartCandlestick className="size-4" />
             <h2 className="text-lg font-semibold">Chart</h2>
