@@ -513,7 +513,7 @@ const Agent = () => {
           </Tabs>
         </div>
         <div className="relative hidden lg:block">
-          <div className="sticky top-0 rounded-lg border px-4 pb-4">
+          <div className="sticky top-8 rounded-lg px-4 pb-4">
             {token.isRegistered && (
               <div className="mt-4 hidden w-full flex-col gap-2 rounded-lg border bg-primary-foreground px-4 py-3 lg:flex">
                 <div hidden>
