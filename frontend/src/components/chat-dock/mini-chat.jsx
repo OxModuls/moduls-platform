@@ -41,14 +41,16 @@ function Header({ agent, balance, onMaximize, onClose }) {
         />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="truncate text-sm font-semibold">{agent?.name}</div>
+            <div className="truncate text-base font-semibold">
+              {agent?.name}
+            </div>
             {agent?.modulType && (
-              <span className="shrink-0 rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+              <span className="shrink-0 rounded-md bg-accent/15 px-2 py-1 text-xs font-semibold text-accent">
                 {formatModulType(agent.modulType)}
               </span>
             )}
           </div>
-          <div className="truncate text-[11px] text-muted-foreground">
+          <div className="truncate text-sm text-muted-foreground">
             {agent?.walletAddress
               ? ellipsizeAddress(agent.walletAddress, 4, 4)
               : ""}
@@ -56,7 +58,7 @@ function Header({ agent, balance, onMaximize, onClose }) {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="text-xs font-semibold text-accent">
+        <div className="text-sm font-semibold text-accent">
           {balance || "--"}
         </div>
         <button
@@ -143,10 +145,10 @@ function MessageList({
       {messages?.length === 0 ? (
         <div className="flex h-full items-center justify-center py-6">
           <div className="mx-auto max-w-sm text-center">
-            <h2 className="text-2xl font-extrabold text-red-600 dark:text-red-500">
+            <h2 className="text-3xl font-extrabold text-red-600 dark:text-red-500">
               Start a Conversation
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-base text-muted-foreground">
               Ask about this agent and token, or use a quick suggestion below.
             </p>
             {suggestions.length > 0 && (
@@ -154,7 +156,7 @@ function MessageList({
                 {suggestions.map((s, i) => (
                   <button
                     key={i}
-                    className="cursor-pointer rounded-lg border bg-input/30 px-2 py-1 text-xs hover:bg-input/50"
+                    className="cursor-pointer rounded-lg border bg-input/30 px-3 py-1.5 text-sm hover:bg-input/50"
                     onClick={() => onSuggestionClick?.(s)}
                   >
                     {s}
@@ -207,7 +209,7 @@ function MessageList({
             )}
             <div
               className={cn(
-                "w-max max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words whitespace-pre-wrap",
+                "w-max max-w-[85%] rounded-2xl px-4 py-3 text-base break-words whitespace-pre-wrap",
                 m.role === "user" ? "bg-accent/15" : "bg-muted/40",
               )}
             >
@@ -223,11 +225,11 @@ function MessageList({
             alt={agent?.name}
             className="h-8 w-8 shrink-0 rounded-full"
           />
-          <div className="w-max max-w-[60%] rounded-2xl bg-muted/40 px-3 py-2 text-sm">
-            <span className="inline-flex items-center gap-1">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]"></span>
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"></span>
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.2s]"></span>
+          <div className="w-max max-w-[60%] rounded-2xl bg-muted/40 px-4 py-3 text-base">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]"></span>
+              <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"></span>
+              <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.2s]"></span>
             </span>
           </div>
         </div>
@@ -262,11 +264,11 @@ function InputBar({ value, onChange, onSend, disabled }) {
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
-          className="no-scrollbar max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border border-white/20 bg-transparent p-2 py-3 text-sm focus:border-white/40 focus:outline-none"
+          className="no-scrollbar max-h-32 min-h-[44px] flex-1 resize-none rounded-lg border border-white/20 bg-transparent p-3 py-3 text-base focus:border-white/40 focus:outline-none"
         />
         <button
           disabled={disabled}
-          className="bg-button-gradient cursor-pointer rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50"
+          className="bg-button-gradient cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
         >
           Send
         </button>
@@ -307,7 +309,7 @@ function MiniChat({ agent, onMaximize, onClose }) {
         onClick={handleClose}
       />
       <div
-        className={`fixed right-2 bottom-4 z-40 flex h-[70svh] max-h-[calc(100svh-2rem)] w-[calc(100vw-1rem)] max-w-[420px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:right-4 sm:bottom-6 sm:h-[420px] sm:max-h-[420px] sm:w-[400px] ${
+        className={`fixed right-2 bottom-4 z-40 flex h-[101svh] max-h-[calc(100svh-2rem)] w-[calc(100vw-1rem)] max-w-[655px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:right-4 sm:bottom-6 sm:h-[605px] sm:max-h-[605px] sm:w-[624px] ${
           isClosing
             ? "animate-out duration-500 ease-in slide-out-to-bottom-4"
             : "animate-in duration-500 ease-out slide-in-from-bottom-4"

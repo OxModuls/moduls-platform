@@ -65,12 +65,12 @@ function ThreadsPanel({
   return (
     <div className="flex h-full w-64 flex-col border-r">
       <div className="flex-shrink-0 p-3">
-        <div className="mb-2 text-xs font-semibold text-muted-foreground">
+        <div className="mb-2 text-sm font-semibold text-muted-foreground">
           Chats
         </div>
         <div className="mb-2">
           <button
-            className="w-full cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
+            className="w-full cursor-pointer rounded-md border px-4 py-2.5 text-left text-base transition-colors hover:bg-muted/40"
             onClick={onCreateThread}
           >
             <span className="inline-flex items-center gap-2">
@@ -107,16 +107,16 @@ function ThreadsPanel({
                   />
                 </svg>
               </div>
-              <h3 className="mb-2 text-sm font-semibold text-foreground">
+              <h3 className="mb-2 text-base font-semibold text-foreground">
                 Connect Wallet to View Conversations
               </h3>
-              <p className="text-xs leading-relaxed text-muted-foreground">
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 Please connect your wallet to see your conversation history with
                 this agent
               </p>
               <button
                 onClick={onConnectWallet}
-                className="mt-4 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition-colors hover:bg-accent/90 active:scale-95"
+                className="mt-4 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent/90 active:scale-95"
               >
                 Connect Wallet
               </button>
@@ -143,10 +143,10 @@ function ThreadsPanel({
                   />
                 </svg>
               </div>
-              <h3 className="mb-2 text-sm font-semibold text-foreground">
+              <h3 className="mb-2 text-base font-semibold text-foreground">
                 No Conversations Yet
               </h3>
-              <p className="text-xs leading-relaxed text-muted-foreground">
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 Start chatting with this agent to create your first conversation
                 thread
               </p>
@@ -161,7 +161,7 @@ function ThreadsPanel({
               className="group flex w-full items-center gap-2 pt-2"
             >
               <button
-                className={`flex-1 truncate rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                className={`flex-1 truncate rounded-md px-4 py-2.5 text-left text-base transition-colors ${
                   selectedThreadId === t.uniqueId
                     ? "bg-accent/15"
                     : "hover:bg-muted/40"
@@ -176,7 +176,7 @@ function ThreadsPanel({
                 >
                   {t.title || "New conversation"}
                 </span>
-                <span className="block truncate text-xs text-muted-foreground">
+                <span className="block truncate text-sm text-muted-foreground">
                   {formatRelativeTime(t.createdAt || t.updatedAt)}
                 </span>
               </button>
@@ -223,27 +223,27 @@ function ChatHeader({ agent, onRestore, onClose }) {
         {/* Agent info with better spacing */}
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2 sm:gap-3">
-            <h1 className="truncate text-sm font-bold text-foreground sm:text-lg">
+            <h1 className="truncate text-base font-bold text-foreground sm:text-xl">
               {agent?.name}
             </h1>
             {agent?.modulType && (
-              <span className="shrink-0 rounded-full bg-gradient-to-r from-accent/20 to-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent ring-1 ring-accent/20 sm:px-3 sm:py-1 sm:text-xs">
+              <span className="shrink-0 rounded-full bg-gradient-to-r from-accent/20 to-accent/10 px-3 py-1 text-sm font-semibold text-accent ring-1 ring-accent/20 sm:px-4 sm:py-1.5 sm:text-base">
                 {formatModulType(agent.modulType)}
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground sm:gap-4 sm:text-sm">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground sm:gap-4 sm:text-base">
             {agent?.walletAddress && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs">📍</span>
-                <span className="font-mono text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">📍</span>
+                <span className="font-mono text-sm">
                   {ellipsizeAddress(agent.walletAddress, 4, 4)}
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-1">
-              <span className="text-xs">💰</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">💰</span>
               <span className="font-mono font-semibold text-accent">
                 {balanceText}
               </span>
@@ -354,17 +354,17 @@ function MessagesView({
       {messages.length === 0 ? (
         <div className="flex h-full items-center justify-center py-6">
           <div className="mx-auto max-w-sm text-center">
-            <h2 className="text-2xl font-extrabold text-red-600 dark:text-red-500">
+            <h2 className="text-3xl font-extrabold text-red-600 dark:text-red-500">
               Start a Conversation
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-base text-muted-foreground">
               Ask about this agent and token, or use a quick suggestion below.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {getPromptSuggestions(modulType).map((s, i) => (
                 <span
                   key={i}
-                  className="cursor-pointer rounded-lg border bg-input/30 px-2 py-1 text-xs hover:bg-input/50"
+                  className="cursor-pointer rounded-lg border bg-input/30 px-3 py-1.5 text-sm hover:bg-input/50"
                   onClick={() => sendMessage(s)}
                 >
                   {s}
@@ -416,7 +416,7 @@ function MessagesView({
             )}
             <div
               className={cn(
-                "max-w-[75%] overflow-hidden rounded-2xl px-3 py-3 text-sm break-words whitespace-pre-wrap",
+                "max-w-[75%] overflow-hidden rounded-2xl px-4 py-3.5 text-base break-words whitespace-pre-wrap",
                 m.role === "user" ? "bg-accent/15" : "bg-muted/40",
               )}
             >
@@ -432,11 +432,11 @@ function MessagesView({
             alt={agent?.name}
             className="h-8 w-8 shrink-0 rounded-full"
           />
-          <div className="max-w-[50%] overflow-hidden rounded-2xl bg-muted/40 px-3 py-2 text-sm">
-            <span className="inline-flex items-center gap-1">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]"></span>
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"></span>
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.2s]"></span>
+          <div className="max-w-[50%] overflow-hidden rounded-2xl bg-muted/40 px-4 py-3.5 text-base">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]"></span>
+              <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"></span>
+              <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.2s]"></span>
             </span>
           </div>
         </div>
@@ -495,12 +495,12 @@ function InputBox({ onSend, disabled }) {
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
-          className="no-scrollbar min-h-[40px] flex-1 resize-none self-stretch rounded-xl border border-white/20 bg-transparent p-2 py-4 text-sm focus:border-white/40 focus:outline-none sm:min-h-[40px] sm:p-3"
+          className="no-scrollbar min-h-[48px] flex-1 resize-none self-stretch rounded-xl border border-white/20 bg-transparent px-4 py-3 text-base leading-6 focus:border-white/40 focus:outline-none sm:min-h-[48px]"
           style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
         />
         <button
           disabled={disabled || !value.trim()}
-          className="bg-button-gradient flex items-center justify-center rounded-lg p-2 px-4 text-sm font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 sm:px-4 sm:py-3"
+          className="bg-button-gradient flex h-[48px] items-center justify-center rounded-lg px-5 text-base font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           <Send className="size-4 sm:hidden" />
           <span className="hidden sm:inline">Send</span>
