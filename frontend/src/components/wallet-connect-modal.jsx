@@ -19,8 +19,7 @@ import {
 } from "lucide-react";
 import metamaskIcon from "../assets/icons/metamask.svg";
 import trustwalletIcon from "../assets/icons/trustwallet.svg";
-import avatarImage from "../assets/avatar.svg";
-import { ellipsizeAddress, writeToClipboard } from "@/lib/utils";
+import { ellipsizeAddress, generateJazzicon, writeToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 import { useWalletModalStore } from "../shared/store";
 import { useAuth } from "../shared/hooks/useAuth";
@@ -126,7 +125,7 @@ const ConnectedContent = () => {
   const { address, connector: activeConnector } = useAccount();
   const { disconnect } = useDisconnect();
   const { closeWalletModal } = useWalletModalStore();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user: currentUser } = useAuth();
   const { data: walletBalance } = useBalance({ address });
   const formattedWalletBalance = !!walletBalance
     ? formatBigIntToUnits(walletBalance.value, walletBalance.decimals)
@@ -169,11 +168,28 @@ const ConnectedContent = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <img
-              src={avatarImage}
-              alt=""
-              className="size-12 rounded-full border-2 border-accent"
-            />
+            {currentUser?.walletAddress ? (
+              <div
+                className="flex size-12 items-center justify-center rounded-full border-2 border-accent"
+                ref={(el) => {
+                  if (el) {
+                    const icon = generateJazzicon(
+                      currentUser.walletAddress,
+                      32,
+                    );
+                    if (icon) {
+                      el.innerHTML = "";
+                      icon.className = "user-icon";
+                      el.appendChild(icon);
+                    }
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex size-12 items-center justify-center rounded-full border-2 border-accent">
+                <span>U</span>
+              </div>
+            )}
             <img
               src={
                 activeConnector?.icon || connectorIcons.get(activeConnector?.id)

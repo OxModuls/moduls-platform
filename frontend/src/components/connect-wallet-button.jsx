@@ -1,10 +1,11 @@
 import { useAccount } from "wagmi";
 import metamaskIcon from "../assets/icons/metamask.svg";
 import trustwalletIcon from "../assets/icons/trustwallet.svg";
-import avatarImage from "../assets/avatar.svg";
 import { useWalletModalStore } from "../shared/store";
 import AuthStatusIndicator from "./auth-status-indicator";
 import { useIsMobile } from "../hooks/use-mobile";
+import { generateJazzicon } from "@/lib/utils";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 // map connector icons
 const connectorIcons = new Map([
@@ -14,6 +15,7 @@ const connectorIcons = new Map([
 
 const ConnectWalletButton = () => {
   const { isConnected, connector: activeConnector } = useAccount();
+  const { user: currentUser } = useAuth();
   const { isWalletModalOpen, setWalletModal } = useWalletModalStore();
   const isMobile = useIsMobile();
 
@@ -26,11 +28,28 @@ const ConnectWalletButton = () => {
           autoFocus={!isWalletModalOpen}
         >
           <div className="relative">
-            <img
-              src={avatarImage}
-              alt=""
-              className="size-9 md:size-11 rounded-full border-2 border-accent"
-            />
+            {currentUser?.walletAddress ? (
+              <div
+                className="flex size-9 items-center justify-center rounded-full border-2 border-accent md:size-11"
+                ref={(el) => {
+                  if (el) {
+                    const icon = generateJazzicon(
+                      currentUser.walletAddress,
+                      32,
+                    );
+                    if (icon) {
+                      el.innerHTML = "";
+                      icon.className = "user-icon";
+                      el.appendChild(icon);
+                    }
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex size-9 items-center justify-center rounded-full border-2 border-accent md:size-11">
+                <span>U</span>
+              </div>
+            )}
             <img
               src={
                 activeConnector?.icon || connectorIcons.get(activeConnector?.id)
