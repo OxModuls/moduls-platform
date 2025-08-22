@@ -227,266 +227,375 @@ const Agent = () => {
   };
 
   return (
-    <div className="flex w-full max-w-screen flex-col px-6 pt-4 lg:mx-auto lg:max-w-[64rem]">
-      <div className="">
-        <div className="mb-8 hidden grid-cols-[auto_20rem] gap-4 lg:grid">
-          <div className="">
-            <TradingChart
-              tokenAddress={token?.contractAddress}
-              height={400}
-              totalSupply={token?.supply}
-            />
-          </div>
-          <div className="self-start rounded-lg border px-4 pb-4">
-            <AgentTradeTab
-              token={token}
-              agent={agent}
-              activeTradeTab={activeTradeTab}
-              setActiveTradeTab={setActiveTradeTab}
-              handleBuyToken={handleBuyToken}
-              handleSellToken={handleSellToken}
-              buyTokenStatus={buyTokenStatus}
-              sellTokenStatus={sellTokenStatus}
-              connectedAddress={connectedAddress}
-            />
-          </div>
-        </div>
-        <div className="flex w-full items-center gap-3">
-          <Avatar className="size-16 border-3 border-accent md:size-20">
-            <AvatarImage src={token.image} />
-            <AvatarFallback>
-              {token.name?.charAt(0)?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-4">
-                <h1 className="text-xl font-bold uppercase">{token.name}</h1>
-                <span className="rounded-md bg-accent/20 px-2 py-1 text-sm text-accent">
-                  {agent.tags[0]}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {agent?.status && (
-                  <div
-                    hidden
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      agent.status === "ACTIVE"
-                        ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                        : "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                    }`}
-                  >
-                    {agent.status === "ACTIVE"
-                      ? "Confirmed"
-                      : "Pending Confirmation"}
-                  </div>
-                )}
-                {!isTradingEnabled && timeUntilTrading > 0 && (
-                  <div className="rounded-lg bg-yellow-500/20 px-3 py-1 text-xs font-medium whitespace-nowrap text-yellow-600 dark:text-yellow-400">
-                    Trading opens in:{" "}
-                    <CountdownTimer
-                      targetTimestamp={targetTimestamp}
-                      onComplete={handleCountdownComplete}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <p>
-                Created by:{" "}
-                <span>{ellipsizeAddress(token.createdBy, 4, 4)}</span>
-              </p>
-              <button
-                className="cursor-pointer"
-                onClick={() => {
-                  writeToClipboard(token.createdBy);
-                  toast.success("Creator address copied to clipboard");
-                }}
-              >
-                <Copy className="size-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="mt-5 flex flex-col items-start gap-3 md:max-w-lg">
-          <div className="flex flex-col gap-3 md:flex-row">
-            <div className="flex w-auto items-center gap-2 rounded-lg border bg-primary-foreground px-4 py-3">
-              <p>
-                Contract Address:{" "}
-                <span>{ellipsizeAddress(token.contractAddress, 4, 4)}</span>
-              </p>
-              <button
-                className="cursor-pointer"
-                onClick={() => {
-                  writeToClipboard(token.contractAddress);
-                  toast.success("Contract address copied to clipboard");
-                }}
-              >
-                <Copy className="size-5" />
-              </button>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div className="flex items-center justify-between gap-1 rounded-lg border bg-primary-foreground px-4 py-3">
-              <p>
-                Time Created: <span>{formatISODate(token.creationDate)}</span>
-              </p>
-            </div>
-            {token.website && token.website !== "#" && (
-              <a
-                href={token.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border bg-primary-foreground px-4 py-3 transition-colors hover:bg-primary-foreground/80"
-              >
-                <Globe />
-              </a>
-            )}
-          </div>
-          {token.isRegistered && (
-            <div className="flex w-full flex-col gap-2 rounded-lg border bg-primary-foreground px-4 py-3">
-              <div hidden>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Trading Status:</span>
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      token.isTradingEnabled
-                        ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                        : timeUntilTrading > 0
-                          ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                          : "bg-red-500/20 text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {token.isTradingEnabled ? (
-                      "Active"
-                    ) : timeUntilTrading > 0 ? (
-                      <>
-                        Opens in{" "}
-                        <CountdownTimer
-                          targetTimestamp={targetTimestamp}
-                          onComplete={handleCountdownComplete}
-                        />
-                      </>
-                    ) : (
-                      "Scheduled"
-                    )}
+    <div className="flex w-full max-w-screen flex-col px-6 pt-4 lg:mx-auto lg:max-w-[84rem]">
+      <div className="grid-cols-[auto_24rem] gap-4 lg:grid xl:grid-cols-[auto_28rem]">
+        <div className="">
+          <div className="flex w-full items-center gap-3">
+            <Avatar className="size-16 border-3 border-accent md:size-20">
+              <AvatarImage src={token.image} />
+              <AvatarFallback>
+                {token.name?.charAt(0)?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-4">
+                  <h1 className="text-xl font-bold uppercase">{token.name}</h1>
+                  <span className="rounded-md bg-accent/20 px-2 py-1 text-sm text-accent">
+                    {agent.tags[0]}
                   </span>
                 </div>
-                {token.currentPrice && (
+                <div className="flex items-center gap-2">
+                  {agent?.status && (
+                    <div
+                      hidden
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        agent.status === "ACTIVE"
+                          ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                          : "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                      }`}
+                    >
+                      {agent.status === "ACTIVE"
+                        ? "Confirmed"
+                        : "Pending Confirmation"}
+                    </div>
+                  )}
+                  {!isTradingEnabled && timeUntilTrading > 0 && (
+                    <div className="rounded-lg bg-yellow-500/20 px-3 py-1 text-xs font-medium whitespace-nowrap text-yellow-600 dark:text-yellow-400">
+                      Trading opens in:{" "}
+                      <CountdownTimer
+                        targetTimestamp={targetTimestamp}
+                        onComplete={handleCountdownComplete}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <p>
+                  Created by:{" "}
+                  <span>{ellipsizeAddress(token.createdBy, 4, 4)}</span>
+                </p>
+                <button
+                  className="cursor-pointer"
+                  onClick={() => {
+                    writeToClipboard(token.createdBy);
+                    toast.success("Creator address copied to clipboard");
+                  }}
+                >
+                  <Copy className="size-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-col items-start gap-3 xl:flex-row xl:items-center">
+            <div className="flex flex-col gap-3 xl:flex-row">
+              <div className="flex flex-col gap-3 md:flex-row">
+                <div className="flex w-auto items-center gap-2 rounded-lg border bg-primary-foreground px-4 py-3">
+                  <p>
+                    Contract Address:{" "}
+                    <span>{ellipsizeAddress(token.contractAddress, 4, 4)}</span>
+                  </p>
+                  <button
+                    className="cursor-pointer"
+                    onClick={() => {
+                      writeToClipboard(token.contractAddress);
+                      toast.success("Contract address copied to clipboard");
+                    }}
+                  >
+                    <Copy className="size-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex items-center justify-between gap-1 rounded-lg border bg-primary-foreground px-4 py-3">
+                  <p>
+                    Time Created:{" "}
+                    <span>{formatISODate(token.creationDate)}</span>
+                  </p>
+                </div>
+                {token.website && token.website !== "#" && (
+                  <a
+                    href={token.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border bg-primary-foreground px-4 py-3 transition-colors hover:bg-primary-foreground/80"
+                  >
+                    <Globe />
+                  </a>
+                )}
+              </div>
+            </div>
+            {token.isRegistered && (
+              <div className="flex w-full flex-col gap-2 rounded-lg border bg-primary-foreground px-4 py-3 lg:hidden">
+                <div hidden>
                   <div className="flex items-center justify-between">
-                    <span>Current Price:</span>
-                    <span className="font-medium text-accent">
-                      {parseFloat(token.currentPrice).toFixed(10)} SEI
+                    <span className="font-medium">Trading Status:</span>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        token.isTradingEnabled
+                          ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                          : timeUntilTrading > 0
+                            ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                            : "bg-red-500/20 text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {token.isTradingEnabled ? (
+                        "Active"
+                      ) : timeUntilTrading > 0 ? (
+                        <>
+                          Opens in{" "}
+                          <CountdownTimer
+                            targetTimestamp={targetTimestamp}
+                            onComplete={handleCountdownComplete}
+                          />
+                        </>
+                      ) : (
+                        "Scheduled"
+                      )}
                     </span>
                   </div>
-                )}
-                {token.marketStats && (
-                  <div className="flex items-center justify-between">
-                    <span>Total Volume:</span>
-                    <span className="font-medium text-accent">
-                      {parseFloat(token.marketStats.ethCollected).toFixed(10)}{" "}
+                  {token.currentPrice && (
+                    <div className="flex items-center justify-between">
+                      <span>Current Price:</span>
+                      <span className="font-medium text-accent">
+                        {parseFloat(token.currentPrice).toFixed(10)} SEI
+                      </span>
+                    </div>
+                  )}
+                  {token.marketStats && (
+                    <div className="flex items-center justify-between">
+                      <span>Total Volume:</span>
+                      <span className="font-medium text-accent">
+                        {parseFloat(token.marketStats.ethCollected).toFixed(10)}{" "}
+                        SEI
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/* Curve Progress */}
+                <div className="">
+                  <div className="mb-2 flex w-full justify-between">
+                    <span>Curve Progress:</span>
+                    <span className="text-accent">
+                      {(
+                        (100 * token.curveProgress.current) /
+                        token.curveProgress.target
+                      ).toFixed(2)}
+                      %
+                    </span>
+                  </div>
+                  <Progress
+                    value={
+                      (100 * token.curveProgress.current) /
+                      token.curveProgress.target
+                    }
+                    className="[&>div]:dark:bg-green-600"
+                  />
+                  <div className="mt-2 flex w-full justify-between text-sm">
+                    <span>
+                      Current:{" "}
+                      {parseFloat(
+                        token.marketStats?.ethCollected || "0",
+                      ).toFixed(10)}{" "}
+                      SEI
+                    </span>
+                    <span>
+                      Target: {parseFloat(token.maxEthCap || "0").toFixed(0)}{" "}
                       SEI
                     </span>
                   </div>
-                )}
+                </div>
               </div>
-              {/* Curve Progress */}
-              <div className="">
-                <div className="mb-2 flex w-full justify-between">
-                  <span>Curve Progress:</span>
-                  <span className="text-accent">
-                    {(
+            )}
+            <button
+              hidden={token.curveProgress.current < token.curveProgress.target}
+              className="bg-button-gradient mr-0 ml-auto w-fit cursor-pointer rounded-xl px-3 py-2 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-accent/25 md:mr-auto md:ml-0"
+              onClick={() => setAgentChatOpen(true)}
+            >
+              Chat with agent
+            </button>
+          </div>
+          <div className="my-8 hidden lg:block">
+            <div className="">
+              <TradingChart
+                tokenAddress={token?.contractAddress}
+                height={400}
+                totalSupply={token?.supply}
+              />
+            </div>
+          </div>
+          <Tabs defaultValue="about" className="mt-5">
+            <TabsList
+              className="scrollbar-hide w-full flex-nowrap justify-start overflow-x-auto md:w-fit md:justify-center [&>*]:h-auto"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              <TabsTrigger
+                value="about"
+                className="flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent"
+              >
+                <Info className="size-5" />
+                <h2 className="text-base font-semibold">About</h2>
+              </TabsTrigger>
+              <TabsTrigger
+                value="trade"
+                disabled={!isTradingEnabled}
+                className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent lg:hidden dark:data-[state=active]:text-accent ${
+                  !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
+                }`}
+              >
+                <BadgeDollarSign className="size-5" />
+                <h2 className="text-base font-semibold">Buy/Sell</h2>
+              </TabsTrigger>
+              <TabsTrigger
+                value="activity"
+                disabled={!isTradingEnabled}
+                className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                  !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
+                }`}
+              >
+                <Activity className="size-5" />
+                <h2 className="text-base font-semibold">Activity</h2>
+              </TabsTrigger>
+              <TabsTrigger
+                value="holders"
+                disabled={!isTradingEnabled}
+                className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
+                  !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
+                }`}
+              >
+                <UserRound className="size-5" />
+                <h2 className="text-base font-semibold">Holders</h2>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="about" asChild>
+              <AgentAboutTab
+                token={token}
+                agent={agent}
+                isTradingEnabled={isTradingEnabled}
+                timeUntilTrading={timeUntilTrading}
+                targetTimestamp={targetTimestamp}
+                onCountdownComplete={handleCountdownComplete}
+              />
+            </TabsContent>
+            <TabsContent value="trade" asChild>
+              <AgentTradeTab
+                token={token}
+                agent={agent}
+                activeTradeTab={activeTradeTab}
+                setActiveTradeTab={setActiveTradeTab}
+                handleBuyToken={handleBuyToken}
+                handleSellToken={handleSellToken}
+                buyTokenStatus={buyTokenStatus}
+                sellTokenStatus={sellTokenStatus}
+                connectedAddress={connectedAddress}
+              />
+            </TabsContent>
+            <TabsContent value="activity" asChild>
+              <div className="space-y-6">
+                <TradingMetrics
+                  tokenAddress={token?.contractAddress}
+                  totalSupply={token?.supply}
+                  agentData={agent}
+                />
+                <TradingHistory tokenAddress={token?.contractAddress} />
+              </div>
+            </TabsContent>
+            <TabsContent value="holders" asChild>
+              <AgentHoldersTab
+                tokenAddress={token?.contractAddress}
+                isTradingEnabled={isTradingEnabled}
+                timeUntilTrading={timeUntilTrading}
+                targetTimestamp={targetTimestamp}
+                onCountdownComplete={handleCountdownComplete}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+        <div className="relative hidden lg:block">
+          <div className="sticky top-0 rounded-lg border px-4 pb-4">
+            {token.isRegistered && (
+              <div className="mt-4 hidden w-full flex-col gap-2 rounded-lg border bg-primary-foreground px-4 py-3 lg:flex">
+                <div hidden>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Trading Status:</span>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        token.isTradingEnabled
+                          ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                          : timeUntilTrading > 0
+                            ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                            : "bg-red-500/20 text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {token.isTradingEnabled ? (
+                        "Active"
+                      ) : timeUntilTrading > 0 ? (
+                        <>
+                          Opens in{" "}
+                          <CountdownTimer
+                            targetTimestamp={targetTimestamp}
+                            onComplete={handleCountdownComplete}
+                          />
+                        </>
+                      ) : (
+                        "Scheduled"
+                      )}
+                    </span>
+                  </div>
+                  {token.currentPrice && (
+                    <div className="flex items-center justify-between">
+                      <span>Current Price:</span>
+                      <span className="font-medium text-accent">
+                        {parseFloat(token.currentPrice).toFixed(10)} SEI
+                      </span>
+                    </div>
+                  )}
+                  {token.marketStats && (
+                    <div className="flex items-center justify-between">
+                      <span>Total Volume:</span>
+                      <span className="font-medium text-accent">
+                        {parseFloat(token.marketStats.ethCollected).toFixed(10)}{" "}
+                        SEI
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/* Curve Progress */}
+                <div className="">
+                  <div className="mb-2 flex w-full justify-between">
+                    <span>Curve Progress:</span>
+                    <span className="text-accent">
+                      {(
+                        (100 * token.curveProgress.current) /
+                        token.curveProgress.target
+                      ).toFixed(2)}
+                      %
+                    </span>
+                  </div>
+                  <Progress
+                    value={
                       (100 * token.curveProgress.current) /
                       token.curveProgress.target
-                    ).toFixed(2)}
-                    %
-                  </span>
-                </div>
-                <Progress
-                  value={
-                    (100 * token.curveProgress.current) /
-                    token.curveProgress.target
-                  }
-                  className="[&>div]:dark:bg-green-600"
-                />
-                <div className="mt-2 flex w-full justify-between text-sm">
-                  <span>
-                    Current:{" "}
-                    {parseFloat(token.marketStats?.ethCollected || "0").toFixed(
-                      10,
-                    )}{" "}
-                    SEI
-                  </span>
-                  <span>
-                    Target: {parseFloat(token.maxEthCap || "0").toFixed(0)} SEI
-                  </span>
+                    }
+                    className="[&>div]:dark:bg-green-600"
+                  />
+                  <div className="mt-2 flex w-full justify-between text-sm">
+                    <span>
+                      Current:{" "}
+                      {parseFloat(
+                        token.marketStats?.ethCollected || "0",
+                      ).toFixed(10)}{" "}
+                      SEI
+                    </span>
+                    <span>
+                      Target: {parseFloat(token.maxEthCap || "0").toFixed(0)}{" "}
+                      SEI
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          <button
-            hidden={token.curveProgress.current < token.curveProgress.target}
-            className="bg-button-gradient mr-0 ml-auto w-fit cursor-pointer rounded-xl px-3 py-2 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-accent/25"
-            onClick={() => setAgentChatOpen(true)}
-          >
-            Chat with agent
-          </button>
-        </div>
-        <Tabs defaultValue="about" className="mt-5">
-          <TabsList
-            className="scrollbar-hide w-full flex-nowrap justify-start overflow-x-auto md:w-fit md:justify-center [&>*]:h-auto"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            <TabsTrigger
-              value="about"
-              className="flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent"
-            >
-              <Info className="size-5" />
-              <h2 className="text-base font-semibold">About</h2>
-            </TabsTrigger>
-            <TabsTrigger
-              value="trade"
-              disabled={!isTradingEnabled}
-              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent lg:hidden dark:data-[state=active]:text-accent ${
-                !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
-              }`}
-            >
-              <BadgeDollarSign className="size-5" />
-              <h2 className="text-base font-semibold">Buy/Sell</h2>
-            </TabsTrigger>
-            <TabsTrigger
-              value="activity"
-              disabled={!isTradingEnabled}
-              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
-                !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
-              }`}
-            >
-              <Activity className="size-5" />
-              <h2 className="text-base font-semibold">Activity</h2>
-            </TabsTrigger>
-            <TabsTrigger
-              value="holders"
-              disabled={!isTradingEnabled}
-              className={`flex min-w-fit flex-shrink-0 cursor-pointer items-center gap-2 data-[state=active]:text-accent dark:data-[state=active]:text-accent ${
-                !isTradingEnabled ? "cursor-not-allowed opacity-50" : ""
-              }`}
-            >
-              <UserRound className="size-5" />
-              <h2 className="text-base font-semibold">Holders</h2>
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="about" asChild>
-            <AgentAboutTab
-              token={token}
-              agent={agent}
-              isTradingEnabled={isTradingEnabled}
-              timeUntilTrading={timeUntilTrading}
-              targetTimestamp={targetTimestamp}
-              onCountdownComplete={handleCountdownComplete}
-            />
-          </TabsContent>
-          <TabsContent value="trade" asChild>
+            )}
             <AgentTradeTab
               token={token}
               agent={agent}
@@ -498,27 +607,8 @@ const Agent = () => {
               sellTokenStatus={sellTokenStatus}
               connectedAddress={connectedAddress}
             />
-          </TabsContent>
-          <TabsContent value="activity" asChild>
-            <div className="space-y-6">
-              <TradingMetrics
-                tokenAddress={token?.contractAddress}
-                totalSupply={token?.supply}
-                agentData={agent}
-              />
-              <TradingHistory tokenAddress={token?.contractAddress} />
-            </div>
-          </TabsContent>
-          <TabsContent value="holders" asChild>
-            <AgentHoldersTab
-              tokenAddress={token?.contractAddress}
-              isTradingEnabled={isTradingEnabled}
-              timeUntilTrading={timeUntilTrading}
-              targetTimestamp={targetTimestamp}
-              onCountdownComplete={handleCountdownComplete}
-            />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
 
       {agent && (
