@@ -465,10 +465,13 @@ const CreateAgent = () => {
 
                     <div className="grid grid-rows-[1fr_auto] gap-5 md:grid-cols-2 md:grid-rows-1">
                       {/* Modul Type Selection */}
-                      <div className="">
-                        <label className="ml-1 text-lg font-semibold">
+                      <div className="ml-1">
+                        <label className="text-lg font-semibold">
                           Modul Type
                         </label>
+                        <p className="text-muted-foreground">
+                          Choose your agent's core logic.
+                        </p>
                         <div className="mt-2 grid grid-cols-1 gap-2">
                           {modulTypes.map((modul) => (
                             <div
