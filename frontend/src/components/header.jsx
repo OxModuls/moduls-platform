@@ -37,7 +37,7 @@ const Header = ({ className }) => {
                 data-active={pathname === link.url}
                 className="group relative py-0.5 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:rounded-lg after:bg-accent after:content-[''] data-[active=false]:after:hidden"
               >
-                <span className="font-semibold group-hover:text-accent group-data-[active=true]:text-accent">
+                <span className="font-bold group-hover:text-accent group-data-[active=true]:text-accent">
                   {link.title}
                 </span>
               </Link>
