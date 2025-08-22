@@ -251,7 +251,7 @@ const Home = () => {
                 useWalletModalStore.getState().openWalletModal();
               }
             }}
-            className="bg-button-gradient mt-3 flex w-fit shrink-0 cursor-pointer justify-center rounded-xl px-3 py-2 transition-all duration-500 hover:-translate-y-1"
+            className="bg-button-gradient mt-3 flex w-fit shrink-0 cursor-pointer justify-center rounded-xl px-3 py-2 text-lg font-semibold transition-all duration-500 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between gap-1">
               <span className="">Launch Agent</span>
@@ -473,7 +473,7 @@ const Home = () => {
                   useWalletModalStore.getState().openWalletModal();
                 }
               }}
-              className="bg-button-gradient mt-3 inline-block shrink-0 rounded-xl px-3 py-2 transition-all duration-500 hover:scale-105"
+              className="bg-button-gradient mt-3 inline-block shrink-0 rounded-xl px-3 py-2 text-lg font-semibold transition-all duration-500 hover:scale-105"
             >
               Get Started Now
             </button>
