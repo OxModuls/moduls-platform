@@ -15,7 +15,11 @@ export const wagmiConfig = createConfig({
                 url: "https://www.moduls.fun",
                 icons: ["https://www.moduls.fun/moduls-logo.jpg"]
             },
-            showQrModal: true
+            showQrModal: true,
+            name: "Moduls",
+            iconUrl: "https://www.moduls.fun/moduls-logo.jpg",
+
+
         }),
         coinbaseWallet({
             appName: "Moduls",
