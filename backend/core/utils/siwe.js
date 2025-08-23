@@ -67,14 +67,56 @@ function parseSIWEMessage(message) {
 
 async function verifySIWESignature(message, signature, expectedAddress) {
     try {
+        if (!signature || typeof signature !== 'string') {
+            return { valid: false, error: 'Invalid signature format' };
+        }
+
+        if (!message || typeof message !== 'string') {
+            return { valid: false, error: 'Invalid message format' };
+        }
+
+        if (!expectedAddress) {
+            return { valid: false, error: 'Expected address is required' };
+        }
+
         const recoveredAddress = await recoverMessageAddress({
             message,
             signature
         });
 
-        return getAddress(recoveredAddress) === getAddress(expectedAddress);
+        const normalizedRecovered = getAddress(recoveredAddress);
+        const normalizedExpected = getAddress(expectedAddress);
+
+        const isValid = normalizedRecovered === normalizedExpected;
+
+        if (!isValid) {
+            return {
+                valid: false,
+                error: `Address mismatch: signature from ${normalizedRecovered}, expected ${normalizedExpected}`
+            };
+        }
+
+        return { valid: true };
     } catch (error) {
-        return false;
+        console.log('Signature verification error:', error.message);
+
+        // Provide specific error messages based on error type
+        if (error.message?.includes('Invalid signature')) {
+            return { valid: false, error: 'Invalid signature format or encoding' };
+        }
+
+        if (error.message?.includes('hex')) {
+            return { valid: false, error: 'Signature must be a valid hex string' };
+        }
+
+        if (error.message?.includes('length')) {
+            return { valid: false, error: 'Signature has incorrect length' };
+        }
+
+        return {
+            valid: false,
+            error: `Signature verification failed: ${error.message}`
+        };
     }
 }
 

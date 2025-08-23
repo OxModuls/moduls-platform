@@ -79,45 +79,114 @@ router.post("/auth/verify", async (req, res) => {
             });
         }
 
+        // Enhanced SIWE message parsing with detailed error handling
         const parsedMessage = parseSIWEMessage(message);
         if (!parsedMessage.valid) {
+            console.log('SIWE message parsing failed:', {
+                error: parsedMessage.error,
+                messageLength: message?.length,
+                messagePreview: message?.substring(0, 100) + '...'
+            });
             return res.status(400).json({
                 message: 'Invalid SIWE message format',
-                error: parsedMessage.error || 'Invalid message'
+                error: parsedMessage.error || 'Message format is invalid or corrupted',
+                details: 'Please ensure the SIWE message follows the correct format'
             });
         }
 
         const { address, nonce } = parsedMessage;
-        const walletAddressHash = sha256(getAddress(address));
 
-        const user = await User.findOne({ walletAddressHash }).exec();
-        if (!user || !user.nonce || user.nonce !== nonce) {
+        // Enhanced address validation
+        let normalizedAddress;
+        try {
+            normalizedAddress = getAddress(address);
+        } catch (error) {
+            console.log('Address normalization failed:', { address, error: error.message });
             return res.status(400).json({
-                message: 'Invalid or expired nonce',
-                error: 'Nonce verification failed'
+                message: 'Invalid wallet address in message',
+                error: 'Address format is invalid',
+                details: `Cannot process address: ${address}`
             });
         }
 
+        const walletAddressHash = sha256(normalizedAddress);
+
+        // Enhanced user lookup with better error messages
+        const user = await User.findOne({ walletAddressHash }).exec();
+        if (!user) {
+            console.log('User not found for address:', normalizedAddress);
+            return res.status(400).json({
+                message: 'Wallet address not registered',
+                error: 'No user found for this wallet address',
+                details: 'Please ensure you have requested a nonce for this address'
+            });
+        }
+
+        if (!user.nonce) {
+            console.log('No nonce found for user:', normalizedAddress);
+            return res.status(400).json({
+                message: 'No nonce found',
+                error: 'Please request a new nonce before signing',
+                details: 'Authentication session may have been cleared'
+            });
+        }
+
+        if (user.nonce !== nonce) {
+            console.log('Nonce mismatch:', {
+                expectedNonce: user.nonce,
+                receivedNonce: nonce,
+                address: normalizedAddress
+            });
+            return res.status(400).json({
+                message: 'Nonce mismatch',
+                error: 'The nonce in your message does not match our records',
+                details: 'Please request a new nonce and sign again'
+            });
+        }
+
+        // Enhanced nonce expiration check
         if (!user.nonceExpiresAt || user.nonceExpiresAt < new Date()) {
+            const expiredTime = user.nonceExpiresAt ? new Date(user.nonceExpiresAt).toISOString() : 'unknown';
+            console.log('Nonce expired:', {
+                address: normalizedAddress,
+                expiredAt: expiredTime,
+                currentTime: new Date().toISOString()
+            });
             return res.status(400).json({
                 message: 'Nonce has expired',
-                error: 'Please request a new nonce'
+                error: 'Your authentication session has timed out',
+                details: `Nonce expired at ${expiredTime}. Please request a new nonce.`
             });
         }
 
+        // Enhanced SIWE message validation
         const validation = validateSIWEMessage(parsedMessage, nonce);
         if (!validation.valid) {
+            console.log('SIWE message validation failed:', {
+                error: validation.error,
+                address: normalizedAddress,
+                nonce: nonce
+            });
             return res.status(400).json({
                 message: 'SIWE message validation failed',
-                error: validation.error
+                error: validation.error,
+                details: 'The message format or timing requirements are not met'
             });
         }
 
-        const isValidSignature = await verifySIWESignature(message, signature, address);
-        if (!isValidSignature) {
+        // Enhanced signature verification with detailed error reporting
+        const signatureResult = await verifySIWESignature(message, signature, address);
+        if (!signatureResult.valid) {
+            console.log('Signature verification failed:', {
+                error: signatureResult.error,
+                address: normalizedAddress,
+                signatureLength: signature?.length,
+                signaturePrefix: signature?.substring(0, 10) + '...'
+            });
             return res.status(400).json({
-                message: 'Invalid signature',
-                error: 'Signature verification failed'
+                message: 'Signature verification failed',
+                error: signatureResult.error,
+                details: 'The signature does not match the message and wallet address'
             });
         }
 
@@ -159,10 +228,33 @@ router.post("/auth/verify", async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error verifying SIWE:', error);
+        console.error('Unexpected error during SIWE verification:', {
+            error: error.message,
+            stack: error.stack,
+            requestBody: { hasMessage: !!req.body.message, hasSignature: !!req.body.signature }
+        });
+
+        // Provide different error responses based on error type
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                message: 'Data validation error',
+                error: error.message,
+                details: 'The provided data failed validation checks'
+            });
+        }
+
+        if (error.name === 'MongoError' || error.name === 'MongooseError') {
+            return res.status(500).json({
+                message: 'Database error',
+                error: 'Unable to process authentication request',
+                details: 'Please try again in a moment'
+            });
+        }
+
         return res.status(500).json({
-            message: 'Verification failed',
-            error: 'Internal server error'
+            message: 'Authentication system error',
+            error: 'An unexpected error occurred during verification',
+            details: 'Please try again or contact support if the issue persists'
         });
     }
 });
