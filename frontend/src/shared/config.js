@@ -4,6 +4,7 @@ const config = {
     isDev: import.meta.env.DEV || false,
     isProd: import.meta.env.PROD || false,
     domain: import.meta.env.VITE_DOMAIN || 'www.moduls.fun',
+    projectId: import.meta.env.VITE_PROJECT_ID || 'afc44a0cc5e8f9ee0085fa641a663c98',
 
     // Centralized RPC URLs
     rpcUrls: {

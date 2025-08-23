@@ -10,7 +10,7 @@ import {
 } from "./ui/drawer";
 import { Popover, PopoverContent, PopoverAnchor } from "./ui/popover";
 import {
-    Bot,
+  Bot,
   CircleCheck,
   Copy,
   LoaderCircle,
@@ -19,7 +19,13 @@ import {
 } from "lucide-react";
 import metamaskIcon from "../assets/icons/metamask.svg";
 import trustwalletIcon from "../assets/icons/trustwallet.svg";
-import { ellipsizeAddress, generateJazzicon, writeToClipboard } from "@/lib/utils";
+import walletConnectIcon from "../assets/icons/walletconnect.svg";
+import coinbaseIcon from "../assets/icons/coinbase.svg";
+import {
+  ellipsizeAddress,
+  generateJazzicon,
+  writeToClipboard,
+} from "@/lib/utils";
 import { toast } from "sonner";
 import { useWalletModalStore } from "../shared/store";
 import { useAuth } from "../shared/hooks/useAuth";
@@ -35,6 +41,8 @@ import ProfileDialog from "./profile-dialog";
 const connectorIcons = new Map([
   ["metaMaskSDK", metamaskIcon],
   ["com.trustwallet.app", trustwalletIcon],
+  ["walletConnect", walletConnectIcon],
+  ["coinbaseWalletSDK", coinbaseIcon],
 ]);
 
 const WalletConnectModal = () => {
@@ -43,22 +51,61 @@ const WalletConnectModal = () => {
   const { isAuthenticated, logout, authenticate } = useAuth();
   const isMobile = useIsMobile();
 
-  // Auto-authenticate when wallet connects
+  // Auto-authenticate when wallet connects with mobile optimization
   useEffect(() => {
     if (isConnected && address && !isAuthenticated) {
       console.log("🔐 Triggering auto-authentication for:", address);
-      // Small delay to ensure wallet connection is fully established
-      const timer = setTimeout(() => {
-        authenticate().catch((error) => {
-          if (error.message !== "USER_REJECTED") {
-            console.error("Auto-authentication failed:", error);
-          }
-        });
-      }, 500);
 
+      // Mobile-optimized timing and retry logic
+      const initialDelay = isMobile ? 2000 : 500; // Longer delay for mobile
+
+      const attemptAuthentication = async (retryCount = 0) => {
+        try {
+          // Wait for stable connection on mobile
+          if (isMobile) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+
+          // Check if still connected before authenticating
+          if (isConnected && address && !isAuthenticated) {
+            await authenticate();
+            console.log("✅ Auto-authentication successful");
+          }
+        } catch (error) {
+          if (error.message === "USER_REJECTED") {
+            console.log("🚫 User rejected authentication");
+            return;
+          }
+
+          console.error(
+            `❌ Auto-authentication failed (attempt ${retryCount + 1}):`,
+            error,
+          );
+
+          // Retry logic for mobile (network issues, timing, etc.)
+          if (
+            isMobile &&
+            retryCount < 2 &&
+            isConnected &&
+            address &&
+            !isAuthenticated
+          ) {
+            const retryDelay = (retryCount + 1) * 2000; // 2s, 4s
+            console.log(`🔄 Retrying authentication in ${retryDelay}ms...`);
+
+            setTimeout(() => {
+              if (isConnected && address && !isAuthenticated) {
+                attemptAuthentication(retryCount + 1);
+              }
+            }, retryDelay);
+          }
+        }
+      };
+
+      const timer = setTimeout(() => attemptAuthentication(), initialDelay);
       return () => clearTimeout(timer);
     }
-  }, [isConnected, address, isAuthenticated, authenticate]);
+  }, [isConnected, address, isAuthenticated, authenticate, isMobile]);
 
   // Handle wallet disconnection
   useEffect(() => {
@@ -285,8 +332,11 @@ const DisconnectedContent = () => {
   };
 
   return (
-    <div className="px-4 md:px-0 pt-2" onPointerDown={(e) => e.stopPropagation()}>
-      <h2 className="hidden md:block mb-4 text-center font-semibold text-foreground">
+    <div
+      className="px-4 pt-2 md:px-0"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <h2 className="mb-4 hidden text-center font-semibold text-foreground md:block">
         Connect a wallet
       </h2>
       <div className="flex flex-col gap-2">

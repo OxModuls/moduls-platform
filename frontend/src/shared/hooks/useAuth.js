@@ -110,15 +110,38 @@ export const useAuth = () => {
                 credentials: 'include'
             })();
 
-            // Refresh user data
-            await refetchUser();
-            toast.success('Authentication successful!');
+            // Refresh user data and verify authentication was successful
+            const { data: userData } = await refetchUser();
+            if (userData) {
+                toast.success('Authentication successful!');
+            } else {
+                throw new Error('Failed to fetch user data after authentication');
+            }
 
         } catch (error) {
-            if (error.message?.includes('rejected') || error.message?.includes('denied')) {
+            // Enhanced mobile error detection and handling
+            const errorMessage = error.message?.toLowerCase() || '';
+            const isMobileDevice = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+            if (errorMessage.includes('rejected') || errorMessage.includes('denied')) {
                 disconnect();
                 toast.error("Authentication cancelled");
                 throw new Error("USER_REJECTED");
+            }
+
+            if (errorMessage.includes('network') || errorMessage.includes('chain')) {
+                toast.error("Wrong network. Please switch to SEI Testnet in your wallet.");
+                throw new Error("WRONG_NETWORK");
+            }
+
+            if (isMobileDevice && (errorMessage.includes('timeout') || errorMessage.includes('connection'))) {
+                toast.error("Connection timeout. Please keep your wallet app open and try again.");
+                throw new Error("MOBILE_TIMEOUT");
+            }
+
+            if (isMobileDevice && errorMessage.includes('fetch')) {
+                toast.error("Network error. Please check your connection and try again.");
+                throw new Error("NETWORK_ERROR");
             }
 
             toast.error(error.message || 'Authentication failed');

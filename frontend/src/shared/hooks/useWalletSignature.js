@@ -16,10 +16,13 @@ export const useWalletSignature = () => {
         throw new Error("Wallet not connected or nonce missing");
       }
 
+      // Use actual connected chain ID, fallback to SEI testnet
+      const actualChainId = chainId || 1328;
+
       const message = createSIWEMessage(
         address,
         nonce,
-        chainId,
+        actualChainId,
         config.domain,
       );
 
