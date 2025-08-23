@@ -6,6 +6,7 @@ import Home from "./pages/home";
 import Agent from "./pages/agent";
 import CreateAgent from "./pages/create-agent";
 import NotFound from "./pages/not-found";
+import WrongNetworkModal from "./components/wrong-network-modal";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "./wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -37,6 +38,7 @@ function App() {
             {/* Catch-all route for undefined routes */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <WrongNetworkModal />
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>
