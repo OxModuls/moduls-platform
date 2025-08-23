@@ -24,7 +24,7 @@ export const dummyAgents = [
       slippage: 1,
       amountInWei: "100000000000000000",
     },
-    websiteUrl: "https://moduls-one.vercel.app/create",
+    websiteUrl: "https://moduls.fun/create",
     createdAt: "2025-08-10T20:34:43.163Z",
     updatedAt: "2025-08-10T20:34:56.879Z",
     creator: {
@@ -56,7 +56,7 @@ export const dummyAgents = [
       slippage: 1,
       amountInWei: "100000000000000000",
     },
-    websiteUrl: "https://moduls-one.vercel.app/",
+    websiteUrl: "https://moduls.fun/",
     createdAt: "2025-08-09T09:48:13.406Z",
     updatedAt: "2025-08-09T09:48:21.897Z",
     creator: {

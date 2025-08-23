@@ -3,7 +3,7 @@ const config = {
     chainMode: import.meta.env.VITE_CHAIN_MODE || 'testnet',
     isDev: import.meta.env.DEV || false,
     isProd: import.meta.env.PROD || false,
-    domain: import.meta.env.VITE_DOMAIN || 'moduls-one.vercel.app',
+    domain: import.meta.env.VITE_DOMAIN || 'moduls.fun',
 
     // Centralized RPC URLs
     rpcUrls: {

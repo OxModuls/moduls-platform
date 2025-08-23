@@ -21,8 +21,10 @@ const config = {
         process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()) : [
             'http://localhost:5173',
             'http://localhost:3000',
-            "https://moduls-one.vercel.app",
-            "http://moduls-one.vercel.app",
+            "https://moduls.fun",
+            "http://moduls.fun",
+            "https://www.moduls.fun",
+            "http://www.moduls.fun",
         ],
 
     // Webhook configuration
