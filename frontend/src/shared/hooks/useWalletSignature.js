@@ -11,7 +11,7 @@ export const useWalletSignature = () => {
   const [isSigning, setIsSigning] = useState(false);
 
   const getSIWESignature = useCallback(
-    async (nonce) => {
+    async (nonce, timestamp = null) => {
       if (!isConnected || !address || !nonce) {
         throw new Error("Wallet not connected or nonce missing");
       }
@@ -24,6 +24,7 @@ export const useWalletSignature = () => {
         nonce,
         actualChainId,
         config.domain,
+        timestamp
       );
 
       try {

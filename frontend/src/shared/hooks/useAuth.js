@@ -93,14 +93,14 @@ export const useAuth = () => {
                 return;
             }
 
-            // Get nonce
-            const { nonce } = await createFetcher({
+            // Get nonce and timestamp from server
+            const { nonce, timestamp } = await createFetcher({
                 method: "GET",
                 url: `${config.endpoints.getNonce}?address=${encodeURIComponent(address)}`,
             })();
 
-            // Sign SIWE message
-            const { signature, message } = await getSIWESignature(nonce);
+            // Sign SIWE message with server timestamp
+            const { signature, message } = await getSIWESignature(nonce, timestamp);
 
             // Verify signature
             await createFetcher({

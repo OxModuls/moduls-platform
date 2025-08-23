@@ -1,9 +1,9 @@
 /**
  * Create a SIWE (Sign-In with Ethereum) message
  */
-export function createSIWEMessage(address, nonce, chainId = 1328, domain = 'www.moduls.fun') {
+export function createSIWEMessage(address, nonce, chainId = 1328, domain = 'www.moduls.fun', timestamp = null) {
     const uri = `https://${domain}`;
-    const issuedAt = new Date().toISOString();
+    const issuedAt = timestamp ? new Date(timestamp).toISOString() : new Date().toISOString();
 
     return `${domain} wants you to sign in with your Ethereum account:
 ${address}
