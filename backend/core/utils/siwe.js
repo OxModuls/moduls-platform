@@ -5,7 +5,7 @@ function generateNonce() {
     return crypto.randomBytes(16).toString('hex');
 }
 
-function createSIWEMessage(address, nonce, timestamp, chainId = 1329, domain = 'moduls.fun') {
+function createSIWEMessage(address, nonce, timestamp, chainId = 1329, domain = 'www.moduls.fun') {
     const uri = `https://${domain}`;
     const issuedAt = new Date(timestamp).toISOString();
 
