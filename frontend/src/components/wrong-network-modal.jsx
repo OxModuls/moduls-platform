@@ -57,7 +57,7 @@ const WrongNetworkModal = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangle className="h-8 w-8 text-destructive" />
           </div>
-          <DialogTitle className="text-2xl font-bold text-foreground">
+          <DialogTitle className="text-center text-2xl font-bold text-foreground">
             Network Switch Required
           </DialogTitle>
           <DialogDescription className="mt-2 text-base leading-relaxed text-muted-foreground">
