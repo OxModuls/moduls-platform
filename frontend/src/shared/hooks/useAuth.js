@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, } from "react";
+import { useCallback, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useWalletSignature } from "./useWalletSignature";
 import { createFetcher } from "../../lib/fetcher";
@@ -11,6 +11,9 @@ export const useAuth = () => {
     const { disconnect } = useDisconnect();
     const { getSIWESignature } = useWalletSignature();
     const queryClient = useQueryClient();
+
+    // Prevent concurrent authentication calls
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
 
     // Fetch current user if authenticated
     const {
@@ -65,7 +68,15 @@ export const useAuth = () => {
             throw new Error('Wallet not connected');
         }
 
+        // Prevent concurrent authentication calls
+        if (isAuthenticating) {
+            console.log('Authentication already in progress, ignoring duplicate call');
+            toast.info('Authentication already in progress');
+            return;
+        }
+
         try {
+            setIsAuthenticating(true);
             // 1) Validate existing session first. Only proceed to SIWE if invalid/expired (401)
             let shouldPerformSiwe = false;
             try {
@@ -146,8 +157,11 @@ export const useAuth = () => {
 
             toast.error(error.message || 'Authentication failed');
             throw error;
+        } finally {
+            // Always reset the authentication flag
+            setIsAuthenticating(false);
         }
-    }, [isConnected, address, getSIWESignature, refetchUser, disconnect]);
+    }, [isConnected, address, getSIWESignature, refetchUser, disconnect, isAuthenticating]);
 
     // Logout
     const logout = useCallback(async () => {
@@ -172,6 +186,7 @@ export const useAuth = () => {
         error,
         authenticate,
         logout,
-        refetch: refetchUser
+        refetch: refetchUser,
+        isAuthenticating
     };
 };
