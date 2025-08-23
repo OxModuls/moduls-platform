@@ -9,7 +9,7 @@ export const dummyAgents = [
     status: "ACTIVE",
     isVerified: false,
     modulType: "MEME",
-    tokenSymbol: "MIMM",
+    tokenSymbol: "MIM",
     tokenDecimals: 18,
     totalSupply: 1000000000,
     curveProgress: 80,
