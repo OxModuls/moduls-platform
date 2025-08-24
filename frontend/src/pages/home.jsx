@@ -16,10 +16,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useState } from "react";
-import {
-  useTradingMetrics,
-  formatTradingAmount,
-} from "../shared/hooks/useTrading";
+import { formatTradingAmount } from "../shared/hooks/useTrading";
 import { useModulsSalesManager } from "../shared/hooks/useModulsSalesManager";
 
 // Component for individual agent in the list
@@ -191,7 +188,6 @@ const Home = () => {
     isPending: isAgentsLoading,
     isFetching: isAgentsFetching,
     isError: isAgentsLoadError,
-    error: agentsLoadError,
     refetch: refetchAgentsDirect,
   } = useQuery({
     queryKey: ["agents-list", agentsUrl],

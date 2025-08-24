@@ -48,7 +48,7 @@ const modulTypes = [
     name: "Meme Token",
     emoji: "💸",
     description:
-      "Viral meme token with trading metrics, holder analytics, and community hype tracking.",
+      "Community-driven token with social features and viral marketing capabilities.",
     identifier: "MEME",
     value: "MEME",
   },
@@ -56,13 +56,13 @@ const modulTypes = [
     name: "Portfolio Watcher",
     emoji: "📊",
     description:
-      "Tracks portfolio performance across multiple chains and provides insights.",
+      "Monitors and analyzes your portfolio performance, providing insights and alerts.",
     identifier: "PORTFOLIO_WATCHER",
     value: "PORTFOLIO_WATCHER",
   },
   {
     name: "Social Sentinel",
-    emoji: "🛡️",
+    emoji: "🔍",
     description:
       "Gathers social media data based on keywords and topics, providing insights through a chat interface.",
     identifier: "SOCIAL_SENTINEL",
@@ -590,7 +590,10 @@ const CreateAgent = () => {
 
                     {/* Agent Image Upload */}
                     <div className="mt-4">
-                      <label htmlFor="agent-image" className="ml-1 text-lg font-semibold">
+                      <label
+                        htmlFor="agent-image"
+                        className="ml-1 text-lg font-semibold"
+                      >
                         Agent Image
                       </label>
                       <div

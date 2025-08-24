@@ -1,5 +1,5 @@
 import "./index.css";
-import { Routes, Route } from "react-router";
+import { Routes, Route, useLocation } from "react-router";
 import { ThemeProvider } from "./components/theme-provider";
 import RootLayout from "./components/root-layout";
 import Home from "./pages/home";
@@ -10,6 +10,8 @@ import WrongNetworkModal from "./components/wrong-network-modal";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "./wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useThreadStore } from "./shared/store";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,11 +26,25 @@ const queryClient = new QueryClient({
   },
 });
 
+// Component to track route changes and clear thread state
+function RouteChangeTracker() {
+  const location = useLocation();
+  const { clearSelectedThread } = useThreadStore();
+
+  useEffect(() => {
+    clearSelectedThread();
+    console.log("Route changed, cleared selectedThreadId:", location.pathname);
+  }, [location.pathname, clearSelectedThread]);
+
+  return null; // This component doesn't render anything
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark">
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
+          <RouteChangeTracker />
           <Routes>
             <Route element={<RootLayout />}>
               <Route path="/" element={<Home />} />
