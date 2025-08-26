@@ -109,37 +109,8 @@ async function verifySIWESignature(message, signature, expectedAddress) {
     }
 }
 
-function validateSIWEMessage(parsedMessage, expectedNonce, maxAge = 5 * 60 * 1000) {
-    if (!parsedMessage.valid) {
-        return { valid: false, error: 'Invalid message format' };
-    }
-
-    if (parsedMessage.nonce !== expectedNonce) {
-        return { valid: false, error: 'Invalid nonce' };
-    }
-
-    // Parse the issued UTC timestamp from the message
-    const issuedAt = new Date(parsedMessage.issuedAt);
-
-    // Use current UTC time for consistent comparison
-    // Both timestamps are now in UTC context
-    const now = new Date();
-    const ageMs = now.getTime() - issuedAt.getTime();
-
-    if (ageMs > maxAge) {
-        return { valid: false, error: 'Message too old' };
-    }
-
-    if (ageMs < -60000) {
-        return { valid: false, error: 'Message from future' };
-    }
-
-    return { valid: true };
-}
-
 module.exports = {
     createSIWEMessage,
     parseSIWEMessage,
-    verifySIWESignature,
-    validateSIWEMessage
+    verifySIWESignature
 };
