@@ -25,6 +25,7 @@ const config = {
             "http://moduls.fun",
             "https://www.moduls.fun",
             "http://www.moduls.fun",
+            "https://moduls-git-postop-builtbytims-projects.vercel.app"
         ],
 
     // Webhook configuration
