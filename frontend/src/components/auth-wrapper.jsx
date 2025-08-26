@@ -3,6 +3,7 @@ import { Unplug } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useWalletModalStore } from "../shared/store";
+import { useAccount } from "wagmi";
 
 const AuthWrapper = ({
   children,
@@ -11,6 +12,7 @@ const AuthWrapper = ({
   redirectUrl = null,
 }) => {
   const { user, isAuthenticated, isLoading, error, authenticate } = useAuth();
+  const { isConnected } = useAccount();
 
   const { openWalletModal } = useWalletModalStore();
   const navigate = useNavigate();
@@ -27,10 +29,10 @@ const AuthWrapper = ({
     const LoaderContent = () => (
       <div className="flex flex-col items-center gap-4">
         <div className="relative">
-          <div className="size-40 bg-accent/20 rounded-2xl flex items-center justify-center animate-pulse">
+          <div className="flex size-40 animate-pulse items-center justify-center rounded-2xl bg-accent/20">
             <Unplug className="size-24 text-accent" />
           </div>
-          <div className="absolute inset-0 border-2 border-accent/30 rounded-2xl animate-ping"></div>
+          <div className="absolute inset-0 animate-ping rounded-2xl border-2 border-accent/30"></div>
         </div>
         <div className="text-center">
           <p className="text-lg font-semibold text-foreground">
@@ -45,7 +47,7 @@ const AuthWrapper = ({
 
     if (pageLevel) {
       return (
-        <div className="min-h-[calc(100vh-100px)] flex items-center justify-center bg-background">
+        <div className="flex min-h-[calc(100vh-100px)] items-center justify-center bg-background">
           <LoaderContent />
         </div>
       );
@@ -67,46 +69,51 @@ const AuthWrapper = ({
   if (!isAuthenticated) {
     const ErrorContent = () => (
       <div className="text-center">
-        <div className="size-40 bg-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="mx-auto mb-4 flex size-40 items-center justify-center rounded-2xl bg-accent/20">
           <Unplug className="size-24 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">
+        <h2 className="mb-2 text-xl font-semibold text-foreground">
           Authentication Required
         </h2>
-        <p className="text-muted-foreground mb-2">
-          Please connect your wallet to access this page.
+        <p className="mb-2 text-muted-foreground">
+          {!isConnected
+            ? "Please connect your wallet to access this page."
+            : "Please sign in with your wallet to access this page."}
         </p>
-        <p className="text-xs text-muted-foreground mb-4 max-w-lg mx-auto">
+        <p className="mx-auto mb-4 max-w-lg text-xs text-muted-foreground">
           If your wallet is connected and you're still seeing this message,
           please check your internet connection and{" "}
           <span
             onClick={() => window.location.reload()}
-            className="text-accent cursor-pointer"
+            className="cursor-pointer text-accent"
           >
             refresh
           </span>{" "}
           the page.
         </p>
-        <div className="flex gap-2 justify-center">
-          <button
-            onClick={openWalletModal}
-            className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
-          >
-            Connect Wallet
-          </button>
-          <button
-            onClick={authenticate}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Sign In
-          </button>
+        <div className="flex justify-center gap-2">
+          {!isConnected ? (
+            <button
+              onClick={openWalletModal}
+              className="rounded-lg bg-accent px-4 py-2 text-accent-foreground transition-colors hover:bg-accent/90"
+            >
+              Connect Wallet
+            </button>
+          ) : (
+            <button
+              onClick={authenticate}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </div>
     );
 
     if (pageLevel) {
       return (
-        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center bg-background">
+        <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background">
           <ErrorContent />
         </div>
       );

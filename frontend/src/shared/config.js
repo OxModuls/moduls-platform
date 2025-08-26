@@ -33,7 +33,6 @@ const config = {
     // API endpoints
     endpoints: {
         // Auth endpoints
-        getNonce: '/api/auth/nonce',
         verifySignature: '/api/auth/verify',
         logout: '/api/auth/logout',
         getAuthUser: '/api/auth/user',

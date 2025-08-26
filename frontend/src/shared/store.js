@@ -19,3 +19,27 @@ export const useThreadStore = create((set, get) => ({
   getSelectedThreadId: () => get().selectedThreadId,
 }));
 
+export const useSignatureModalStore = create((set) => ({
+  isOpen: false,
+  message: null,
+  onProceed: null,
+  onCancel: null,
+
+  openSignatureModal: (message, onProceed, onCancel) => set({
+    isOpen: true,
+    message,
+    onProceed,
+    onCancel
+  }),
+
+  closeSignatureModal: () => set({
+    isOpen: false,
+    message: null,
+    onProceed: null,
+    onCancel: null
+  }),
+
+  // Update message details (for multiple calls)
+  updateMessage: (message) => set({ message }),
+}));
+

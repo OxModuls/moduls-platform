@@ -7,6 +7,7 @@ import Agent from "./pages/agent";
 import CreateAgent from "./pages/create-agent";
 import NotFound from "./pages/not-found";
 import WrongNetworkModal from "./components/wrong-network-modal";
+import SignatureConfirmationModal from "./components/signature-confirmation-modal";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "./wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -55,6 +56,7 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           <WrongNetworkModal />
+          <SignatureConfirmationModal />
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

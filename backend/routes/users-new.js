@@ -5,7 +5,7 @@ const Agent = require("../core/models/agents");
 const config = require('../config');
 
 const { verifySession, logout } = require('../core/middlewares/session');
-const { generateNonce, parseSIWEMessage, verifySIWESignature, validateSIWEMessage } = require('../core/utils/siwe');
+const { parseSIWEMessage, verifySIWESignature } = require('../core/utils/siwe');
 const Session = require('../core/models/sessions');
 const crypto = require('crypto');
 
@@ -18,54 +18,6 @@ router.get("/stats", async (req, res) => {
         activeUsersCount: usersCount,
         activeAgentsCount: agentsCount
     });
-});
-
-router.get("/auth/nonce", async (req, res) => {
-    try {
-        const { address } = req.query;
-
-        if (!address || !getAddress(address)) {
-            return res.status(400).json({
-                message: 'Valid wallet address is required',
-                error: 'Invalid address parameter'
-            });
-        }
-
-        const nonce = generateNonce();
-        const nonceExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-        const walletAddressHash = sha256(getAddress(address));
-
-        let user = await User.findOne({ walletAddressHash }).exec();
-
-        if (!user) {
-            user = new User({
-                walletAddress: getAddress(address),
-                walletAddressHash,
-                nonce,
-                nonceExpiresAt,
-            });
-        } else {
-            user.nonce = nonce;
-            user.nonceExpiresAt = nonceExpiresAt;
-        }
-
-        await user.save();
-
-        return res.status(200).json({
-            nonce,
-            timestamp: Date.now(),
-            address: getAddress(address),
-            expiresAt: nonceExpiresAt.toISOString()
-        });
-
-    } catch (error) {
-        console.error('Error generating nonce:', error);
-        return res.status(500).json({
-            message: 'Failed to generate nonce',
-            error: 'Internal server error'
-        });
-    }
 });
 
 router.post("/auth/verify", async (req, res) => {
@@ -94,7 +46,7 @@ router.post("/auth/verify", async (req, res) => {
             });
         }
 
-        const { address, nonce } = parsedMessage;
+        const { address } = parsedMessage;
 
         // Enhanced address validation
         let normalizedAddress;
@@ -112,65 +64,12 @@ router.post("/auth/verify", async (req, res) => {
         const walletAddressHash = sha256(normalizedAddress);
 
         // Enhanced user lookup with better error messages
-        const user = await User.findOne({ walletAddressHash }).exec();
+        let user = await User.findOne({ walletAddressHash }).exec();
         if (!user) {
-            console.log('User not found for address:', normalizedAddress);
-            return res.status(400).json({
-                message: 'Wallet address not registered',
-                error: 'No user found for this wallet address',
-                details: 'Please ensure you have requested a nonce for this address'
-            });
-        }
-
-        if (!user.nonce) {
-            console.log('No nonce found for user:', normalizedAddress);
-            return res.status(400).json({
-                message: 'No nonce found',
-                error: 'Please request a new nonce before signing',
-                details: 'Authentication session may have been cleared'
-            });
-        }
-
-        if (user.nonce !== nonce) {
-            console.log('Nonce mismatch:', {
-                expectedNonce: user.nonce,
-                receivedNonce: nonce,
-                address: normalizedAddress
-            });
-            return res.status(400).json({
-                message: 'Nonce mismatch',
-                error: 'The nonce in your message does not match our records',
-                details: 'Please request a new nonce and sign again'
-            });
-        }
-
-        // Enhanced nonce expiration check
-        if (!user.nonceExpiresAt || user.nonceExpiresAt < new Date()) {
-            const expiredTime = user.nonceExpiresAt ? new Date(user.nonceExpiresAt).toISOString() : 'unknown';
-            console.log('Nonce expired:', {
-                address: normalizedAddress,
-                expiredAt: expiredTime,
-                currentTime: new Date().toISOString()
-            });
-            return res.status(400).json({
-                message: 'Nonce has expired',
-                error: 'Your authentication session has timed out',
-                details: `Nonce expired at ${expiredTime}. Please request a new nonce.`
-            });
-        }
-
-        // Enhanced SIWE message validation
-        const validation = validateSIWEMessage(parsedMessage, nonce);
-        if (!validation.valid) {
-            console.log('SIWE message validation failed:', {
-                error: validation.error,
-                address: normalizedAddress,
-                nonce: nonce
-            });
-            return res.status(400).json({
-                message: 'SIWE message validation failed',
-                error: validation.error,
-                details: 'The message format or timing requirements are not met'
+            // Create new user if they don't exist
+            user = new User({
+                walletAddress: getAddress(address),
+                walletAddressHash,
             });
         }
 
@@ -190,8 +89,6 @@ router.post("/auth/verify", async (req, res) => {
             });
         }
 
-        user.nonce = null;
-        user.nonceExpiresAt = null;
         user.lastLogin = new Date();
         await user.save();
 
@@ -251,9 +148,9 @@ router.post("/auth/verify", async (req, res) => {
         }
 
         return res.status(500).json({
-            message: 'Authentication system error',
-            error: 'An unexpected error occurred during verification',
-            details: 'Please try again or contact support if the issue persists'
+            message: 'Internal server error',
+            error: 'An unexpected error occurred',
+            details: 'Please try again in a moment'
         });
     }
 });
