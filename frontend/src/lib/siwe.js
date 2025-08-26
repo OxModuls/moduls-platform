@@ -1,24 +1,17 @@
 
-export function createSIWEMessage(address, nonce, chainId = 1328, domain = 'www.moduls.fun', timestamp) {
+export function createSIWEMessage(address, timestamp, chainId = 1328, domain = 'www.moduls.fun') {
     if (!timestamp) {
-        throw new Error('Server timestamp is required for SIWE message creation');
+        throw new Error('Timestamp is required for SIWE message creation');
     }
-
     const uri = `https://${domain}`;
-
-    // Use server UTC timestamp directly - no conversion needed
-    // Backend sends UTC ISO string, use it as-is to maintain consistency
+    // Use timestamp directly - no conversion needed
     const issuedAt = timestamp;
-
     return `${domain} wants you to sign in with your Ethereum account:
 ${address}
-
 Sign in to Moduls with your wallet
-
 URI: ${uri}
 Version: 1
 Chain ID: ${chainId}
-Nonce: ${nonce}
 Issued At: ${issuedAt}`;
 }
 

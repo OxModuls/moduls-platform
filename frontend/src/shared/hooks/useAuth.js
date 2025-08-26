@@ -53,16 +53,11 @@ export const useAuth = () => {
         }
 
         try {
-            // 1. Get nonce + timestamp from server
-            const { nonce, timestamp } = await createFetcher({
-                method: "GET",
-                url: `${config.endpoints.getNonce}?address=${encodeURIComponent(address)}`,
-            })();
+            // 1. Create SIWE message with current timestamp
+            const timestamp = new Date().toISOString();
+            const { signature, message } = await getSIWESignature(timestamp, isAuthenticated);
 
-            // 2. Sign message with server timestamp
-            const { signature, message } = await getSIWESignature(nonce, timestamp, isAuthenticated);
-
-            // 3. Verify signature
+            // 2. Verify signature
             await createFetcher({
                 method: "POST",
                 url: config.endpoints.verifySignature,
@@ -70,7 +65,7 @@ export const useAuth = () => {
                 credentials: 'include'
             })();
 
-            // 4. Refresh user data silently
+            // 3. Refresh user data silently
             await queryClient.invalidateQueries(["auth-user", address]);
 
         } catch (error) {

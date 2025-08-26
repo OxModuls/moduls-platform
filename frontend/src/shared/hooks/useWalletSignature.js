@@ -13,27 +13,26 @@ export const useWalletSignature = () => {
   const { disconnect } = useDisconnect();
   const { openSignatureModal } = useSignatureModalStore();
 
-  const getSIWESignature = useCallback(async (nonce, timestamp, isAuthenticated = false) => {
+  const getSIWESignature = useCallback(async (timestamp, isAuthenticated = false) => {
     // Ignore signature requests if user is already authenticated
     if (isAuthenticated) {
       return { signature: null, message: null };
     }
 
-    if (!isConnected || !address || !nonce) {
-      throw new Error("Wallet not connected or nonce missing");
+    if (!isConnected || !address) {
+      throw new Error("Wallet not connected");
     }
 
     if (!timestamp) {
-      throw new Error("Server timestamp is required");
+      throw new Error("Timestamp is required");
     }
 
     // Create the SIWE message first
     const message = createSIWEMessage(
       address,
-      nonce,
+      timestamp,
       chainId || 1328,
-      config.domain,
-      timestamp
+      config.domain
     );
 
     // Return a promise that resolves when user confirms
@@ -41,7 +40,6 @@ export const useWalletSignature = () => {
       const messageDetails = {
         domain: config.domain,
         chainId: chainId || 1328,
-        nonce,
         issuedAt: timestamp,
         address
       };
