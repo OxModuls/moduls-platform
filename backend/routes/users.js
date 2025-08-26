@@ -54,7 +54,7 @@ router.get("/auth/nonce", async (req, res) => {
 
         return res.status(200).json({
             nonce,
-            timestamp: Date.now(),
+            timestamp: new Date().toISOString(), // Always send UTC for consistency
             address: getAddress(address),
             expiresAt: nonceExpiresAt.toISOString()
         });

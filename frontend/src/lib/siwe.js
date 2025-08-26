@@ -1,9 +1,14 @@
-/**
- * Create a SIWE (Sign-In with Ethereum) message
- */
-export function createSIWEMessage(address, nonce, chainId = 1328, domain = 'www.moduls.fun', timestamp = null) {
+
+export function createSIWEMessage(address, nonce, chainId = 1328, domain = 'www.moduls.fun', timestamp) {
+    if (!timestamp) {
+        throw new Error('Server timestamp is required for SIWE message creation');
+    }
+
     const uri = `https://${domain}`;
-    const issuedAt = timestamp ? new Date(timestamp).toISOString() : new Date().toISOString();
+
+    // Use server UTC timestamp directly - no conversion needed
+    // Backend sends UTC ISO string, use it as-is to maintain consistency
+    const issuedAt = timestamp;
 
     return `${domain} wants you to sign in with your Ethereum account:
 ${address}

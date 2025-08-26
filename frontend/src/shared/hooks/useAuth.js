@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useWalletSignature } from "./useWalletSignature";
 import { createFetcher } from "../../lib/fetcher";
@@ -12,108 +12,57 @@ export const useAuth = () => {
     const { getSIWESignature } = useWalletSignature();
     const queryClient = useQueryClient();
 
-    // Prevent concurrent authentication calls
-    const [isAuthenticating, setIsAuthenticating] = useState(false);
-
-    // Fetch current user if authenticated
+    // Simple user fetch - no complex retry logic
     const {
         data: user,
         isLoading,
-        error,
-        refetch: refetchUser
+        error
     } = useQuery({
         queryKey: ["auth-user", address],
         queryFn: async () => {
             if (!isConnected || !address) return null;
 
-            try {
-                return await createFetcher({
-                    method: "GET",
-                    url: config.endpoints.getAuthUser,
-                    credentials: 'include'
-                })();
-            } catch (error) {
-                if (error?.status === 401) {
-                    return null; // Not authenticated
-                }
-                throw error;
-            }
+            return await createFetcher({
+                method: "GET",
+                url: config.endpoints.getAuthUser,
+                credentials: 'include'
+            })();
         },
         enabled: isConnected && !!address,
-        retry: (failureCount, error) => {
-            // Don't retry 401 errors (not authenticated)
-            if (error?.status === 401) return false;
-            return failureCount < 2;
-        },
+        retry: false, // No retries - simple fail/succeed
         staleTime: 1000 * 60 * 5, // 5 minutes
         refetchOnWindowFocus: false,
+        onError: (error) => {
+            // Handle 401 errors - expired session
+            if (error?.status === 401) {
+                disconnect();
+                toast.error("Session expired - please sign in again");
+                return;
+            }
+            // Log other errors for debugging
+            console.error('Auth user fetch error:', error);
+        }
     });
 
     const isAuthenticated = !!user;
 
-    // Debug logging
-    // useEffect(() => {
-    //     console.log("🔍 Auth state:", {
-    //         isConnected,
-    //         address: address?.slice(0, 6) + "...",
-    //         isAuthenticated,
-    //         isLoading,
-    //         user: !!user
-    //     });
-    // }, [isConnected, address, isAuthenticated, isLoading, user]);
-
-    // Authenticate user
+    // Simplified authenticate - direct SIWE flow
     const authenticate = useCallback(async () => {
         if (!isConnected || !address) {
             throw new Error('Wallet not connected');
         }
 
-        // Prevent concurrent authentication calls
-        if (isAuthenticating) {
-            console.log('Authentication already in progress, ignoring duplicate call');
-            toast.info('Authentication already in progress');
-            return;
-        }
-
         try {
-            setIsAuthenticating(true);
-            // 1) Validate existing session first. Only proceed to SIWE if invalid/expired (401)
-            let shouldPerformSiwe = false;
-            try {
-                const existing = await createFetcher({
-                    method: "GET",
-                    url: config.endpoints.getAuthUser,
-                    credentials: 'include'
-                })();
-                if (existing) {
-                    // Ensure cache reflects current user and return early (no SIWE prompt)
-                    await refetchUser();
-                    return;
-                }
-            } catch (err) {
-                if (err?.status === 401) {
-                    // Not authenticated → perform SIWE
-                    shouldPerformSiwe = true;
-                } else {
-                    // Other errors (network/server). Do not trigger SIWE; surface error instead
-                    throw err;
-                }
-            }
-
-            if (!shouldPerformSiwe) {
-                return;
-            }
-
-            // Get nonce and timestamp from server
+            // 1. Get nonce + timestamp from server
             const { nonce, timestamp } = await createFetcher({
                 method: "GET",
                 url: `${config.endpoints.getNonce}?address=${encodeURIComponent(address)}`,
             })();
 
-            // Sign SIWE message with server timestamp
-            const { signature, message } = await getSIWESignature(nonce, timestamp);
+            // 2. Sign message with server timestamp
+            const { signature, message } = await getSIWESignature(nonce, timestamp, isAuthenticated);
 
-            // Verify signature
+            // 3. Verify signature
             await createFetcher({
                 method: "POST",
                 url: config.endpoints.verifySignature,
@@ -121,49 +70,36 @@ export const useAuth = () => {
                 credentials: 'include'
             })();
 
-            // Refresh user data and verify authentication was successful
-            const { data: userData } = await refetchUser();
-            if (userData) {
-                toast.success('Authentication successful!');
-            } else {
-                throw new Error('Failed to fetch user data after authentication');
-            }
+            // 4. Refresh user data silently
+            await queryClient.invalidateQueries(["auth-user", address]);
 
         } catch (error) {
-            // Enhanced mobile error detection and handling
-            const errorMessage = error.message?.toLowerCase() || '';
-            const isMobileDevice = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+            // Always disconnect first on any error
+            disconnect();
 
-            if (errorMessage.includes('rejected') || errorMessage.includes('denied')) {
-                disconnect();
-                toast.error("Authentication cancelled");
-                throw new Error("USER_REJECTED");
+            // Log the error for debugging
+            console.error('Authentication error:', error);
+
+            // Handle server error messages from signature verification
+            if (error?.message && error?.status) {
+                // Server returned an error with status and message from createFetcher
+                toast.error(error.message);
+            } else if (error?.message?.includes('rejected') || error?.message?.includes('denied') || error?.message?.includes('User rejected')) {
+                toast.error("Authentication cancelled by user");
+            } else if (error?.message?.includes('signature') || error?.message?.includes('sign')) {
+                toast.error("Signature request failed");
+            } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+                toast.error("Network error - please check your connection");
+            } else if (error?.message?.includes('timeout')) {
+                toast.error("Request timeout - please try again");
+            } else {
+                // Generic error message for unmatched errors
+                toast.error("Authentication failed - please try again");
             }
-
-            if (errorMessage.includes('network') || errorMessage.includes('chain')) {
-                toast.error("Wrong network. Please switch to SEI Testnet in your wallet.");
-                throw new Error("WRONG_NETWORK");
-            }
-
-            if (isMobileDevice && (errorMessage.includes('timeout') || errorMessage.includes('connection'))) {
-                toast.error("Connection timeout. Please keep your wallet app open and try again.");
-                throw new Error("MOBILE_TIMEOUT");
-            }
-
-            if (isMobileDevice && errorMessage.includes('fetch')) {
-                toast.error("Network error. Please check your connection and try again.");
-                throw new Error("NETWORK_ERROR");
-            }
-
-            toast.error(error.message || 'Authentication failed');
-            throw error;
-        } finally {
-            // Always reset the authentication flag
-            setIsAuthenticating(false);
         }
-    }, [isConnected, address, getSIWESignature, refetchUser, disconnect, isAuthenticating]);
+    }, [isConnected, address, getSIWESignature, queryClient, disconnect, isAuthenticated]);
 
-    // Logout
+    // Simple logout - no success toast
     const logout = useCallback(async () => {
         try {
             await createFetcher({
@@ -176,7 +112,6 @@ export const useAuth = () => {
         }
 
         queryClient.clear();
-        toast.success('Logged out successfully');
     }, [queryClient]);
 
     return {
@@ -185,8 +120,6 @@ export const useAuth = () => {
         isLoading,
         error,
         authenticate,
-        logout,
-        refetch: refetchUser,
-        isAuthenticating
+        logout
     };
 };
