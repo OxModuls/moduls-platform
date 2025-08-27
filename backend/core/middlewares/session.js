@@ -25,7 +25,10 @@ const verifySession = async (req, res, next) => {
         if (!session) {
             console.log(`❌ [Session] 401 - Session not found or expired: ${sessionId.substring(0, 8)}... for ${req.method} ${req.url}`);
             // Clear invalid cookie
-            res.clearCookie('session', { path: '/' });
+            res.clearCookie('session', {
+                path: '/',
+                domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
+            });
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
                 error: 'Invalid or expired session'
@@ -46,7 +49,10 @@ const verifySession = async (req, res, next) => {
             session.isActive = false;
             await session.save();
 
-            res.clearCookie('session', { path: '/' });
+            res.clearCookie('session', {
+                path: '/',
+                domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
+            });
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
                 error: 'User not found'
@@ -59,7 +65,10 @@ const verifySession = async (req, res, next) => {
             session.isActive = false;
             await session.save();
 
-            res.clearCookie('session', { path: '/' });
+            res.clearCookie('session', {
+                path: '/',
+                domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
+            });
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
                 error: 'User account inactive'
@@ -129,11 +138,17 @@ const logout = async (req, res) => {
             await req.session.save();
         }
 
-        res.clearCookie('session', { path: '/' });
+        res.clearCookie('session', {
+            path: '/',
+            domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
+        });
         return res.status(200).json({ success: true, message: 'Logged out successfully' });
     } catch (error) {
         console.error('Logout error:', error);
-        res.clearCookie('session', { path: '/' });
+        res.clearCookie('session', {
+            path: '/',
+            domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
+        });
         return res.status(500).json({
             message: 'Logout failed',
             error: 'Internal server error'

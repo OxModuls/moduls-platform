@@ -106,13 +106,25 @@ router.post("/auth/verify", async (req, res) => {
 
         await session.save();
 
-        res.cookie('session', sessionId, {
+        const cookieOptions = {
             httpOnly: true,
-            secure: config.env === 'production',
-            sameSite: 'strict',
-            maxAge: 24 * 60 * 60 * 1000,
-            path: '/'
+            secure: config.env === 'production' && req.secure,
+            sameSite: 'none',  // Use 'none' for mobile compatibility
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/',
+            domain: config.env === 'production' ? '.moduls.fun' : undefined  // Leading dot for all subdomains
+        };
+
+        console.log(`🍪 [Cookie] Setting session cookie:`, {
+            sessionId: sessionId.substring(0, 8) + '...',
+            options: cookieOptions,
+            userAgent: req.headers['user-agent']?.substring(0, 50) + '...',
+            isMobile: /Mobile|Android|iPhone|iPad/.test(req.headers['user-agent'] || ''),
+            secure: req.secure,
+            host: req.headers.host
         });
+
+        res.cookie('session', sessionId, cookieOptions);
 
         return res.status(200).json({
             success: true,
