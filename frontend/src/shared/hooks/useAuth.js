@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useWalletSignature } from "./useWalletSignature";
-import { createFetcher } from "../../lib/fetcher";
+import { createFetcher, setSessionId, clearSessionId } from "../../lib/fetcher";
 import config from "../config";
 import { toast } from "sonner";
 
@@ -58,12 +58,17 @@ export const useAuth = () => {
             const { signature, message } = await getSIWESignature(timestamp, isAuthenticated);
 
             // 2. Verify signature
-            await createFetcher({
+            const response = await createFetcher({
                 method: "POST",
                 url: config.endpoints.verifySignature,
                 body: { message, signature },
                 credentials: 'include'
             })();
+
+            // Store session ID from response if available
+            if (response?.sessionId) {
+                setSessionId(response.sessionId);
+            }
 
             // 3. Refresh user data silently
             await queryClient.invalidateQueries(["auth-user", address]);
@@ -107,6 +112,7 @@ export const useAuth = () => {
         }
 
         queryClient.clear();
+        clearSessionId(); // Clear session ID on logout
     }, [queryClient]);
 
     return {

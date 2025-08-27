@@ -1,5 +1,24 @@
 import config from "../shared/config";
 
+// Session storage utilities
+const SESSION_STORAGE_KEY = 'moduls_session_id';
+
+export function getSessionId() {
+    return localStorage.getItem(SESSION_STORAGE_KEY);
+}
+
+export function setSessionId(sessionId) {
+    if (sessionId) {
+        localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    } else {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+}
+
+export function clearSessionId() {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+}
+
 export function makeUrl(pathname) {
     return `${config.apiUrl}${pathname}`;
 }
@@ -21,6 +40,12 @@ export async function fetchUtil({
         ...opts,
         headers: { ...headers }, // Start with provided headers
     };
+
+    // Automatically add session ID from localStorage if available
+    const sessionId = getSessionId();
+    if (sessionId) {
+        options.headers["X-Session-ID"] = sessionId;
+    }
 
     if (["POST", "PUT", "PATCH"].includes(method)) {
         if (formEncoded) {
