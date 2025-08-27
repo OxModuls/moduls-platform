@@ -3,10 +3,18 @@ const User = require('../models/users');
 
 const verifySession = async (req, res, next) => {
     try {
-        const sessionId = req.cookies?.session;
+        let sessionId = req.cookies?.session;
+
+        // Fallback to header if cookie not found
+        if (!sessionId) {
+            sessionId = req.headers['x-session-id'];
+            if (sessionId) {
+                console.log(`🔍 [Session] Using header session ID: ${sessionId.substring(0, 8)}... for ${req.method} ${req.url}`);
+            }
+        }
 
         if (!sessionId) {
-            console.log(`🔒 [Session] 401 - No session cookie found for ${req.method} ${req.url}`);
+            console.log(`🔒 [Session] 401 - No session cookie or header found for ${req.method} ${req.url}`);
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
                 error: 'No session found'
@@ -95,7 +103,12 @@ const verifySession = async (req, res, next) => {
 
 const optionalSession = async (req, res, next) => {
     try {
-        const sessionId = req.cookies?.session;
+        let sessionId = req.cookies?.session;
+
+        // Fallback to header if cookie not found
+        if (!sessionId) {
+            sessionId = req.headers['x-session-id'];
+        }
 
         if (sessionId) {
             const session = await Session.findOne({

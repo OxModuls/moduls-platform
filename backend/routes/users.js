@@ -128,6 +128,7 @@ router.post("/auth/verify", async (req, res) => {
 
         return res.status(200).json({
             success: true,
+            sessionId: sessionId, // Include session ID for localStorage storage
             user: {
                 id: user._id,
                 walletAddress: user.walletAddress,
