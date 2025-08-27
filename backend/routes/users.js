@@ -108,7 +108,7 @@ router.post("/auth/verify", async (req, res) => {
 
         const cookieOptions = {
             httpOnly: true,
-            secure: config.env === 'production' && req.secure,
+            secure: config.env === 'production',
             sameSite: 'none',  // Use 'none' for mobile compatibility
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
             path: '/',
