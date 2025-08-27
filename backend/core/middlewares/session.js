@@ -51,7 +51,6 @@ const verifySession = async (req, res, next) => {
 
             res.clearCookie('session', {
                 path: '/',
-                domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
             });
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
@@ -66,8 +65,7 @@ const verifySession = async (req, res, next) => {
             await session.save();
 
             res.clearCookie('session', {
-                path: '/',
-                domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
+                path: '/'
             });
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
@@ -132,6 +130,8 @@ const optionalSession = async (req, res, next) => {
 };
 
 const logout = async (req, res) => {
+
+    console.log('🔒 [Session] Logging out user:', req.user.walletAddress);
     try {
         if (req.session) {
             req.session.isActive = false;
@@ -140,14 +140,13 @@ const logout = async (req, res) => {
 
         res.clearCookie('session', {
             path: '/',
-            domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
         });
+        console.log('🔒 [Session] Logged out user:', req.user.walletAddress);
         return res.status(200).json({ success: true, message: 'Logged out successfully' });
     } catch (error) {
         console.error('Logout error:', error);
         res.clearCookie('session', {
             path: '/',
-            domain: process.env.NODE_ENV === 'production' ? '.moduls.fun' : undefined
         });
         return res.status(500).json({
             message: 'Logout failed',

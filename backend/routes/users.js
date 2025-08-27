@@ -109,10 +109,10 @@ router.post("/auth/verify", async (req, res) => {
         const cookieOptions = {
             httpOnly: true,
             secure: config.env === 'production',
-            sameSite: 'none',  // Use 'none' for mobile compatibility
+            sameSite: config.env === 'production' ? 'none' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
             path: '/',
-            domain: config.env === 'production' ? '.moduls.fun' : undefined  // Leading dot for all subdomains
+
         };
 
         console.log(`🍪 [Cookie] Setting session cookie:`, {
