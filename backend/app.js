@@ -72,7 +72,8 @@ function setupMiddleware() {
     app.use(cors({
         origin: config.allowedOrigins,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-ID'],
+        exposedHeaders: ['X-Session-ID'],
         credentials: true,
     }));
 }
