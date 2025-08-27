@@ -40,12 +40,10 @@ app.set('port', config.port);
 // MIDDLEWARE SETUP
 // ============================================================================
 function setupMiddleware() {
-    // Logging - Always use dev logging for development visibility
+    // Logging - Show response code and method/url
     app.use(morgan('dev', {
-        immediate: true,
         stream: {
             write: (message) => {
-                // Force write to stdout and ensure it's visible
                 process.stdout.write(message);
             }
         }
