@@ -6,11 +6,14 @@ const verifySession = async (req, res, next) => {
         const sessionId = req.cookies?.session;
 
         if (!sessionId) {
+            console.log(`🔒 [Session] 401 - No session cookie found for ${req.method} ${req.url}`);
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
                 error: 'No session found'
             });
         }
+
+        console.log(`🔍 [Session] Verifying session: ${sessionId.substring(0, 8)}... for ${req.method} ${req.url}`);
 
         // Find active session
         const session = await Session.findOne({
@@ -20,6 +23,7 @@ const verifySession = async (req, res, next) => {
         }).exec();
 
         if (!session) {
+            console.log(`❌ [Session] 401 - Session not found or expired: ${sessionId.substring(0, 8)}... for ${req.method} ${req.url}`);
             // Clear invalid cookie
             res.clearCookie('session', { path: '/' });
             return res.status(401).json({
@@ -28,23 +32,41 @@ const verifySession = async (req, res, next) => {
             });
         }
 
+        console.log(`✅ [Session] Session found, expires at: ${session.expiresAt.toISOString()}`);
+
         // Find associated user
         const user = await User.findById(session.userId)
             .select('walletAddress walletAddressHash isActive')
             .lean()
             .exec();
 
-        if (!user || !user.isActive) {
-            // Deactivate session if user is not found or inactive
+        if (!user) {
+            console.log(`❌ [Session] 401 - User not found for session ${sessionId.substring(0, 8)}..., userId: ${session.userId} for ${req.method} ${req.url}`);
+            // Deactivate session if user is not found
             session.isActive = false;
             await session.save();
 
             res.clearCookie('session', { path: '/' });
             return res.status(401).json({
                 message: 'You must be logged in to access this resource',
-                error: 'User not found or inactive'
+                error: 'User not found'
             });
         }
+
+        if (!user.isActive) {
+            console.log(`❌ [Session] 401 - User inactive for session ${sessionId.substring(0, 8)}..., wallet: ${user.walletAddress} for ${req.method} ${req.url}`);
+            // Deactivate session if user is inactive
+            session.isActive = false;
+            await session.save();
+
+            res.clearCookie('session', { path: '/' });
+            return res.status(401).json({
+                message: 'You must be logged in to access this resource',
+                error: 'User account inactive'
+            });
+        }
+
+        console.log(`✅ [Session] User verified: ${user.walletAddress} (${user.isActive ? 'active' : 'inactive'})`);
 
         // Update session last accessed time
         session.lastAccessed = new Date();
@@ -56,7 +78,7 @@ const verifySession = async (req, res, next) => {
         next();
 
     } catch (error) {
-        console.error('Session verification error:', error);
+        console.error(`❌ [Session] 500 - Session verification error for ${req.method} ${req.url}:`, error);
         return res.status(500).json({
             message: 'Authentication error',
             error: 'Internal server error'
