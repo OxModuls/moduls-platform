@@ -40,25 +40,16 @@ app.set('port', config.port);
 // MIDDLEWARE SETUP
 // ============================================================================
 function setupMiddleware() {
-    // Logging
-    if (config.isDev) {
-        // Use immediate: true to flush logs immediately
-        app.use(morgan('dev', {
-            immediate: true,
-            stream: {
-                write: (message) => {
-                    // Force write to stdout
-                    process.stdout.write(message);
-                }
+    // Logging - Always use dev logging for development visibility
+    app.use(morgan('dev', {
+        immediate: true,
+        stream: {
+            write: (message) => {
+                // Force write to stdout and ensure it's visible
+                process.stdout.write(message);
             }
-        }));
-    } else {
-        const accessLogStream = fs.createWriteStream(
-            path.join(__dirname, 'access.log'),
-            { flags: 'a' }
-        );
-        app.use(morgan('combined', { stream: accessLogStream }));
-    }
+        }
+    }));
 
     // Body parsing
     app.use(express.json({ limit: '2mb' }));
@@ -136,6 +127,7 @@ function setupErrorHandling() {
 
     // 404 handler
     app.use((req, res) => {
+        console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
         res.status(404).json({
             error: 'Not Found',
             message: `Route ${req.originalUrl} not found`
@@ -267,24 +259,45 @@ async function startApplication() {
         setupRoutes();
         setupErrorHandling();
 
-        // Connect to database with increased timeout
+        // Connect to database
         await connectDB();
-        mongoose.set('bufferTimeoutMS', 15000); // Increase timeout to 15 seconds
         console.log('✅ Connected to MongoDB');
+
+
+        // Initialize MCP server (non-blocking)
+        let mcpServer = null;
+        try {
+            mcpServer = await Promise.race([
+                initializeMCPServer(),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('MCP server timeout')), 10000)
+                )
+            ]);
+        } catch (mcpError) {
+            console.warn('⚠️ MCP server initialization failed:', mcpError.message);
+        }
+
+        // Initialize event system (non-blocking)
+        let eventUnwatchers = { eventUnwatch: null, tradingEventUnwatch: null, tokenEventUnwatch: null };
+        try {
+            eventUnwatchers = await Promise.race([
+                initializeEventSystem(),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Event system timeout')), 15000)
+                )
+            ]);
+        } catch (eventError) {
+            console.warn('⚠️ Event system initialization failed:', eventError.message);
+        }
+
 
         // Start server
         const server = app.listen(app.get('port'), () => {
             console.log(`✅ ${config.appName} is running on port ${app.get('port')}`);
         });
 
-        // Initialize MCP server
-        const mcpServer = await initializeMCPServer();
-
-        // Initialize event system
-        const { eventUnwatch, tradingEventUnwatch, tokenEventUnwatch } = await initializeEventSystem();
-
         // Setup graceful shutdown with server reference
-        setupGracefulShutdown(server, { eventUnwatch, tradingEventUnwatch, tokenEventUnwatch }, mcpServer);
+        setupGracefulShutdown(server, eventUnwatchers, mcpServer);
 
         console.log('🎉 Application startup completed successfully!');
 

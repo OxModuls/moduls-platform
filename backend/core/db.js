@@ -1,16 +1,20 @@
 const mongoose = require('mongoose');
 const config = require('../config');
 
-
-
 async function connectDB() {
-
-
     try {
-        await mongoose.connect(config.dbUrl);
-        console.log(`✅ [Database] Successfully connected to MongoDB at: ${config.dbUrl}`);
+        // Add connection options with timeouts
+        const options = {
+            serverSelectionTimeoutMS: 10000, // 10 seconds
+            socketTimeoutMS: 10000, // 10 seconds
+            connectTimeoutMS: 10000, // 10 seconds
+        };
+
+        await mongoose.connect(config.dbUrl, options);
+        console.log(`✅ Connected to MongoDB`);
     } catch (error) {
-        console.log(error);
+        console.error('❌ Database connection failed:', error.message);
+        throw error;
     }
 }
 
